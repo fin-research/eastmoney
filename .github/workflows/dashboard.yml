@@ -50,9 +50,30 @@ jobs:
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: visual-pnpm10.33.2-${{ runner.os }}-${{ runner.arch }}-7c8b030fa654-${{ hashFiles('dashboard/pnpm-lock.yaml') }}
+      - name: Check matching local Node headers
+        run: |
+          node <<'JS'
+          const fs = require('node:fs');
+          const root = '/usr/include/node/';
+          for (const file of ['node.h', 'node_version.h', 'common.gypi', 'config.gypi']) fs.accessSync(root + file, fs.constants.R_OK);
+          const text = fs.readFileSync(root + 'node_version.h', 'utf8');
+          const version = ['MAJOR', 'MINOR', 'PATCH'].map(part => text.match(new RegExp('#define NODE_' + part + '_VERSION\\s+(\\d+)'))[1]).join('.');
+          if (version !== process.versions.node) throw new Error(`Node headers ${version} differ from runtime ${process.versions.node}`);
+          console.log(`Matched local Node headers ${version}`);
+          JS
       - name: Install locked dependencies
         timeout-minutes: 20
+        env:
+          npm_config_nodedir: /usr
         run: pnpm install --frozen-lockfile --prefer-offline
+      - name: Check native SQLite
+        run: |
+          node --input-type=module <<'JS'
+          import Database from 'better-sqlite3';
+          const db = new Database(':memory:');
+          if (db.prepare('SELECT 1 AS ok').get().ok !== 1) throw new Error('Native SQLite check failed');
+          db.close();
+          JS
       - run: test "$(pnpm exec playwright --version)" = 'Version 1.63.0'
       - run: pnpm test:ci-tools
       - run: pnpm check:visual-coverage
