@@ -168,3 +168,27 @@ test('financing-model suspends numbers while keeping manual work accessible', as
   expect(saved.verdict).toBe('人工判断');expect(saved.preferredWindow).toBe('下周询价');
   expect(errors).toEqual([]);
 });
+
+test('financing-model displays published timing advice without coupon placeholders',async({page})=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await mockResources(page);
+ const {timingAdviceSnapshot}=await import('../fixtures/timing-advice.mjs');
+ const snapshot=timingAdviceSnapshot();
+ const current={business_metrics:financingModel.business_metrics,model_status:{model_version:snapshot.model_version,status:'active',reason:'user_selected_exploratory'},snapshot,conclusion:{verdict:'尽快',preferredWindow:'',narrative:snapshot.base_conclusion.narrative,edited:false,updatedAt:null},sellSide:financingModel.sellSide,versions:[{runId:snapshot.run_id,asOfDate:snapshot.as_of_date,generatedAt:snapshot.generated_at}]};
+ await page.route('**/api/financing-model',route=>route.fulfill({json:current}));
+ await page.goto('/trading-research/financing-model');
+ await expect(page.getByRole('heading',{name:'发行建议概率'})).toBeVisible();
+ await expect(page.getByText('55.0',{exact:true})).toBeVisible();
+ await expect(page.getByText('AAA证券公司债3Y',{exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'开发检验'})).toBeVisible();
+ await expect(page.getByText('用户选定试用',{exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'四品种对比'})).toHaveCount(0);
+ await expect(page.getByText('预测发行利率',{exact:true})).toHaveCount(0);
+ await expect(page.getByRole('heading',{name:'因子贡献'})).toHaveCount(0);
+ await expect(page.getByRole('textbox',{name:'整体结论'})).toHaveValue(snapshot.base_conclusion.narrative);
+ await page.evaluate(()=>document.fonts.ready);
+ await expect(page.locator('.tr-workspace')).toHaveScreenshot('financing-model-timing.png');
+ await expect(page.getByRole('region',{name:'发行建议概率',exact:true})).toHaveScreenshot('financing-model-timing-probabilities.png');
+ await expect(page.getByRole('region',{name:'开发检验',exact:true})).toHaveScreenshot('financing-model-timing-validation.png');
+ expect(errors).toEqual([]);
+});

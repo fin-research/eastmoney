@@ -1,3 +1,4 @@
+import type { TimingAdviceSnapshot } from "../timing-advice";
 import type { IssuanceSnapshot } from "../issuance-model";
 import { z } from "zod";
 
@@ -70,7 +71,7 @@ export class FinancingModelResearchError extends Error {
 }
 
 export async function generateFinancingModelResearch(
-  snapshot: FinancingModelSnapshot | IssuanceSnapshot,
+  snapshot: FinancingModelSnapshot | IssuanceSnapshot | TimingAdviceSnapshot,
   credentials: AiGatewayCredentials,
   fetcher: typeof fetch = fetch,
   options: { signal?: AbortSignal; onProgress?: (summary: string) => void } = {},
@@ -325,7 +326,7 @@ function resolveResearchViews(
 }
 
 function researchMessages(
-  snapshot: FinancingModelSnapshot | IssuanceSnapshot,
+  snapshot: FinancingModelSnapshot | IssuanceSnapshot | TimingAdviceSnapshot,
   documents: ResearchDocument[],
 ) {
   return [
@@ -342,7 +343,7 @@ function researchMessages(
     {
       role: "user" as const,
       content: JSON.stringify({
-        model: "forecast" in snapshot ? {
+        model: "probabilities" in snapshot ? {asOfDate:snapshot.as_of_date,marketDataDate:snapshot.market_source_date,scope:snapshot.scope,probabilities:snapshot.probabilities,decision:snapshot.decision} : "forecast" in snapshot ? {
           asOfDate:snapshot.as_of_date,marketDataDate:snapshot.market_source_date,
           couponPercent:snapshot.forecast[0]?.coupon_percent, decision:snapshot.decision,
           shap:snapshot.explanation, futureWindow:snapshot.forecast,
@@ -365,8 +366,8 @@ function researchMessages(
   ];
 }
 
-function buildResearchQuery(snapshot: FinancingModelSnapshot | IssuanceSnapshot): string {
-  const driverNames = ("forecast" in snapshot ? [] : snapshot.market_drivers)
+function buildResearchQuery(snapshot: FinancingModelSnapshot | IssuanceSnapshot | TimingAdviceSnapshot): string {
+  const driverNames = ("forecast" in snapshot || "probabilities" in snapshot ? [] : snapshot.market_drivers)
     .slice(0, 5)
     .map((driver) => driver.display_name)
     .join("、");

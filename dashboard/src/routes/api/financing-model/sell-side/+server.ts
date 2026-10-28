@@ -1,4 +1,4 @@
-import { loadIssuanceModelReport, saveActiveIssuanceSellSide } from "$lib/server/issuance-model-repository";
+import { saveActiveIssuanceSellSide } from "$lib/server/issuance-model-repository";
 import { z } from "zod";
 
 import { sellSideSummaryUpdateSchema } from "$lib/financing-model";
@@ -14,6 +14,8 @@ import {
 import { withPostgres } from "$lib/server/postgres";
 import { createAiSseResponse } from "$lib/server/ai-sse";
 import type { RequestHandler } from "./$types";
+
+import { loadCurrentFinancingReport } from "$lib/server/timing-advice-repository";
 
 const requestSchema = z.object({ runId: z.string().uuid() }).strict();
 
@@ -32,7 +34,7 @@ export const POST: RequestHandler = async ({ request, platform, url }) => {
     const report = await withPostgres(
       env.HYPERDRIVE?.connectionString,
       "eastmoney-financing-model-research-read",
-      (client) => loadIssuanceModelReport(client, runId),
+      (client) => loadCurrentFinancingReport(client, runId),
     );
     if (report.model_status.status !== 'active') {
       throw new FinancingModelResearchError(409, '数据不满足要求，暂停预测');
@@ -129,7 +131,7 @@ export const PATCH: RequestHandler = async ({ request, platform, url }) => {
       platform?.env.HYPERDRIVE?.connectionString,
       "eastmoney-financing-model-research-revision",
       async (client) => {
-        const report = await loadIssuanceModelReport(client, input.runId);
+        const report = await loadCurrentFinancingReport(client, input.runId);
         if (!report.sellSide) {
           throw new FinancingModelDatabaseError(404, "尚未生成卖方观点");
         }

@@ -3,7 +3,7 @@
 本地研究使用普通checkout。数据、模型和运行产物保留在本地忽略目录，可按研究需要更新。下文旧工作树路径只用于历史证据追溯，不要求新建worktree。已发布模型的身份与哈希仍按发布规则保存。
 ## Project Overview
 
-本仓库维护本地 Python 量化训练与债券票面线上推理。债券使用统一真实票面回归模型与可加总贡献解释。`online/` 独立 Workflow 只读线上输入，在 R2 `quant-trial/` 归档成功结果并发布到同一生产模型表，不提供公网 API。两融模型已封存于 `archive/`，不参与当前研究报告或默认流程。
+本仓库维护本地 Python 量化训练与债券择时线上推理。当前生产选用三档概率建议，旧真实票面模型保持暂停。`online/` 独立 Workflow 只读线上输入，在 R2 `quant-trial/` 归档成功结果并发布到同一生产模型表，不提供公网 API。两融模型已封存于 `archive/`，不参与当前研究报告或默认流程。
 
 - 运行环境：macOS Apple Silicon、Python 3.12、`uv`
 - 主要技术：pandas、scikit-learn、LightGBM、SHAP、TimesFM
@@ -14,7 +14,7 @@
 - 修改前先搜索现有实现、类型、特征注册表和测试。不要建立平行 pipeline、重复特征或重复评估口径。
 - 只修改当前任务需要的文件，保留已有改动。不得用删除测试、关闭检查或忽略错误的方式让任务通过。
 - 本地训练与线上推理分离。`online/` Worker 不设置公网路由，只读输入表、读写 R2 `quant-trial/`。成功归档通过 Dashboard migration 所有的 `financing_model.publish_online_result` 原子发布到生产模型表，保留同日稳定 ID 和人工内容。Quant 不直接改 schema、不写人工结论或卖方观点。旧本地上传不再由当前CLI调用，不得覆盖新模型结果。
-- 当前实现使用 `issuance-coupon` 特征包与原 `issuance-forecast-v1` 结果契约。不兼容读取旧模型结果，不重算旧成绩。上线状态与证据见[运行与研究状态](PLAN.md)。必须通过 Python/JS 特征、预测、贡献及结构化结果一致性后才能激活模型。模型/真实输入/验收证据只在忽略目录或受控 R2 中，禁止提交 Git。部署与命令见 `docs/ONLINE_INFERENCE.md`。
+- 当前上线采用 `timing-advice-v1` 独立三档契约；旧 `issuance-coupon` / `issuance-forecast-v1` 保留历史兼容并继续暂停。不兼容读取旧模型结果，不重算旧成绩。上线状态与证据见[运行与研究状态](PLAN.md)。必须通过 Python/JS 特征、预测、贡献及结构化结果一致性后才能激活模型。模型/真实输入/验收证据只在忽略目录或受控 R2 中，禁止提交 Git。部署与命令见 `docs/ONLINE_INFERENCE.md`。
 - `README.md` 是面向人类汇报的唯一最终研究报告，只介绍最终线上模型。报告从头完整说明业务问题、数据、方法、训练验证、结果及局限。模型暂停时如实说明状态。禁止写入每轮改进介绍、任务进度、工作流水账或候选模型试验记录。
 - 每轮研究的代码和记录按独立目录组织，默认使用 `.Codex/research/<iteration-id>/`。目录内分别保存 `code/` 和 `records/`，关联输入、结果及证据位置。禁止改写历史日期、分母、失败结果和来源。运行中的冻结文件保持原路径和内容。
 - 离线迭代不要求向 `README.md` 追加内容。最终线上模型、数据口径或上线状态变化时，按[研究报告规范](docs/RESEARCH_REPORT.md)同步完整报告。审阅后的安全聚合证据可提交；原始证据不可提交。
