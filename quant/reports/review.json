@@ -1,5 +1,5 @@
 {
-  "note": "JavaScript依赖迁入根catalog和单锁，源码身份覆盖根依赖文件；复现登记规范根Git路径并拒绝未提交依赖。SheetJS0.20.3官方CDN出现503和下载停滞，根override改为本地官方归档，已逐字节匹配旧锁sha512；包内容和版本未变。Python依赖、模型算法、已发布模型权重、概率与研究结论未变，README正文保持原样。",
+  "note": "JavaScript依赖统一根catalog和单锁；身份闭包与复现登记覆盖根依赖配置、锁及经旧锁sha512核验的SheetJS0.20.3官方归档，拒绝未提交依赖输入。厂商CDN503和停滞通过本地同字节归档解决，包版本与内容未变。Python依赖、模型算法、已发布模型权重、概率与研究结论未变，README正文保持原样。",
   "source_hashes": {
     "../package.json": "ebbc1d5b7b257d37a4c1bb353bee5b2a5d71833292b35256edf83f8efcfb7882",
     "../pnpm-lock.yaml": "3f75c6287023da26ed7d8156fd8198fc0f6f1c4c6f129ca60df0154edc329260",
@@ -159,18 +159,19 @@
     "pipeline.py": "9fb0ab8177323f67a36865a99b29696d85670c5fe3cd89bad2721aa21559ee23",
     "pyproject.toml": "bc5b8712a169f7fcd3999bd3724193f93c3f6da8162e2386ceea588fb3c20428",
     "query_weekly_research.py": "97cf6a5e2065d489692dac01101e64de36d3e3a12615655bfa30cbb224fc7a7e",
-    "research_sources.py": "2da20682c94a977efbc20934f285075ea3d50ad323ac9ab5cace05ac95f091e8",
+    "research_sources.py": "4464f86a4bb1047850e6899093e37bcee7fed681e84d0a888478e341fbd32f78",
     "scripts/adopt_frozen_mlp.py": "23ca2b50f5b42d4928ca27bf664665e81313f70031732b96329392cff9c3d83c",
     "scripts/adopt_timing_model.py": "9f9f7921a4d5affb6d139e3ff9bc72be1cf4e8f404a46af12f3a9b2d186ca7f5",
     "scripts/build_report.py": "9fb4e40237c27fd8bbfcf5d20e76cc90401e5046e2178c073f13365c5105d61c",
     "scripts/check_repository_data_safety.py": "5af25736efa2873dd2ed117e34ca97d572ea98be7752c3153fc47ed61b75c819",
     "scripts/coupon_calibration.py": "08230ced4d997061aa284b1251ec11896665ff1b5b5ce73652d5807d5414aa7d",
     "scripts/prospective_registry.py": "ac70a6ca8817f37f9a462faa6ecad5a62d100f23b0e9c3c30fe3150c53372e3f",
-    "scripts/register_reproduction.py": "2be6c35acef3e871b3f1db7aca869087cffd3dbf0a2de2f0a4a4544f91f726b0",
+    "scripts/register_reproduction.py": "0ef7268ead88b8c9b52b1690f98251e575d36f6403c13c5c6bc3e6f3d3733c51",
     "scripts/run_timing_advice.py": "4a8b22e078441862c9c249da0427c00ee25edcfacc80d30201a6923a60aa6a20",
     "scripts/short_coupon_curve.py": "e3e1bb8422b165bb511cae34baba9e205e8617b63218bf0b4e9ce6a3e9068d45",
     "structured_result.py": "27dcfab113ee41719cdea7654212b1adf8952e6fb1fc99d00bddfe8a840f4f38",
-    "uv.lock": "e7fadfd02231dfd640bf24fb7dd96a8a60da8d84aa325d9e72cb1ddd0bb115a8"
+    "uv.lock": "e7fadfd02231dfd640bf24fb7dd96a8a60da8d84aa325d9e72cb1ddd0bb115a8",
+    "../vendor/xlsx-0.20.3.tgz": "8dc73fc3b00203e72d176e85b50938627c7b086e607c682e8d3c22c02bb99fe8"
   },
   "readme_sha256": "5424c118c54eeabc49c06319a2e1cd6399e36fe792d18008080fc2d63d9e7edb",
   "short_evidence_sha256": "f587366695ff4b0cee057a2d0bbe22c6e661b72ccff154e13811192a58b21022",

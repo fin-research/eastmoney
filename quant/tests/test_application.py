@@ -106,6 +106,7 @@ class ApplicationTests(unittest.TestCase):
             "../package.json",
             "../pnpm-workspace.yaml",
             "../pnpm-lock.yaml",
+            "../vendor/xlsx-0.20.3.tgz",
             "uv.lock",
         ):
             self.assertIn(name, sources)
@@ -118,8 +119,15 @@ class MonorepoSourceGitTests(unittest.TestCase):
         self.repository = Path(temporary.name).resolve()
         self.root = self.repository / "quant"
         self.root.mkdir()
-        for name in ("package.json", "pnpm-workspace.yaml", "pnpm-lock.yaml"):
-            (self.repository / name).write_text("original " + name)
+        for name in (
+            "package.json",
+            "pnpm-workspace.yaml",
+            "pnpm-lock.yaml",
+            "vendor/xlsx-0.20.3.tgz",
+        ):
+            path = self.repository / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("original " + name)
         (self.root / "main.py").write_text("# source")
         self.git("init", "-q")
         self.git("config", "user.name", "Source identity test")
@@ -152,7 +160,12 @@ class MonorepoSourceGitTests(unittest.TestCase):
     def test_dirty_root_dependencies_reject_freezing_before_any_evidence_read(self):
         from scripts import register_reproduction as reproduction
 
-        for name in ("package.json", "pnpm-workspace.yaml", "pnpm-lock.yaml"):
+        for name in (
+            "package.json",
+            "pnpm-workspace.yaml",
+            "pnpm-lock.yaml",
+            "vendor/xlsx-0.20.3.tgz",
+        ):
             path = self.repository / name
             original = path.read_text()
             path.write_text("uncommitted dependency change")
@@ -162,6 +175,15 @@ class MonorepoSourceGitTests(unittest.TestCase):
                 ):
                     reproduction.register(None, None, None, None)
             path.write_text(original)
+
+    def test_vendor_bytes_are_part_of_source_identity(self):
+        before = source_hashes(self.root)
+        archive = self.repository / "vendor/xlsx-0.20.3.tgz"
+        archive.write_bytes(b"changed vendor content")
+        after = source_hashes(self.root)
+        self.assertNotEqual(
+            before["../vendor/xlsx-0.20.3.tgz"], after["../vendor/xlsx-0.20.3.tgz"]
+        )
 
     def test_calibration_registration_resolves_root_dependency_paths(self):
         from model import issuance_calibration_study as calibration

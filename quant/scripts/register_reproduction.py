@@ -62,6 +62,7 @@ def register(request, point, snapshot, directory):
             "package.json",
             "pnpm-workspace.yaml",
             "pnpm-lock.yaml",
+            "vendor/xlsx-0.20.3.tgz",
         ],
         cwd=repository,
     ).strip():

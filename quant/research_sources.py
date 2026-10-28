@@ -34,7 +34,12 @@ def source_hashes(root=ROOT):
     files.extend(root / name for name in ("pyproject.toml", "uv.lock"))
     files.extend(
         root.parent / name
-        for name in ("package.json", "pnpm-workspace.yaml", "pnpm-lock.yaml")
+        for name in (
+            "package.json",
+            "pnpm-workspace.yaml",
+            "pnpm-lock.yaml",
+            "vendor/xlsx-0.20.3.tgz",
+        )
     )
     return {
         Path(relpath(p, root)).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
