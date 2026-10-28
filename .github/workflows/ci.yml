@@ -29,6 +29,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: package.json
+      - run: pnpm --filter . install --frozen-lockfile
+      - run: pnpm check:dependencies
       - run: node --test scripts/ci/*.test.mjs
       - run: python3 -m unittest discover -s scripts/ci -p '*_test.py' -v
       - id: plan
@@ -99,14 +104,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
-          version: 10.33.2
+          package_json_file: package.json
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
       - run: |
-          pnpm --dir gateway install --frozen-lockfile
-          pnpm --dir dashboard install --frozen-lockfile
-          pnpm --dir data install --frozen-lockfile
+          pnpm --filter ./gateway --filter ./dashboard --filter ./data --filter . install --frozen-lockfile
           pnpm --dir dashboard build
       - run: node scripts/verify-integration.mjs
         working-directory: gateway

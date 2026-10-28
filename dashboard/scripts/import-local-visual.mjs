@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
-import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { visualSourceFiles } from './visual-source.mjs';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const directory = resolve(process.argv[2] ?? '');
@@ -10,8 +10,7 @@ if (process.argv[3] !== '--reviewed' || !directory.startsWith(join(root, '.local
   throw new Error('Usage: pnpm visual:baseline:import-local <local-run-directory> --reviewed');
 }
 const metadata = JSON.parse(readFileSync(join(directory, 'candidate.json'), 'utf8'));
-const files = [...new Set(execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { cwd: root })
-  .toString().split('\0').filter(path => path && existsSync(join(root, path))))].sort();
+const files = visualSourceFiles(root);
 const digest = createHash('sha256');
 for (const path of files) digest.update(path).update('\0').update(readFileSync(join(root, path)));
 if (digest.digest('hex') !== metadata.sourceDigest) throw new Error('Source changed after capture; regenerate screenshots');

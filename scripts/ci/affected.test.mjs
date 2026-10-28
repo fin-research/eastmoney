@@ -26,3 +26,9 @@ test('aggregation rejects failure, cancellation, missing analysis and unexpected
   assert.throws(() => verify({ ...plan, data: undefined }, needs), /Invalid change plan/);
   assert.throws(() => verify({ ...plan, data: 'unknown' }, needs), /Invalid change plan/);
 });
+
+test('shared dependency policy changes require every project', () => {
+  for (const path of ['package.json', 'pnpm-workspace.yaml', 'pnpm-lock.yaml', '.npmrc']) {
+    assert.ok(projects.every(project => affected([path])[project]), path);
+  }
+});

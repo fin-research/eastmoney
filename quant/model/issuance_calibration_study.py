@@ -63,14 +63,21 @@ def register_study(source, source_root, output):
     revision = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=root, text=True
     ).strip()
-    repository = Path(subprocess.check_output(
-        ["git", "rev-parse", "--show-toplevel"], cwd=root, text=True
-    ).strip())
+    repository = Path(
+        subprocess.check_output(
+            ["git", "rev-parse", "--show-toplevel"], cwd=root, text=True
+        ).strip()
+    )
     prefix = root.relative_to(repository)
     code = source_hashes()
     for name, checksum in code.items():
         content = subprocess.check_output(
-            ["git", "show", f"{revision}:{(prefix / name).as_posix()}"], cwd=repository
+            [
+                "git",
+                "show",
+                f"{revision}:{(repository / prefix / name).resolve().relative_to(repository).as_posix()}",
+            ],
+            cwd=repository,
         )
         if hashlib.sha256(content).hexdigest() != checksum:
             raise ValueError("commit scientific sources before registration")

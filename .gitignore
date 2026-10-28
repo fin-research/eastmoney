@@ -4,6 +4,9 @@
 !/.gitleaks.toml
 !/AGENTS.md
 !/README.md
+!/package.json
+!/pnpm-workspace.yaml
+!/pnpm-lock.yaml
 !/docs/
 !/.github/
 !/scripts/

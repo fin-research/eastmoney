@@ -1,5 +1,7 @@
 # 开发与验证
 
+JavaScript依赖由[根workspace](../../pnpm-workspace.yaml)统一管理，使用Node 24和根packageManager指定的pnpm。`pnpm install --frozen-lockfile`自动使用根锁；只装本项目时在根目录运行 `pnpm --filter ./dashboard --filter . install --frozen-lockfile`。不维护子项目锁文件。
+
 ## 本地环境
 
 ```bash

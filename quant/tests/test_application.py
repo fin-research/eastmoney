@@ -1,6 +1,7 @@
 """Behavioral contracts for the application and frozen-source boundaries."""
 
 from itertools import combinations
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -102,10 +103,93 @@ class ApplicationTests(unittest.TestCase):
             "data/__init__.py",
             "data/issuance_calendar.py",
             "online/coupon-model.mjs",
-            "online/pnpm-lock.yaml",
+            "../package.json",
+            "../pnpm-workspace.yaml",
+            "../pnpm-lock.yaml",
             "uv.lock",
         ):
             self.assertIn(name, sources)
+
+
+class MonorepoSourceGitTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.repository = Path(temporary.name).resolve()
+        self.root = self.repository / "quant"
+        self.root.mkdir()
+        for name in ("package.json", "pnpm-workspace.yaml", "pnpm-lock.yaml"):
+            (self.repository / name).write_text("original " + name)
+        (self.root / "main.py").write_text("# source")
+        self.git("init", "-q")
+        self.git("config", "user.name", "Source identity test")
+        self.git("config", "user.email", "source@example.invalid")
+        self.git("add", ".")
+        self.git("commit", "-qm", "Original source")
+
+    def git(self, *args):
+        return subprocess.check_output(
+            ["git", *args], cwd=self.repository, text=True
+        ).strip()
+
+    def test_root_dependency_history_resolves_without_parent_segments(self):
+        from scripts import register_reproduction as reproduction
+
+        revision = self.git("rev-parse", "HEAD")
+        checksum = hashlib.sha256(
+            (self.repository / "pnpm-lock.yaml").read_bytes()
+        ).hexdigest()
+        (self.repository / "pnpm-lock.yaml").write_text("changed graph")
+        self.git("add", "pnpm-lock.yaml")
+        self.git("commit", "-qm", "Change dependency graph")
+        with patch.object(reproduction, "ROOT", self.root):
+            self.assertEqual(
+                reproduction._restored_commit("../pnpm-lock.yaml", checksum), revision
+            )
+            with self.assertRaises(ValueError):
+                reproduction._restored_commit("../../outside", checksum)
+
+    def test_dirty_root_dependencies_reject_freezing_before_any_evidence_read(self):
+        from scripts import register_reproduction as reproduction
+
+        for name in ("package.json", "pnpm-workspace.yaml", "pnpm-lock.yaml"):
+            path = self.repository / name
+            original = path.read_text()
+            path.write_text("uncommitted dependency change")
+            with self.subTest(name=name), patch.object(reproduction, "ROOT", self.root):
+                with self.assertRaisesRegex(
+                    ValueError, "Commit the reviewed implementation"
+                ):
+                    reproduction.register(None, None, None, None)
+            path.write_text(original)
+
+    def test_calibration_registration_resolves_root_dependency_paths(self):
+        from model import issuance_calibration_study as calibration
+
+        sources = {
+            "../pnpm-lock.yaml": hashlib.sha256(
+                (self.repository / "pnpm-lock.yaml").read_bytes()
+            ).hexdigest()
+        }
+        with (
+            patch.object(
+                calibration,
+                "__file__",
+                str(self.root / "model/issuance_calibration_study.py"),
+            ),
+            patch.object(calibration, "source_hashes", return_value=sources),
+            patch.object(calibration, "runtime_identity", return_value={}),
+            patch.object(calibration, "source_inventory", return_value={}),
+            patch.object(
+                calibration,
+                "_source_predictions",
+                return_value=(None, {"identity_sha256": "original"}),
+            ),
+        ):
+            value = calibration.register_study(
+                self.root, self.root, self.root / "outputs"
+            )
+        self.assertEqual(value["transform_code"], sources)
 
 
 class ReproductionProvenanceTests(unittest.TestCase):

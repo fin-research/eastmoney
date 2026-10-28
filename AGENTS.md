@@ -2,6 +2,8 @@
 
 公开仓库为 `fin-research/eastmoney`，默认分支为 `main`。
 七项目保留独立运行、测试、migration和发布。
+JavaScript六项目统一使用根pnpm workspace、精确catalog和单锁，工具版本以根packageManager为准。
+依赖变化修改根catalog并更新根锁，不新增子项目锁文件。Python uv和Choice C++工具链独立。
 
 ## 规则
 
