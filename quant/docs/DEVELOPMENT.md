@@ -68,7 +68,7 @@ git diff --check
 
 ## Git and Task Records
 
-- 默认在当前 `main` 分支工作。除非用户明确要求，不新建功能分支。
+- 本地研究在普通checkout进行。需要提交的源码变更使用任务分支，通过monorepo PR和合并队列进入main；数据与运行产物保持忽略。
 - 提交前先检查状态，只暂存本次任务文件，保留用户已有改动。
 - 提交和推送前运行 `scripts/check_repository_data_safety.py`。GitHub Actions 会执行同一检查并拒绝受限数据或凭证。
 - 长期有效的模型口径放入本项目文档。债券单次原始实验结果留既有忽略目录，两融历史记录留 `archive/margin_flow/archive/`，不要塞进 `AGENTS.md`。

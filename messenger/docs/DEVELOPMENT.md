@@ -11,7 +11,7 @@ pnpm deploy:dry
 git diff --check
 ```
 
-推送 `main` 会触发 Cloudflare Git 自动构建。跨服务变更必须先确认消费者入口已上线，再推送依赖其绑定的代码。必要手动发布使用同一已验证提交。
+monorepo PR通过合并队列进入 `main` 后，按Messenger目录变更触发 Cloudflare Git 自动构建。跨服务变更必须先确认提供方entrypoint已上线，再发布依赖其绑定的消费者。必要手动发布使用同一已验证提交。
 
 Schema 变化新增 migration，不改写已应用文件。生产变更先执行 `pnpm db:migrate:remote`，再部署经验证的 Worker 并核对版本与私有 binding。真实外发测试必须明确收件人和发件人。模拟渠道测试不证明真实投递。
 
