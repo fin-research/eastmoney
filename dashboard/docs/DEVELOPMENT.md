@@ -22,20 +22,14 @@ pnpm dev
 
 `check:quick` 不连接业务数据库、不调用线上服务。SvelteKit 类型同步会写入本地生成目录 `.svelte-kit`。本地检查通过后才进入以下流程，不能用本地结果替代 CI。
 
-1. 主代理修改代码并划定本任务文件。前端、共享 UI、API 契约及影响页面输出的改动，每次派新的子代理交付。子代理提交并推送任务分支，创建/更新 PR。有意视觉变化先在固定 Linux 镜像中本地审阅、导入基线并提交，随后入队。确认与前端输出无关的独立改动可在本地相关检查后通过 `pnpm direct:push --validated --backend-reviewed --reviewed-path=<文件>` 快进推送 main。
+1. 在普通checkout中串行开发，提交任务文件并推送分支。前端、共享UI、API契约及影响页面输出的改动仍由新的子代理交付。有意视觉变化先在固定Linux镜像中审阅、导入基线并提交。
+2. 根工作流 [Eastmoney CI](../../.github/workflows/ci.yml) 按影响范围运行项目检查，统一必需门禁为 `Monorepo CI`。Dashboard的PR检查核对线上合并队列规则；其绿色结果仅表示可以入队。完整覆盖率和视觉验收在合并组执行。
+3. 使用 `gh pr merge <number> --repo fin-research/eastmoney --auto` 入队，禁止 `--admin`。队列基于最新main生成集成提交，执行受影响项目及跨服务检查。真实Git和视觉冲突须修复。
+4. Dashboard子工作流 [dashboard.yml](../../.github/workflows/dashboard.yml) 并行执行Python/Node覆盖率与类型/构建/完整视觉套件。组件门禁 `Dashboard CI` 要求两项均成功，根 `Monorepo CI` 再汇总全部受影响项目。失败、取消、缺失或非预期跳过均拒绝合并。
+5. 根 [main-ruleset.json](../../.github/main-ruleset.json) 是规则配置源，应用后须回读。main要求PR、串行合并队列及GitHub Actions的 `Monorepo CI`，无审批数量要求、无bypass，禁止删除或强推。不使用 `direct:push`。
+6. 按 [CI等待与收尾](TESTING.md#ci-等待与收尾2026-09-20) 等待唯一对应运行。记录PR head、合并组SHA、运行链接、合并提交和Cloudflare构建状态。CI成功后仍须核对实际发布。
 
-   每个非文档文件各列一次，纯文档可省略参数。脚本拒绝前端、CI 和混合路径，后端代码须显式确认业务影响。维护者的线上 bypass 权限不限文件路径，因此不能绕过脚本直接推送前端。
-2. 普通分支 push 不运行 CI。PR 创建/更新仅执行轻量入队门禁，核对线上已强制启用 merge queue 和 GitHub Actions 来源的 `Dashboard CI`。PR 上的绿色门禁只表示可以入队，不能报告为测试通过。草稿 PR 也不跑全量验收。
-3. 准备合并时使用 `gh pr merge <number> --auto` 加入 GitHub 合并队列（禁止 `--admin`）。完整 `.github/workflows/tests.yml` 只在 `merge_group` 上自动执行，手动 `workflow_dispatch` 留作排障。队列用最新 main 加上待合并改动生成独立提交。无需为其它 PR 先合并反复更新任务分支。真实 Git/视觉冲突仍须修复，禁止直接覆盖其它任务截图。
-4. 全量检查分为并行的两项：Python 与 Node 完整覆盖率。CI 工具/视觉覆盖门禁、类型检查、生产构建、复用生产 CSS 的浏览器构建及严格截图/交互比较。最后统一 `Dashboard CI` 要求两项均成功，失败、取消、跳过和缺失结果都拒绝合并。保留完整测试范围与截图容差，不按文件路径跳过。
-5. `main` ruleset 同时要求 PR、merge queue 和 GitHub Actions 来源的 `Dashboard CI`。无人工审批要求、无管理员或应用 bypass，禁止删除/强推。队列一次构建/合并一个 PR，避免前序失败引发多个推测合并组重建。不要求作者分支追平 main，最新 main 的兼容性由队列检查保证。配置源 `.github/main-ruleset.json` 必须通过 rulesets API 应用并读回核验。不能只改文件，不能在未启用队列时使用轻量 PR 门禁。
-6. 按 [CI 等待与收尾](TESTING.md#ci-等待与收尾2026-09-20) 使用 `scripts/wait-ci.mjs`，单个子代理只等待一次对应 `merge_group` 的完整检查，确认队列完成合并。记录 PR head、合并组 SHA、运行链接、合并提交及 Cloudflare 构建状态。被移出队列、取消、失败或仍在运行均不是交付成功。
-
-   主代理根据证据修复，再派新的子代理处理。合并后的 main 不重复跑测试、覆盖率或截图。Cloudflare Git 仍负责生产部署。
-
-   CI 成功不代表生产鉴权或全部路由 E2E 已验收。
-
-单元任务继续使用 `.github/actions/setup-ci` 的 pnpm 下载缓存。视觉任务使用固定 digest 的 Linux ARM64 镜像，其中包含 Playwright 1.63.0 浏览器、pnpm 与字体，依赖仍以 frozen lockfile 安装。PR/合并组缓存受 GitHub ref 作用域限制，不能作为其它任务的公共缓存。因此 `dependency-cache.yml` 仅在 main 的依赖/缓存配置变化时预热可共享的默认分支缓存，不执行测试或构建。Python uv 缓存依赖键使用实际声明 PEP 723 依赖的 `tests/test_credit_materials.py`。不缓存构建产物、截图基线、实际截图或测试通过结论。
+单元任务使用根 `.github/actions/setup-dashboard` 安装锁定依赖。视觉任务保留固定digest的Linux ARM64镜像、Playwright 1.63.0和字体。缓存仅保存依赖，不保存截图或验收结论。Python uv缓存键使用 `tests/test_credit_materials.py`。本次迁移不保留旧仓独立的缓存预热工作流。
 
 本地视觉候选的生产构建与应用构建统一使用 4GB Node 堆上限。
 
@@ -67,10 +61,10 @@ pnpm dev
 - 默认将 PR 加入合并队列，队列完整 CI 成功后自动合并到 GitHub `main`，由 Cloudflare Git 自动构建部署 `eastmoney-dashboard`。核对对应提交的构建状态和线上受影响路由。
 - 合并后先运行 `pnpm worker:status -- --commit=<main完整SHA> --wait=600`，通过当前 deployment 的实际流量版本关联 Cloudflare Build，再核对 `build_trigger_metadata.commit_hash`。合并队列 SHA、最终 main SHA 与 Worker UUID 是不同标识。版本缺少 SHA tag 或 `source=wrangler` 不能证明自动部署失败。命令只读取发布记录，未证明成功时返回非零。API 失败或没有关联记录属于未知状态。
 - Cloudflare 生产触发器仍执行 `pnpm run build` 与 `npx wrangler deploy`。自动构建的 Vite 进程使用 4GB 堆，避免默认约 2GB 堆在完整构建时偶发 OOM。这不修改 Worker 运行 CPU 预算或付费订阅。
-- 只有明确的自动构建失败才使用 `pnpm worker:deploy -- --reason=<失败原因>` 发布同一份已验证 main。手动入口在本地构建前及上传前分别核对发布记录、最新 main、干净 checkout 和该提交的 `Dashboard CI`。已部署则直接退出，构建等待中或状态未知则停止补发。手动版本附 `git:<完整SHA>` tag 供后续核验。
+- 只有明确的自动构建失败才使用 `pnpm worker:deploy -- --reason=<失败原因>` 发布同一份已验证 main。手动入口在本地构建前及上传前分别核对发布记录、最新 main、干净 checkout 和该提交的 `Monorepo CI`。已部署则直接退出，构建等待中或状态未知则停止补发。手动版本附 `git:<完整SHA>` tag 供后续核验。
 
   不要因等待时间短或标识不同而重复发布。先修复失败原因并优先重试自动构建。发布无需再次授权，不得覆盖其它任务改动。
-- 手动补发需要目标 main SHA 上成功的 `Dashboard CI`。若合并队列使用不同 SHA 且 GitHub 未把检查关联到最终提交，先对当前 main 执行 `Dashboard CI` 的 `workflow_dispatch` 并等待成功。不能复用未经核对的其它提交的绿色检查。正常自动部署仍由受保护的合并队列验收，不增加 main 上的重复 CI。
+- 手动补发需要目标 main SHA 上成功的 `Monorepo CI`。若合并队列使用不同 SHA 且 GitHub 未把检查关联到最终提交，先对当前 main 执行根 `Eastmoney CI` 的 `workflow_dispatch` 并等待成功。不能复用未经核对的其它提交的绿色检查。正常自动部署仍由受保护的合并队列验收，不增加 main 上的重复 CI。
 - JWT、Auth0、会话、角色配置及其 Secret 由 Gateway 维护。Dashboard 只需要 `IDENTITY` Service Binding。新建或变更绑定须先部署提供对应 entrypoint 的 Gateway。
 - Gateway 变更的发布顺序见 [Gateway DEVELOPMENT](../../gateway/docs/DEVELOPMENT.md)。不能恢复本 Worker 的公网 route、workers.dev、preview 或旧 Access 开关。
 - 程序化联调在 Gateway 执行 `node scripts/verify-integration.mjs`，使用本仓库构建结果验证 SvelteKit 页面、数据预取、登录状态及 Data 契约。`DASHBOARD_CHECKOUT` / `DATA_CHECKOUT` 可指定独立工作树。
