@@ -1,0 +1,5 @@
+export function timingAdviceSnapshot(){return {
+ schema_version:'timing-advice-v1',run_id:'00000000-0000-4000-8000-000000000028',generated_at:'2026-10-28T01:00:00Z',as_of_date:'2026-10-28',market_source_date:'2026-10-27',training_label_cutoff:'2025-12-31',model_version:'abcdef0123456789abcd',scope:'AAA证券公司债3Y',window_days:30,
+ probabilities:{defer:.15,wait:.3,issue:.55},decision:{action:'尽快'},validation:{validation_scope:'inner_development',status:'user_selected_exploratory',sample_count:162,prediction_start:'2022-07-01',prediction_end:'2023-03-01',logloss:1.0370499714414905,brier:.6210851680555696,immediate_tp:10,immediate_fp:8,immediate_target:47,immediate_precision:10/18,immediate_recall:10/47,selected_a_mean_bp:4.545049467102099},base_conclusion:{verdict:'尽快',preferred_window:'',narrative:'市场信号给出的发行建议为尽快。'},
+ online_run:{runtime:'cloudflare-workflow',model_version:'abcdef0123456789abcd',feature_version:'timing-advice-v1',training_as_of:'2026-10-28',retrain_after:'2026-12-31',workflow_id:'timing-test',input_prefix:'quant-trial/runs/2026-10-28/timing-test'}
+};}

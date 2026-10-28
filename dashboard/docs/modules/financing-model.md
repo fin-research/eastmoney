@@ -1,6 +1,6 @@
 # 融资择时模型
 
-入口：`/trading-research/financing-model`，兼容 `/financing-model`。当前结果契约为 `issuance-forecast-v1`，当前包为 `issuance-coupon`，旧结果不兼容读取、不迁移或重算，原始归档及人工记录保留。方法与选型由 [Quant](../../../quant/PLAN.md) 维护。
+入口：`/trading-research/financing-model`，兼容 `/financing-model`。当前结果支持三档建议 `timing-advice-v1` 与历史票面 `issuance-forecast-v1`，旧结果不兼容读取、不迁移或重算，原始归档及人工记录保留。方法与选型由 [Quant](../../../quant/PLAN.md) 维护。
 
 ## 接口
 
@@ -89,3 +89,13 @@ Quant工作日08:30运行，归档`quant-trial/runs/{date}/{instanceId}/result.j
 `model_eligibility`按不可变`model_version`记录`active/suspended`及原因。未登记身份按`suspended/quality_review_required`处理。`0016_model_data_quality_eligibility.sql`将`61492e3527e1ae367475`登记为`suspended/data_quality`。发布函数只接受已登记的`active`身份，正常Workflow及维护补发使用同一检查，不回退历史模型。
 
 GET仍返回200及`model_status`。默认报告清空暂停模型的预测、情景、市场路径、归因、验证指标及自动结论，保留人工编辑、卖方历史和记录。显式`?run=`提供带暂停状态的历史审计值；页面依状态统一隐藏模型数值。暂停时禁止重新生成卖方观点，既有内容读取与人工修改仍可用。原始表行及R2归档不修改。
+
+## 三档发行建议
+
+`0017_timing_advice.sql`增加schema_version=5的运行和typed `timing_run`，保留旧票面发布函数与暂停资格。当前GET按日期选择最新兼容运行；三档快照仅包含AAA证券公司债3Y市场范围、30日窗口、训练标签截止、三类概率、原始argmax建议及开发检验。它不产生发行票面、未来发行日期、节约或bp贡献。发行金额、主体及条款在schema5中为空，不用代理值填充。
+
+`timing-advice-v1`复用真实Workflow归档、不可变20hex版本、active资格、有效期、T-1行情和原子发布校验。同日runId稳定，较旧重放不覆盖新结果，人工结论、决策和卖方历史保持。历史检验状态`user_selected_exploratory`表示用户选定试用，`validation_scope=inner_development`明确162条记录属于开发样本，未宣称通过泛化门槛。资格登记由受控运维显式写入，迁移不自动激活任何候选。
+
+页面三档分支展示建议概率、市场日期与开发检验，保留人工编辑、独立业务指标及卖方观点。四品种、票面窗口及归因仅在旧票面分支显示。业务指标始终独立按本公司与行情日期查询，不作为三档市场模型的发行主体输入。
+
+三档默认读取遇到暂停或未登记资格返回409；显式运行ID保留历史审计，页面仍隐藏暂停预测。人工结论、决策及卖方记录的已有写入边界保持。

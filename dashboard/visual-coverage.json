@@ -226,7 +226,8 @@
         "bond",
         "financing-model",
         "interbank-ledger",
-        "interbank-directory"
+        "interbank-directory",
+        "financing-model-timing"
       ]
     },
     {
@@ -2039,6 +2040,27 @@
             "credit-bank-header.png",
             "credit-bank-summary.png",
             "credit-bank-top.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "financing-model-timing",
+      "url": "/trading-research/financing-model",
+      "kind": "screenshot",
+      "state": "typed three-class probabilities, market date, exploratory validation and manual conclusion; no coupon placeholders",
+      "evidence": [
+        {
+          "spec": "tests/visual/reports.spec.mjs",
+          "test": "financing-model displays published timing advice without coupon placeholders",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "financing-model-timing.png",
+            "financing-model-timing-probabilities.png",
+            "financing-model-timing-validation.png"
           ]
         }
       ]

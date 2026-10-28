@@ -1,4 +1,4 @@
-import { loadIssuanceModelReport } from "$lib/server/issuance-model-repository";
+import { loadCurrentFinancingReport } from "$lib/server/timing-advice-repository";
 import { z } from "zod";
 
 import {
@@ -16,7 +16,7 @@ export const GET: RequestHandler = async ({ platform, url }) => {
     const report = await withPostgres(
       platform?.env.HYPERDRIVE?.connectionString,
       "eastmoney-financing-model-read",
-      (client) => loadIssuanceModelReport(client, runId),
+      (client) => loadCurrentFinancingReport(client, runId),
     );
     return Response.json(report, {
       headers: { "Cache-Control": "no-store" },

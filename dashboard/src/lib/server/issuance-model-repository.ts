@@ -1,3 +1,4 @@
+import type { CurrentFinancingReport } from '../timing-advice';
 import { issuanceReportSchema, type IssuanceReport } from '../issuance-model.ts';
 import type { BondDatabaseClient } from './postgres';
 import type { SellSidePayload } from '../financing-model.ts';
@@ -25,7 +26,7 @@ export async function loadIssuanceModelReport(client:BondDatabaseClient,runId:st
     'conclusion',jsonb_build_object('verdict',r.conclusion_verdict,'preferredWindow',r.conclusion_preferred_window,'narrative',r.conclusion_narrative,'edited',r.conclusion_updated_at IS NOT NULL,'updatedAt',r.conclusion_updated_at),
     'sellSide',(SELECT payload FROM financing_model.sell_side_snapshot s WHERE s.run_id=r.id ORDER BY generated_at DESC,id DESC LIMIT 1),
     'versions',(SELECT jsonb_agg(jsonb_build_object('runId',v.id,'asOfDate',v.as_of_date,'generatedAt',v.generated_at) ORDER BY v.as_of_date DESC) FROM
-      (SELECT id,as_of_date,generated_at FROM financing_model.model_run WHERE schema_version=4 AND online_feature_version='issuance-coupon' ORDER BY as_of_date DESC LIMIT 100) v)
+      (SELECT id,as_of_date,generated_at FROM financing_model.model_run WHERE ((schema_version=4 AND online_feature_version='issuance-coupon') OR (schema_version=5 AND online_feature_version='timing-advice-v1')) ORDER BY as_of_date DESC LIMIT 100) v)
     ) AS report FROM financing_model.model_run r JOIN financing_model.issuance_run i ON i.run_id=r.id
     LEFT JOIN financing_model.model_eligibility q ON q.model_version=r.online_model_version
     WHERE r.schema_version=4 AND r.online_feature_version='issuance-coupon' AND ($1::uuid IS NULL OR r.id=$1::uuid) ORDER BY r.as_of_date DESC LIMIT 1`,[runId]);
@@ -38,10 +39,10 @@ export async function loadIssuanceModelMetricSource(
   runId: string,
 ): Promise<{ issuer: string; marketDate: string }> {
   const result = await client.query<{ issuer: string; market_date: string }>(
-    `SELECT i.issuer, r.market_data_date::text AS market_date
+    `SELECT CASE WHEN r.schema_version=5 THEN '东方财富证券股份有限公司' ELSE i.issuer END AS issuer, r.market_data_date::text AS market_date
      FROM financing_model.model_run r
-     JOIN financing_model.issuance_run i ON i.run_id = r.id
-     WHERE r.schema_version = 4 AND r.id = $1::uuid`,
+     LEFT JOIN financing_model.issuance_run i ON i.run_id = r.id
+     WHERE r.schema_version IN (4,5) AND r.id = $1::uuid`,
     [runId],
   );
   if (!result.rows[0]) throw new FinancingModelDatabaseError(404, '尚无新版融资择时模型数据');
@@ -65,7 +66,7 @@ export function applyIssuanceModelStatus(report: IssuanceReport, audit = false):
 
 
 /** AI completion cannot publish against a model suspended or replaced during generation. */
-export async function saveActiveIssuanceSellSide(client: BondDatabaseClient, report: IssuanceReport, payload: SellSidePayload): Promise<SellSidePayload> {
+export async function saveActiveIssuanceSellSide(client: BondDatabaseClient, report: CurrentFinancingReport, payload: SellSidePayload): Promise<SellSidePayload> {
   await client.query('BEGIN');
   try {
     const eligible=await client.query(`SELECT 1 FROM financing_model.model_run r

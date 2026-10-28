@@ -28,7 +28,8 @@
   import { isAiRequestCancelled, useAiClient } from "$lib/ai-client.svelte";
   import { portal } from "$lib/portal";
   import { permissionVisibility } from "$lib/permission-visibility";
-  import { issuanceBusinessMetricsSchema, parseIssuanceReport as parseFinancingModelReport, type IssuanceReport as FinancingModelReport } from "$lib/issuance-model";
+  import { issuanceBusinessMetricsSchema, type IssuanceReport } from "$lib/issuance-model";
+  import { parseCurrentFinancingReport as parseFinancingModelReport, type CurrentFinancingReport as FinancingModelReport } from "$lib/timing-advice";
   import { groupIssuanceShap, groupMlpContributions, selectIssuanceShapDrivers, issuanceDecisionLabel, issuanceDecisionNarrative } from "$lib/issuance-presentation";
   import { issuanceFeatureName, renderIssuanceForecast, renderIssuanceProductComparison } from "../../charts/issuance-model";
   interface Props {
@@ -40,7 +41,7 @@
   const allowed = permissionVisibility();
 
   let report = $state<FinancingModelReport | null>(null);
-  let businessMetrics = $state<NonNullable<FinancingModelReport["business_metrics"]> | null>(null);
+  let businessMetrics = $state<NonNullable<IssuanceReport["business_metrics"]> | null>(null);
   let loading = $state(true);
   let loadingVersion = $state(false);
   let saving = $state(false);
@@ -152,7 +153,7 @@
     editNarrative = nextReport.conclusion.edited
       ? nextReport.conclusion.narrative
       : nextReport.model_status.status !== 'active' ? '数据不满足要求，暂停预测'
-      : issuanceDecisionNarrative(nextReport.snapshot) ?? nextReport.conclusion.narrative;
+      : nextReport.snapshot.schema_version === "timing-advice-v1" ? nextReport.conclusion.narrative : issuanceDecisionNarrative(nextReport.snapshot) ?? nextReport.conclusion.narrative;
     conclusionRevision = 0;
     savedConclusionRevision = 0;
     resetSellSideEditor();
@@ -277,7 +278,7 @@
     const runId = report.snapshot.run_id;
     const revision = conclusionRevision;
     const verdict = report.conclusion.edited ? report.conclusion.verdict
-      : modelSuspended ? '暂停预测' : issuanceDecisionLabel(report.snapshot.decision.action) ?? report.conclusion.verdict;
+      : modelSuspended ? '暂停预测' : timingSnapshot ? timingSnapshot.decision.action : issuanceDecisionLabel(report.snapshot.decision.action) ?? report.conclusion.verdict;
     const preferredWindow = report.conclusion.edited || !modelSuspended ? report.conclusion.preferredWindow : '';
     saving = true;
     conclusionSavePromise = (async () => {
@@ -397,19 +398,21 @@
 
 
   let snapshot = $derived(report?.snapshot ?? null);
+  let timingSnapshot = $derived(snapshot?.schema_version === "timing-advice-v1" ? snapshot : null);
+  let couponSnapshot = $derived(snapshot?.schema_version === "issuance-forecast-v1" ? snapshot : null);
   let modelSuspended = $derived(report?.model_status.status !== 'active');
   let versions = $derived(report?.versions ?? []);
-  let recommendation = $derived(!modelSuspended && snapshot ? issuanceDecisionLabel(snapshot.decision.action) : null);
-  let recommendationTone = $derived(recommendation === "尽快发行" ? "strong_buy" : recommendation === "等待" ? "neutral" : "wait");
-  let isMlpAttribution = $derived(snapshot?.explanation?.method === 'relu_path_integrated_gradients');
+  let recommendation = $derived(!modelSuspended && snapshot ? timingSnapshot ? timingSnapshot.decision.action : issuanceDecisionLabel(snapshot.decision.action) : null);
+  let recommendationTone = $derived((recommendation === "尽快发行" || recommendation === "尽快") ? "strong_buy" : recommendation === "等待" ? "neutral" : "wait");
+  let isMlpAttribution = $derived(couponSnapshot?.explanation?.method === 'relu_path_integrated_gradients');
   let driverGroups = $derived(isMlpAttribution
-    ? groupMlpContributions(snapshot?.explanation?.features ?? [])
-    : groupIssuanceShap(snapshot?.explanation?.features ?? []));
+    ? groupMlpContributions(couponSnapshot?.explanation?.features ?? [])
+    : groupIssuanceShap(couponSnapshot?.explanation?.features ?? []));
   let contributionTotal = $derived(driverGroups.reduce((sum, row) => sum + row.net_bp, 0));
   let marketDrivers = $derived.by(() => {
     if (isMlpAttribution) return driverGroups.map(row => ({display_name: row.display_name, shap: row.net_bp, value: null}));
     const merged = new Map<string, { display_name:string; shap:number; value:number|null }>();
-    for (const row of selectIssuanceShapDrivers(snapshot?.explanation?.features ?? [])) {
+    for (const row of selectIssuanceShapDrivers(couponSnapshot?.explanation?.features ?? [])) {
       const name = issuanceFeatureName(row.feature);
       const existing = merged.get(name);
       merged.set(name, { display_name:name, shap:(existing?.shap ?? 0)+row.shap_bp,
@@ -417,11 +420,11 @@
     }
     return [...merged.values()].sort((left,right)=>Math.abs(right.shap)-Math.abs(left.shap));
   });
-  let current = $derived(snapshot?.forecast[0]);
-  let validationMetrics = $derived(snapshot ? (() => {
-    const first = snapshot.forecast[0];
-    const year = Number(snapshot.as_of_date.slice(0,4));
-    const observed = snapshot.validation.metrics.find(row => row.year === year && row.lead_days === 30);
+  let current = $derived(couponSnapshot?.forecast[0]);
+  let validationMetrics = $derived(couponSnapshot ? (() => {
+    const first = couponSnapshot.forecast[0];
+    const year = Number(couponSnapshot.as_of_date.slice(0,4));
+    const observed = couponSnapshot.validation.metrics.find(row => row.year === year && row.lead_days === 30);
     return [
       {label:"训练样本",value:first ? String(first.market_training_samples) : "—"},
       {label:"训练截止",value:first?.market_train_label_end ?? "—"},
@@ -510,9 +513,10 @@
           <div class="issuance-summary">
             <div class="issuance-product">
               <span>债券品种</span>
-              <strong>{snapshot.terms.rating} {snapshot.terms.tenor}年期{snapshot.terms.bond_type}</strong>
+              <strong>{timingSnapshot ? timingSnapshot.scope : couponSnapshot ? `${couponSnapshot.terms.rating} ${couponSnapshot.terms.tenor}年期${couponSnapshot.terms.bond_type}` : ""}</strong>
             </div>
             {#if modelSuspended}<p role="status">数据不满足要求，暂停预测</p>
+            {:else if timingSnapshot}<MetricCard label="市场日期" value={timingSnapshot.market_source_date} tone="blue" compact />
             {:else}<MetricCard label="预测发行利率" value={formatNullable(current?.coupon_percent, 2)} unit="%" tone="blue" compact />{/if}
           </div>
           <Textarea
@@ -543,11 +547,32 @@
         </ModuleCard>
       </section>
 
-      {#if !modelSuspended}
+      {#if !modelSuspended && timingSnapshot}
+      <ModuleCard labelledBy="timing-probabilities-title">
+        <PanelHeading id="timing-probabilities-title" title="发行建议概率" />
+        <div class="timing-probabilities">
+          <MetricCard label="尽快" value={(timingSnapshot.probabilities.issue*100).toFixed(1)} unit="%" tone="teal" compact />
+          <MetricCard label="等待" value={(timingSnapshot.probabilities.wait*100).toFixed(1)} unit="%" tone="orange" compact />
+          <MetricCard label="暂缓" value={(timingSnapshot.probabilities.defer*100).toFixed(1)} unit="%" tone="purple" compact />
+        </div>
+      </ModuleCard>
+      <ModuleCard labelledBy="timing-validation-title">
+        <PanelHeading id="timing-validation-title" title="开发检验" />
+        <dl class="validation-grid">
+          <div><dt>发布状态</dt><dd>用户选定试用</dd></div>
+          <div><dt>检验区间</dt><dd>{timingSnapshot.validation.prediction_start} — {timingSnapshot.validation.prediction_end}</dd></div>
+          <div><dt>检验样本</dt><dd>{timingSnapshot.validation.sample_count}</dd></div>
+          <div><dt>交叉熵</dt><dd>{timingSnapshot.validation.logloss.toFixed(4)}</dd></div>
+          <div><dt>Brier</dt><dd>{timingSnapshot.validation.brier.toFixed(4)}</dd></div>
+          <div><dt>尽快精确率</dt><dd>{(timingSnapshot.validation.immediate_precision*100).toFixed(1)}%</dd></div>
+          <div><dt>尽快召回率</dt><dd>{(timingSnapshot.validation.immediate_recall*100).toFixed(1)}%</dd></div>
+        </dl>
+      </ModuleCard>
+      {:else if !modelSuspended && couponSnapshot}
       <section aria-label="四品种对比">
         <ModuleCard class="chart-card" labelledBy="product-title">
           <PanelHeading id="product-title" title="四品种对比" />
-          <ChartHost renderer={renderIssuanceProductComparison} args={[snapshot.product_scenarios]}
+          <ChartHost renderer={renderIssuanceProductComparison} args={[couponSnapshot.product_scenarios]}
             ariaLabel="3年与5年公募债和次级债预计票面对比" className="product-comparison-chart" />
         </ModuleCard>
       </section>
@@ -555,11 +580,11 @@
       <section aria-label="因子贡献">
         <ModuleCard class="factor-panel" labelledBy="factor-contribution-title">
           <PanelHeading id="factor-contribution-title" title="因子贡献" />
-          {#if isMlpAttribution && snapshot.explanation}
+          {#if isMlpAttribution && couponSnapshot.explanation}
             <dl class="contribution-reconciliation" aria-label="路径积分贡献对账">
-              <div><dt>模型基值</dt><dd>{snapshot.explanation.base_coupon_bp.toFixed(3)} bp</dd></div>
+              <div><dt>模型基值</dt><dd>{couponSnapshot.explanation.base_coupon_bp.toFixed(3)} bp</dd></div>
               <div><dt>全部贡献</dt><dd>{contributionTotal >= 0 ? '+' : ''}{contributionTotal.toFixed(3)} bp</dd></div>
-              <div><dt>预测发行利率</dt><dd>{snapshot.explanation.prediction_coupon_bp.toFixed(3)} bp</dd></div>
+              <div><dt>预测发行利率</dt><dd>{couponSnapshot.explanation.prediction_coupon_bp.toFixed(3)} bp</dd></div>
             </dl>
           {/if}
           <div class="driver-grid">
@@ -567,12 +592,12 @@
             <ChartHost renderer={renderFinancingDriverContributions} args={[marketDrivers, "coupon"]}
               ariaLabel={isMlpAttribution ? `路径积分贡献：${driverGroups.map(row => `${row.display_name} ${row.net_bp.toFixed(3)} bp`).join("，")}` : "当前票面预测因子贡献条形图"} className="driver-contribution-chart" />
           </div>
-          {#if isMlpAttribution && snapshot.explanation}
+          {#if isMlpAttribution && couponSnapshot.explanation}
             <details class="contribution-details">
-              <summary>路径积分明细（{snapshot.explanation.features.length}项）</summary>
+              <summary>路径积分明细（{couponSnapshot.explanation.features.length}项）</summary>
               <div class="table-scroll"><table>
                 <thead><tr><th>编码因子</th><th>输入值</th><th>贡献 bp</th></tr></thead>
-                <tbody>{#each snapshot.explanation.features as row}
+                <tbody>{#each couponSnapshot.explanation.features as row}
                   <tr><td>{issuanceFeatureName(row.feature)}</td><td>{row.value === null ? '缺失（训练插补）' : row.value}</td><td>{row.shap_bp >= 0 ? '+' : ''}{row.shap_bp.toFixed(6)}</td></tr>
                 {/each}</tbody>
               </table></div>
@@ -597,7 +622,7 @@
           </PanelHeading>
             <ChartHost
               renderer={renderIssuanceForecast}
-              args={[snapshot.forecast]}
+              args={[couponSnapshot.forecast]}
               ariaLabel="未来发行票面预测"
               className="forecast-chart"
             />
@@ -615,7 +640,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {#each snapshot.forecast as point}
+                  {#each couponSnapshot.forecast as point}
                     <tr>
                       <th scope="row">{displayDate(point.date)}</th>
                       <td>{formatNullable(point.coupon_percent,2)}%</td>
@@ -1222,6 +1247,8 @@
   .business-section {
     display: grid;
   }
+
+  .timing-probabilities { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
 
   .business-metric-grid {
     display: grid;
