@@ -23,7 +23,7 @@ pnpm test
 pnpm deploy:dry
 ```
 
-日常发布由 Cloudflare Git 自动完成：验证后提交并推送 `main`，不手动部署 Worker。
+日常发布由 Cloudflare Git 自动完成：验证后通过monorepo PR和合并队列进入 `main`，不手动部署 Worker。
 
 ## 文档
 

@@ -1,6 +1,6 @@
 # Messenger
 
-独立 Cloudflare Worker，拥有消息投递、重试、D1 `messenger` 与 Queue `messenger`。遵循同级 `eastmoney/AGENTS.md`、共享架构和凭据规则。
+独立 Cloudflare Worker，拥有消息投递、重试、D1 `messenger` 与 Queue `messenger`。遵循[根AGENTS](../AGENTS.md)、共享架构和凭据规则。
 
 - Hono + Zod 管理私有 HTTP 契约。Resend 与 grammY 分别拥有渠道 API。
 - `Messaging` 仅供业务 Worker 提交。`MessengerAdmin` 仅供 Dashboard 管理端。默认 fetch 固定 404，关闭公网路由、workers.dev、preview。

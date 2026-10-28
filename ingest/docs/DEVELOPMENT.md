@@ -49,7 +49,7 @@ pnpm exec wrangler r2 bucket info article
 ## Git 与发布
 
 - 仓库默认分支为 `main`。开始前检查工作区并保留用户已有改动。
-- 完成默认验证后提交并推送 `main`，由 Cloudflare Git 自动构建和部署。
+- 完成默认验证后通过monorepo PR和合并队列进入 `main`，由 Cloudflare Git 自动构建和部署。
 - 不手动运行 `pnpm deploy:worker`，除非用户明确覆盖自动部署约定。
 - 推送后需要发布确认时，检查 Cloudflare 构建和 Worker 健康状态。`git push` 成功本身不等于线上部署完成。
 
