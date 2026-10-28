@@ -33,5 +33,34 @@ class PublicSafetyTests(unittest.TestCase):
             self.assertIn(b"GitHub token: example.txt", result.stderr)
 
 
+    def test_rejects_modified_or_unreviewed_vendor_archive(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            script = root / "scripts/ci/public-safety.py"
+            script.parent.mkdir(parents=True)
+            shutil.copyfile(Path(__file__).with_name("public-safety.py"), script)
+            vendor = root / "vendor"
+            vendor.mkdir()
+            original = Path(__file__).resolve().parents[2] / "vendor/xlsx-0.20.3.tgz"
+            archive = vendor / original.name
+            shutil.copyfile(original, archive)
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(["git", "add", "."], cwd=root, check=True)
+            result = subprocess.run(["python3", str(script)], capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            archive.write_bytes(b"changed package")
+            subprocess.run(["git", "add", "."], cwd=root, check=True)
+            shutil.copyfile(original, archive)
+            result = subprocess.run(["python3", str(script)], capture_output=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(b"differs from reviewed official package", result.stderr)
+            subprocess.run(["git", "add", "."], cwd=root, check=True)
+            (vendor / "unknown.tgz").write_bytes(b"unreviewed")
+            subprocess.run(["git", "add", "."], cwd=root, check=True)
+            result = subprocess.run(["python3", str(script)], capture_output=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(b"unreviewed vendor file", result.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 
@@ -10,6 +11,11 @@ assert.deepEqual(workspace.packages, projects);
 assert.equal(JSON.parse(read('package.json')).packageManager, 'pnpm@10.33.2');
 assert.deepEqual(Object.keys(lock.importers).sort(), ['.', ...projects].sort());
 for (const [name, version] of Object.entries(workspace.catalog)) {
+  if (name === 'xlsx') {
+    assert.equal(version, '0.20.3');
+    assert.deepEqual(workspace.overrides, { xlsx: 'file:vendor/xlsx-0.20.3.tgz' });
+    continue;
+  }
   assert.match(version, /^(\d+\.\d+\.\d+(?:-[\w.-]+)?|https:\/\/[^\s]+\.tgz)$/, `${name} must have an exact version`);
 }
 for (const project of ['.', ...projects]) {
@@ -25,12 +31,24 @@ for (const project of ['.', ...projects]) {
       assert.equal(specifier, 'catalog:', `${project}: ${name} must use catalog`);
       const expected = workspace.catalog[name];
       assert.ok(expected, `${name}: missing catalog entry`);
+      if (name === 'xlsx') {
+        assert.equal(lock.importers[project][section][name].specifier, 'file:../vendor/xlsx-0.20.3.tgz');
+        assert.equal(lock.importers[project][section][name].version, 'file:vendor/xlsx-0.20.3.tgz');
+        continue;
+      }
       assert.equal(lock.importers[project][section][name].specifier, 'catalog:');
       assert.equal(lock.catalogs.default[name].specifier, expected);
-      assert.equal(lock.importers[project][section][name].version.split('(')[0], expected);
+      const resolved = lock.importers[project][section][name].version.split('(')[0];
+      assert.equal(resolved, expected);
+
     }
   }
 }
 assert.ok(workspace.onlyBuiltDependencies.includes('better-sqlite3'));
 assert.equal(workspace.allowBuilds, undefined);
 console.log('Six JavaScript projects share exact catalog versions and one lockfile.');
+
+const vendor = new URL('../../vendor/xlsx-0.20.3.tgz', import.meta.url);
+assert.equal('sha512-' + createHash('sha512').update(readFileSync(vendor)).digest('base64'),
+  'sha512-oLDq3jw7AcLqKWH2AhCpVTZl8mf6X2YReP+Neh0SJUzV/BdZYjth94tG5toiMB1PPrYtxOCfaoUCkvtuH+3AJA==',
+  'Vendored SheetJS must match the originally locked official package');

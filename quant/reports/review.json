@@ -1,9 +1,9 @@
 {
-  "note": "JavaScript依赖迁入monorepo根catalog和单锁，源码身份覆盖根package.json、workspace和锁文件；复现登记同步规范Git路径并拒绝未提交根依赖变化，保留全部报告校验。Python依赖、模型算法、已发布模型权重、概率与研究结论未变，README正文保持原样。",
+  "note": "JavaScript依赖迁入根catalog和单锁，源码身份覆盖根依赖文件；复现登记规范根Git路径并拒绝未提交依赖。SheetJS0.20.3官方CDN出现503和下载停滞，根override改为本地官方归档，已逐字节匹配旧锁sha512；包内容和版本未变。Python依赖、模型算法、已发布模型权重、概率与研究结论未变，README正文保持原样。",
   "source_hashes": {
     "../package.json": "ebbc1d5b7b257d37a4c1bb353bee5b2a5d71833292b35256edf83f8efcfb7882",
-    "../pnpm-lock.yaml": "ce26246442c9d7c156a114e3fbf6b15feb12120625ca5b243a0a8b80ce6524df",
-    "../pnpm-workspace.yaml": "da838248ddfaf35870869a9a855a617bf85ab1eec091048450111175e035e30c",
+    "../pnpm-lock.yaml": "3f75c6287023da26ed7d8156fd8198fc0f6f1c4c6f129ca60df0154edc329260",
+    "../pnpm-workspace.yaml": "f9299d27c39b954ad4b49123de9f722325ab27537efd140f248cf33a97fe5803",
     "application/__init__.py": "64b63aff9187f899f87c2029cee3042497c9ac55c83d6b371e80fbb8eebeb05e",
     "application/arguments.py": "bd67c9cb2b0faf8681fe379186cab370e29e975c5f3f4b7e7143d504847fbb7f",
     "application/cli.py": "e24f50beba36c0c26e626703ded1d9bcdac787b109bb4ebd5d86555048e22b46",

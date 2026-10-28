@@ -29,6 +29,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - run: python3 scripts/ci/public-safety.py
       - uses: pnpm/action-setup@v4
         with:
           package_json_file: package.json
@@ -40,7 +41,6 @@ jobs:
         run: node scripts/ci/affected.mjs
         env:
           CI_BASE_SHA: ${{ github.event.merge_group.base_sha || github.event.pull_request.base.sha }}
-      - run: python3 scripts/ci/public-safety.py
       - name: Scan public Git content for credentials
         shell: bash
         run: |

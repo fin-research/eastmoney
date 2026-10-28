@@ -22,6 +22,8 @@ JavaScript 六项目使用根 `pnpm-workspace.yaml` 的精确 catalog 版本和�
 `pnpm --filter ./gateway --filter . install --frozen-lockfile`（替换项目路径）。
 
 升级依赖先修改根 catalog，再生成根锁并运行 `pnpm check:dependencies` 和受影响检查。
+SheetJS 0.20.3 使用根 override 指向[已校验的官方包](vendor/README.md)，避免安装依赖厂商CDN。
+
 各项目命令与发布保持独立；Quant Python 继续使用 `uv.lock`，Choice 继续使用 CMake。
 本地使用普通checkout。研究数据、模型和凭证不进入Git。
 PR按影响范围检查，合并队列验证后，各服务独立发布。
