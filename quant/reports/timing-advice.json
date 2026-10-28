@@ -1,0 +1,55 @@
+{
+  "model_version": "778e5cd2116288b99576",
+  "feature_version": "timing-advice-v1",
+  "model_sha256": "778e5cd2116288b99576659f86f800984700e391ce07f9721e13275b8111d89d",
+  "adoption": {
+    "authorized_by": "user",
+    "reason": "Publish current selected candidate while research is paused",
+    "research_qualified": false,
+    "new_validation": false
+  },
+  "training_label_cutoff": "2025-12-31",
+  "valid_until": "2026-12-31",
+  "validation": {
+    "status": "user_selected_exploratory",
+    "sample_count": 162,
+    "prediction_start": "2022-07-01",
+    "prediction_end": "2023-03-01",
+    "logloss": 1.0370499714414905,
+    "brier": 0.6210851680555696,
+    "immediate_tp": 10,
+    "immediate_fp": 8,
+    "immediate_target": 47,
+    "immediate_precision": 0.5555555555555556,
+    "immediate_recall": 0.2127659574468085,
+    "selected_a_mean_bp": 4.545049467102099,
+    "validation_scope": "inner_development"
+  },
+  "final_fit": {
+    "objective": 1.0227901212015145,
+    "gap_bound": 4.814626059562615e-14,
+    "n": 13881,
+    "sector_n": 1173
+  },
+  "provenance": {
+    "source_sha256": "7750926eb857a0463d2e887a9f3bc6de7a86ca1243bade35a7419124e3ba2a24",
+    "study_sha256": "17cbebdca52dc868d26a6f18e4271cc8ea3b724c2d393a72b481adbc05e3fce4",
+    "audit_sha256": "cf41aeb7050ef8e60ff724aa650f3e76497c8c9ef6bfce472382b73b99e87f8e",
+    "summary_sha256": "a6cf4db274a69340c2268f041472cb83c9c8a7f9462620346ae10df50cd5132a"
+  },
+  "production_workflow": {
+    "id": "timing-release-20261028",
+    "as_of_date": "2026-10-28",
+    "market_source_date": "2026-10-27",
+    "archive_replay": true,
+    "max_error": 2.7755575615628914e-17,
+    "result_sha256": "4688c3dd8bc4c5864251f03033a3d0a18e06228477236cd6a0e112a2a463f843"
+  },
+  "deployment": {
+    "worker_version": "2f42f4f5-aa89-4ce4-ab5e-fb9d14344e32",
+    "workflow_version": "b603dcd9-1b52-47ce-ae91-4071fa763165",
+    "workflow_resource": "dc0ed884-d155-4494-b943-334a5ad2293e",
+    "module_sha256": "d00e0d1a99732d802431ac602202ad67789573bbd77634352e3aa793075e43e9",
+    "identifiers": "Worker version and Workflow version are distinct resources from the same serialized deployment and actual successful instance; deployed module matches verified dry package."
+  }
+}

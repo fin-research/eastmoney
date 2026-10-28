@@ -22,6 +22,9 @@ def build(check=False, note=None):
     evidence_path = ROOT / "reports/short-coupon.json"
     validate_short_evidence(json.loads(evidence_path.read_text()))
     evidence_sha = hashlib.sha256(evidence_path.read_bytes()).hexdigest()
+    timing_sha = hashlib.sha256(
+        (ROOT / "reports/timing-advice.json").read_bytes()
+    ).hexdigest()
     current = source_hashes()
     report_sha = hashlib.sha256(REPORT.read_bytes()).hexdigest()
     if note is not None:
@@ -34,6 +37,7 @@ def build(check=False, note=None):
                     "source_hashes": current,
                     "readme_sha256": report_sha,
                     "short_evidence_sha256": evidence_sha,
+                    "timing_evidence_sha256": timing_sha,
                 },
                 ensure_ascii=False,
                 indent=2,
@@ -45,6 +49,8 @@ def build(check=False, note=None):
         raise ValueError("模型实现已变化：更新README研究报告并审阅源码")
     if review.get("short_evidence_sha256") != evidence_sha:
         raise ValueError("新研究证据与审阅记录不一致")
+    if review.get("timing_evidence_sha256") != timing_sha:
+        raise ValueError("择时证据与审阅记录不一致")
     if review.get("readme_sha256") != report_sha:
         raise ValueError("README.md与审阅记录不一致，请核对研究报告")
     return REPORT

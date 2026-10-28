@@ -1,3 +1,32 @@
+# 线上推理
+
+## 当前三档发行建议
+
+用户于2026-10-28暂停研究并授权选用`778e5cd2116288b99576`。该包为`timing-advice-v1`：固定D_all_history线性三分类、140维原始利率路径、原argmax，不添加行情规则。旧票面身份继续暂停。
+
+最终训练标签截止2025-12-31。固定参数包有效至2026-12-31；每日只重新推理，不重训。162日期为内层开发检验，未通过原研究稳定性门槛，不是当前权重的新验证。
+
+Dashboard migration `0017_timing_advice.sql`拥有结构化三档表和发布映射。新类型不写票面、节约、发行条款或bp贡献；旧类型独立读取。资格缺失或暂停时默认接口拒绝，显式历史运行保留审计。同日发布保持稳定ID和人工内容。
+
+生产Workflow读取Neon此前90日资金／原始行业3Y节点，严格T−1、真实可用日期、双报价时钟，缺报不填补。输入及结果不可变归档后才原子发布。业务默认流程使用该Workflow；旧`main.py`票面命令受原暂停资格约束，不作为新择时入口。
+
+```sh
+# 固定参数本地真实输入核验，不训练、不更新Choice
+uv run python scripts/run_timing_advice.py outputs/timing-advice-20261028-v2 --as-of 2026-10-28
+cd online
+node verify-timing.mjs ../outputs/timing-advice-20261028-v2
+# 发布前验证该精确包与runtime的parity，先stage后切指针
+node publish.mjs ../outputs/timing-advice-20261028-v2 --stage-only
+pnpm deploy:dry
+pnpm deploy
+node publish.mjs ../outputs/timing-advice-20261028-v2
+pnpm exec wrangler workflows trigger quant-bond-inference-trial '{"as_of_date":"2026-10-28"}' --id timing-release-20261028
+```
+
+凭据沿既有`.env`加载，不打印。先应用所有方migration、部署Dashboard，再核验真实Workflow、数据库及授权API。模型工件与原始证据不提交Git。Python/JS一致性不能代替效果验证，Node耗时不能代替实际Cloudflare运行。
+
+以下保留旧票面和维护流程的历史技术说明，不表示恢复旧模型。
+
 # 债券票面线上推理与工作台发布
 
 本地研究使用普通checkout。数据、模型和运行产物保留在本地忽略目录，可按研究需要更新。下文旧工作树路径只用于历史证据追溯，不要求新建worktree。已发布模型的身份与哈希仍按发布规则保存。
