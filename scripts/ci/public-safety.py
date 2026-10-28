@@ -1,6 +1,8 @@
 """Keep credentials, local research data and licensed SDK binaries out of Git."""
 
 from pathlib import Path
+import base64
+import hashlib
 import re
 import subprocess
 from urllib.parse import urlsplit
@@ -25,6 +27,15 @@ def main():
     violations = []
     for name in filter(None, names):
         path = Path(name)
+        if name.startswith("vendor/") and name not in {
+            "vendor/README.md", "vendor/xlsx-LICENSE.txt", "vendor/xlsx-0.20.3.tgz"
+        }:
+            violations.append(f"unreviewed vendor file: {name}")
+        if name == "vendor/xlsx-0.20.3.tgz":
+            archive = subprocess.check_output(["git", "show", f":{name}"], cwd=ROOT)
+            integrity = base64.b64encode(hashlib.sha512(archive).digest()).decode()
+            if integrity != "oLDq3jw7AcLqKWH2AhCpVTZl8mf6X2YReP+Neh0SJUzV/BdZYjth94tG5toiMB1PPrYtxOCfaoUCkvtuH+3AJA==":
+                violations.append("vendored SheetJS differs from reviewed official package")
         if (
             any(
                 part in {".venv", ".Codex", "outputs", "node_modules"}

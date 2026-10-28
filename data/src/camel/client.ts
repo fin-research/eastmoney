@@ -1,5 +1,5 @@
 import { Buffer } from "node:buffer";
-import { constants, publicEncrypt } from "node:crypto";
+import { constants, publicEncrypt, type PublicKeyInput } from "node:crypto";
 
 import { z } from "zod";
 
@@ -277,8 +277,13 @@ export function encryptCamelPassword(
   password: string,
   publicKeySpkiBase64 = CAMEL_PUBLIC_KEY_SPKI_BASE64,
 ): string {
+  const key: PublicKeyInput = {
+    key: Buffer.from(publicKeySpkiBase64, "base64"),
+    format: "der",
+    type: "spki",
+  };
   return publicEncrypt(
-    { key: Buffer.from(publicKeySpkiBase64, "base64"), format: "der", type: "spki", padding: constants.RSA_PKCS1_PADDING },
+    { ...key, padding: constants.RSA_PKCS1_PADDING },
     Buffer.from(password, "utf8"),
   ).toString("base64");
 }

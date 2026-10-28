@@ -1,6 +1,7 @@
 """Conservative executable-source closure for research and report identities."""
 
 import hashlib
+from os.path import relpath
 from importlib.metadata import version
 from pathlib import Path
 import platform
@@ -31,8 +32,17 @@ def source_hashes(root=ROOT):
         and p.name != "worker-configuration.d.ts"
     )
     files.extend(root / name for name in ("pyproject.toml", "uv.lock"))
+    files.extend(
+        root.parent / name
+        for name in (
+            "package.json",
+            "pnpm-workspace.yaml",
+            "pnpm-lock.yaml",
+            "vendor/xlsx-0.20.3.tgz",
+        )
+    )
     return {
-        p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+        Path(relpath(p, root)).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
         for p in sorted(set(files))
         if p.is_file()
     }

@@ -2,7 +2,6 @@
   "name": "eastmoney-ingest",
   "version": "0.2.0",
   "private": true,
-  "packageManager": "pnpm@10.33.2",
   "type": "module",
   "scripts": {
     "check": "wrangler types --check && tsc --noEmit",
@@ -16,17 +15,17 @@
     "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "latest",
-    "@cloudflare/workers-types": "latest",
-    "@types/mdast": "^4.0.4",
-    "@types/node": "latest",
-    "@vitest/coverage-istanbul": "4.1.10",
-    "typescript": "latest",
-    "vitest": "4.1.10",
-    "wrangler": "4.126.0"
+    "@cloudflare/vitest-pool-workers": "catalog:",
+    "@cloudflare/workers-types": "catalog:",
+    "@types/mdast": "catalog:",
+    "@types/node": "catalog:",
+    "@vitest/coverage-istanbul": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "wrangler": "catalog:"
   },
   "dependencies": {
-    "mdast-util-from-markdown": "^2.0.3",
-    "zod": "4.4.3"
+    "mdast-util-from-markdown": "catalog:",
+    "zod": "catalog:"
   }
 }

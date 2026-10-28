@@ -3,10 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.33.2",
   "scripts": {
     "dev": "wrangler dev",
-    "typegen": "wrangler types",
+    "typegen": "wrangler types && node scripts/normalize-generated-types.mjs",
     "check": "tsc --noEmit",
     "test": "vitest run",
     "deploy:dry": "wrangler deploy --dry-run",
@@ -15,19 +14,19 @@
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote"
   },
   "dependencies": {
-    "hono": "latest",
-    "zod": "4.4.3",
-    "resend": "latest",
-    "grammy": "latest",
-    "web-push": "3.6.7"
+    "hono": "catalog:",
+    "zod": "catalog:",
+    "resend": "catalog:",
+    "grammy": "catalog:",
+    "web-push": "catalog:"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "latest",
-    "@cloudflare/workers-types": "latest",
-    "@types/node": "latest",
-    "typescript": "latest",
-    "vitest": "4.1.10",
-    "wrangler": "4.126.0",
-    "@types/web-push": "3.6.4"
+    "@cloudflare/vitest-pool-workers": "catalog:",
+    "@cloudflare/workers-types": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "wrangler": "catalog:",
+    "@types/web-push": "catalog:"
   }
 }

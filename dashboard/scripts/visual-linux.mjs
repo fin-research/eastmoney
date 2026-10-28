@@ -3,14 +3,14 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { visualSourceFiles } from './visual-source.mjs';
 
 const image = 'ghcr.io/hasbai/financial-visual-ci@sha256:7c8b030fa654dfd7acb74db9fbca0fe413ca81024536f6d361712d0920fd6444';
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const manifest = JSON.parse(readFileSync(join(root, 'visual-coverage.json'), 'utf8'));
 const git = (...args) => execFileSync('git', args, { cwd: root });
 const paths = bytes => bytes.toString().split('\0').filter(Boolean);
-const tracked = () => [...new Set(paths(git('ls-files', '-z', '--cached', '--others', '--exclude-standard')))]
-  .filter(path => existsSync(join(root, path))).sort();
+const tracked = () => visualSourceFiles(root);
 const digest = files => {
   const hash = createHash('sha256');
   for (const path of files) hash.update(path).update('\0').update(readFileSync(join(root, path)));
@@ -50,18 +50,21 @@ const stage = join(root, '.local-visual', 'linux-workspace');
 mkdirSync(stage, { recursive: true });
 const indexFile = join(stage, '.source-files.json');
 const previous = existsSync(indexFile) ? JSON.parse(readFileSync(indexFile, 'utf8')) : [];
-for (const path of previous) if (!files.includes(path) && !path.split('/').includes('..')) rmSync(join(stage, path), { force: true });
+const stagedFiles = files.map(path => relative(dirname(root), join(root, path)));
+for (const path of previous) if (!stagedFiles.includes(path) && !path.split('/').includes('..')) rmSync(join(stage, path), { force: true });
 for (const path of files) {
-  mkdirSync(dirname(join(stage, path)), { recursive: true });
-  cpSync(join(root, path), join(stage, path), { force: true, dereference: false });
+  const target = join(stage, relative(dirname(root), join(root, path)));
+  mkdirSync(dirname(target), { recursive: true });
+  cpSync(join(root, path), target, { force: true, dereference: false });
 }
-writeFileSync(indexFile, JSON.stringify(files));
-const before = new Set(existsSync(join(stage, '.local-visual')) ? readdirSync(join(stage, '.local-visual')) : []);
+writeFileSync(indexFile, JSON.stringify(stagedFiles));
+const dashboardStage = join(stage, 'dashboard');
+const before = new Set(existsSync(join(dashboardStage, '.local-visual')) ? readdirSync(join(dashboardStage, '.local-visual')) : []);
 const innerArgs = all ? ['--all'] : [...selected].flatMap(page => ['--page', page]);
-const command = 'pnpm install --frozen-lockfile --store-dir=/pnpm-store --prefer-offline && node scripts/local-visual.mjs "$@"';
+const command = 'pnpm --filter ./dashboard --filter . install --frozen-lockfile --store-dir=/pnpm-store --prefer-offline && cd dashboard && node scripts/local-visual.mjs "$@"';
 const result = spawnSync('docker', [
   'run', '--rm', '--init', '--ipc=host', '--platform', 'linux/arm64',
-  '-e', 'CI=true', '-e', 'GITHUB_ACTIONS=true',
+  '-e', 'CI=true', '-e', 'GITHUB_ACTIONS=true', '-e', 'npm_config_nodedir=/usr',
   ...proxyArgs,
   '--mount', 'type=bind,source=' + stage + ',target=/work',
   '--mount', 'type=bind,source=' + dirname(pnpmStore) + ',target=/pnpm-store',
@@ -69,7 +72,7 @@ const result = spawnSync('docker', [
 ], { cwd: root, stdio: 'inherit' });
 if (result.status !== 0) throw new Error('Pinned Linux visual run failed: ' + (result.status ?? result.error));
 
-const outputRoot = join(stage, '.local-visual');
+const outputRoot = join(dashboardStage, '.local-visual');
 const runName = readdirSync(outputRoot).filter(name => !before.has(name)).sort().at(-1);
 if (!runName) throw new Error('Linux run produced no review images');
 const destination = join(root, '.local-visual', runName);

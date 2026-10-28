@@ -9,15 +9,15 @@ runs:
   steps:
     - uses: pnpm/action-setup@v4
       with:
-        package_json_file: dashboard/package.json
+        package_json_file: package.json
     - uses: actions/setup-node@v4
       with:
         node-version: '24'
         cache: pnpm
-        cache-dependency-path: dashboard/pnpm-lock.yaml
+        cache-dependency-path: pnpm-lock.yaml
     - shell: bash
-      working-directory: dashboard
-      run: pnpm install --frozen-lockfile
+      working-directory: .
+      run: pnpm --filter ./dashboard --filter . install --frozen-lockfile
     - name: Identify pinned browser
       if: inputs.browser == 'true'
       id: browser

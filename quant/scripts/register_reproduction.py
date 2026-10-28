@@ -20,15 +20,17 @@ from research_sources import runtime_identity, source_hashes  # noqa: E402
 
 
 def _git_location():
-    repository = Path(subprocess.check_output(
-        ["git", "rev-parse", "--show-toplevel"], cwd=ROOT, text=True
-    ).strip())
+    repository = Path(
+        subprocess.check_output(
+            ["git", "rev-parse", "--show-toplevel"], cwd=ROOT, text=True
+        ).strip()
+    )
     return repository, ROOT.relative_to(repository)
 
 
 def _restored_commit(name, checksum):
     repository, prefix = _git_location()
-    git_name = (prefix / name).as_posix()
+    git_name = (repository / prefix / name).resolve().relative_to(repository).as_posix()
     revisions = subprocess.check_output(
         ["git", "log", "--format=%H", "--", git_name],
         cwd=repository,
@@ -49,7 +51,21 @@ def _restored_commit(name, checksum):
 
 
 def register(request, point, snapshot, directory):
-    if subprocess.check_output(["git", "status", "--porcelain", "--", "."], cwd=ROOT).strip():
+    repository, prefix = _git_location()
+    if subprocess.check_output(
+        [
+            "git",
+            "status",
+            "--porcelain",
+            "--",
+            str(prefix),
+            "package.json",
+            "pnpm-workspace.yaml",
+            "pnpm-lock.yaml",
+            "vendor/xlsx-0.20.3.tgz",
+        ],
+        cwd=repository,
+    ).strip():
         raise ValueError(
             "Commit the reviewed implementation before freezing a reproduction"
         )

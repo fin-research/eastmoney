@@ -1,16 +1,21 @@
 # Development
 
+JavaScript依赖由[根workspace](../../pnpm-workspace.yaml)统一管理，使用Node 24和根packageManager指定的pnpm。`pnpm install --frozen-lockfile`自动使用根锁；只装本项目时在根目录运行 `pnpm --filter ./quant/online --filter . install --frozen-lockfile`。不维护子项目锁文件。
+
+研究源码身份保守地包含完整根package、catalog和锁文件。其它服务的依赖调整也会要求重新审阅Quant源码闭包；这不表示模型权重变化，不自动重训或发布。
+
 本地研究使用普通checkout。数据、模型和运行产物保留在本地忽略目录，可按研究需要更新。下文旧工作树路径只用于历史证据追溯，不要求新建worktree。已发布模型的身份与哈希仍按发布规则保存。
 ## Environment
 
 项目使用 Python 3.12 和 `uv`，`pyproject.toml` 当前限定 macOS Apple Silicon 环境。
 
 ```bash
+cd /Users/yueshi/src/eastmoney/eastmoney/quant
 uv sync
 uv run python --version
 ```
 
-Python 依赖版本以 `pyproject.toml` 和 `uv.lock` 为准。`online/` 的 Worker 工具链使用独立 `package.json` / `pnpm-lock.yaml`，命令见 [ONLINE_INFERENCE](ONLINE_INFERENCE.md)。新增依赖提交相应锁文件。
+Python 依赖版本以 `pyproject.toml` 和 `uv.lock` 为准。`online/` 保留独立运行命令，JavaScript依赖版本和锁文件由根workspace维护，命令见 [ONLINE_INFERENCE](ONLINE_INFERENCE.md)。新增Python依赖更新uv锁，新增JavaScript依赖更新根catalog和pnpm锁。
 
 ## Local Data and Credentials
 

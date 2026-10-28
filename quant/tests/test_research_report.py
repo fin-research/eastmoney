@@ -106,21 +106,22 @@ class ResearchReportCLITests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        self.root = Path(temporary.name)
+        self.workspace = Path(temporary.name)
+        self.root = self.workspace / "quant"
         files = [ROOT / name for name in source_hashes()]
         files.extend(path for path in (ROOT / "reports").iterdir() if path.is_file())
         files.append(REPORT)
         for path in files:
-            destination = self.root / path.relative_to(ROOT)
+            destination = self.root / path.relative_to(ROOT, walk_up=True)
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, destination)
 
     def snapshot(self):
         return {
-            path.relative_to(self.root).as_posix(): hashlib.sha256(
+            path.relative_to(self.workspace).as_posix(): hashlib.sha256(
                 path.read_bytes()
             ).hexdigest()
-            for path in self.root.rglob("*")
+            for path in self.workspace.rglob("*")
             if path.is_file()
         }
 
@@ -165,6 +166,15 @@ class ResearchReportCLITests(unittest.TestCase):
     def test_changed_model_source_is_rejected_without_rewriting_any_file(self):
         path = self.root / "model/train.py"
         path.write_text(path.read_text() + "\n# changed source\n")
+        before = self.snapshot()
+        result = self.invoke("--check")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("模型实现已变化", result.stderr)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_changed_workspace_lock_is_rejected_without_rewriting_any_file(self):
+        path = self.workspace / "pnpm-lock.yaml"
+        path.write_text(path.read_text() + "\n# changed dependency graph\n")
         before = self.snapshot()
         result = self.invoke("--check")
         self.assertNotEqual(result.returncode, 0)

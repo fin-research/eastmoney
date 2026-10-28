@@ -1,5 +1,7 @@
 # Gateway 开发与交付
 
+JavaScript依赖由[根workspace](../../pnpm-workspace.yaml)统一管理，使用Node 24和根packageManager指定的pnpm。`pnpm install --frozen-lockfile`自动使用根锁；只装本项目时在根目录运行 `pnpm --filter ./gateway --filter . install --frozen-lockfile`。不维护子项目锁文件。
+
 Gateway 是独立 Hono Worker。用户、角色与成员关系属于 Auth0。JWT、缓存授权、账号目录与角色权限查询由 Gateway 维护。业务侧保留记录归属、业务状态、输入白名单与 RLS。共享协议和权限清单见 [AUTH](../../docs/AUTH.md)。
 
 `/financing-model/research` 是融资模型页的只读研究文档，由 `policy.ts` 映射到既有 `/financing-model` 路由权限，复用 `model.financing:read` 的 GET/HEAD。授权成功后，`QUANT_REPORT: ResearchReport` 命名绑定仅读取 Quant Worker 的 `/REPORT.html`。报告不由 Dashboard 处理，不暴露 Quant 原始产物或默认入口。权限与请求凭据剥离沿用原 Gateway 过程。
