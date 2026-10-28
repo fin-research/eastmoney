@@ -40,10 +40,19 @@ jobs:
     container:
       image: ghcr.io/hasbai/financial-visual-ci@sha256:7c8b030fa654dfd7acb74db9fbca0fe413ca81024536f6d361712d0920fd6444
       options: --ipc=host
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - run: pnpm install --frozen-lockfile
+      - name: Locate dependency store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: visual-pnpm10.33.2-${{ runner.os }}-${{ runner.arch }}-7c8b030fa654-${{ hashFiles('dashboard/pnpm-lock.yaml') }}
+      - name: Install locked dependencies
+        timeout-minutes: 20
+        run: pnpm install --frozen-lockfile --prefer-offline
       - run: test "$(pnpm exec playwright --version)" = 'Version 1.63.0'
       - run: pnpm test:ci-tools
       - run: pnpm check:visual-coverage

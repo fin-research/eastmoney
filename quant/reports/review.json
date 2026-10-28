@@ -1,5 +1,5 @@
 {
-  "note": "迁入当前monorepo生产源的D线性三档实现、最终报告和安全聚合证据。保留2026年前成熟训练、inner_development162日期及研究未达门槛，旧票面暂停。实际Workflow归档重放一致，页面发布验收仍进行中。",
+  "note": "核对三档模型版本、开发检验及真实Workflow归档入库事实，删除最终研究报告中的任务进度措辞，不提前声明Dashboard页面验收通过。",
   "source_hashes": {
     "application/__init__.py": "64b63aff9187f899f87c2029cee3042497c9ac55c83d6b371e80fbb8eebeb05e",
     "application/arguments.py": "bd67c9cb2b0faf8681fe379186cab370e29e975c5f3f4b7e7143d504847fbb7f",
@@ -171,7 +171,7 @@
     "structured_result.py": "27dcfab113ee41719cdea7654212b1adf8952e6fb1fc99d00bddfe8a840f4f38",
     "uv.lock": "e7fadfd02231dfd640bf24fb7dd96a8a60da8d84aa325d9e72cb1ddd0bb115a8"
   },
-  "readme_sha256": "193ea8a5c647094086b9617defa5bd5d1bd246537bebb0c0fbec3be190982b53",
+  "readme_sha256": "5424c118c54eeabc49c06319a2e1cd6399e36fe792d18008080fc2d63d9e7edb",
   "short_evidence_sha256": "f587366695ff4b0cee057a2d0bbe22c6e661b72ccff154e13811192a58b21022",
   "timing_evidence_sha256": "89eba823d1bcc25ec84000b9aef7bd496ba4f625e612b459ac890d86dea55f6c"
 }
