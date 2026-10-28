@@ -8,6 +8,18 @@ regexTarget = "match"
 regexes = ['''AUTH0_CLIENT_ID["']?\s*[:=]\s*["']16vMxoYpr5AdPRiW1PkwIiHuRWszii6m["']''']
 
 [[allowlists]]
-description = "Reviewed Quant content checksums"
+description = "Reviewed Quant content checksum values"
+condition = "AND"
+paths = ['''^quant/''']
 regexTarget = "match"
-regexes = ['''(?:training_keys_sha256|retained_34489_key_subset_sha256|data_api\.py|machine_token\.py)["']?\s*:\s*["'][a-f0-9]{64}["']''']
+regexes = [
+  '''(?:training_keys_sha256|retained_34489_key_subset_sha256|data_api\.py|machine_token\.py)["']?\s*:\s*["']0569ddef987c56219ce108a30abd5734158864b93390aa401e1417f70cd8a070["']''',
+  '''(?:training_keys_sha256|retained_34489_key_subset_sha256|data_api\.py|machine_token\.py)["']?\s*:\s*["']1631efe0248849097498c15e38bc2876387dbedbbfeb440ea550962cdb11522d["']''',
+  '''(?:training_keys_sha256|retained_34489_key_subset_sha256|data_api\.py|machine_token\.py)["']?\s*:\s*["']3d2866ffb7d0bda27d5a8cb9a02eeddf9695122ab54f53fd2f162f5061838082["']''',
+  '''(?:training_keys_sha256|retained_34489_key_subset_sha256|data_api\.py|machine_token\.py)["']?\s*:\s*["']41be575cdd63af22240a96fe06f08f228c0356fbef274ba71aad00e136f1109e["']''',
+  '''(?:training_keys_sha256|retained_34489_key_subset_sha256|data_api\.py|machine_token\.py)["']?\s*:\s*["']601a2d655773024295e5e4016e884063c6538e4bae4aac23c88d7b004e094c12["']''',
+  '''(?:training_keys_sha256|retained_34489_key_subset_sha256|data_api\.py|machine_token\.py)["']?\s*:\s*["']7194ce11182062ba2d55b2de4c53b8a7f7dcfd45947ea6226bc9ee92af102b98["']''',
+  '''(?:training_keys_sha256|retained_34489_key_subset_sha256|data_api\.py|machine_token\.py)["']?\s*:\s*["']ce1ffe468bfa1e70c70da1a4709c865d86b54391249dbb67a988aef0c88de2cb["']''',
+  '''(?:training_keys_sha256|retained_34489_key_subset_sha256|data_api\.py|machine_token\.py)["']?\s*:\s*["']d98c8539bb276ed25101e25710290d1d3a398eec8b7f300351fbc25c7436e3d4["']''',
+  '''(?:training_keys_sha256|retained_34489_key_subset_sha256|data_api\.py|machine_token\.py)["']?\s*:\s*["']ddac3f62f3d571a856605538439783333553a81dc4a2e79fdf1cf049b020f648["']''',
+]
