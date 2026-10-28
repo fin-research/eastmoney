@@ -1,0 +1,43 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import test from 'node:test';
+import {creditDatabase,applyCreditMigration,finishCreditMigrations} from './helpers/credit-database.mjs';
+import {loadCreditReport} from '../src/lib/server/credit-repository.ts';
+const migration='0010_correct_baseline_and_remove_retired_fields.sql';
+const sql=fs.readFileSync(new URL(`../credit-migrations/${migration}`,import.meta.url),'utf8');
+
+test('历史迁移合回基准期，保留人工 diff、零和空文本，删除退休列与自动拟合残差',async t=>{
+  const db=await creditDatabase(t,false,true);
+  await db.exec("INSERT INTO public.client(name,type) VALUES ('上海银行','银行'),('烟台银行','银行')");
+  await db.query(`SELECT credit.append_diff('2026-08-21','上海银行',$1::jsonb,NULL)`,[JSON.stringify({institution_type:'城商行',status:'approved',confidentiality_status:false,total:10,bond_investment_used:3,other_limit:1,margin_income_rights_limit:2,other_used:0,margin_income_rights_used:1})]);
+  await db.query(`SELECT credit.append_diff('2026-08-21','烟台银行',$1::jsonb,NULL)`,[JSON.stringify({institution_type:'城商行',status:'revoked',confidentiality_status:false,total:3557.35})]);
+  await db.query(`SELECT credit.append_diff('2026-08-28','烟台银行','{"total":null}'::jsonb,NULL)`);
+  const b=(await db.query(`INSERT INTO financing.bond(name,debt_type,subtype,amount,issue_date,maturity_date) VALUES ('历史债券','债券','小公募',200000000,'2026-08-25','2027-08-25') RETURNING id`)).rows[0];
+  await db.query(`INSERT INTO financing.bond_investors(bond_id,investor_id,amount) VALUES ($1,(SELECT id FROM public.client WHERE name='上海银行'),200000000)`,[b.id]);
+  await applyCreditMigration(db,'0009_bond_usage_and_other.sql');
+  await db.query("SELECT credit.append_diff('2026-09-11','上海银行','{\"total\":9,\"expiry_date\":\"2027-08-31\",\"effective_date\":\"2026-08-31\"}'::jsonb,'auth0|test')");
+  const before=(await db.query('SELECT to_jsonb(d) data FROM credit.diff d ORDER BY id')).rows.map(r=>r.data);
+  await db.exec('BEGIN');await db.exec(sql);await db.exec('ROLLBACK');
+  assert.deepEqual((await db.query('SELECT to_jsonb(d) data FROM credit.diff d ORDER BY id')).rows.map(r=>r.data),before);
+  await applyCreditMigration(db,migration);
+  const after=(await db.query('SELECT to_jsonb(d) data FROM credit.diff d ORDER BY id')).rows.map(r=>r.data);
+  assert.equal(after.length,4); // two baselines, the original Yantai change, real manual change
+  for(const col of ['cleared_fields','margin_income_rights_limit','margin_income_rights_used','margin_income_rights_detail']) assert.ok(after.every(r=>!(col in r)));
+  const base=after.find(r=>r.institution_name==='上海银行'&&r.effective_on==='2026-08-21');
+  assert.equal(base.bond_investment_secondary_used,1);assert.equal(base.other_limit,3);assert.equal(base.other_used,1);assert.ok(base.updated_at);
+  assert.equal(base.created_at,before.find(r=>r.id===base.id).created_at);
+  const manual=after.find(r=>r.created_by==='auth0|test');
+  const original={...before.find(r=>r.id===manual.id)};for(const col of ['cleared_fields','margin_income_rights_limit','margin_income_rights_used','margin_income_rights_detail'])delete original[col];assert.deepEqual(manual,original);
+  assert.equal(after.find(r=>r.institution_name==='烟台银行').total,null);
+  await assert.rejects(db.exec('DELETE FROM credit.diff'),/cannot be deleted/);
+  await assert.rejects(db.exec('UPDATE credit.diff SET total=0'),/append only/);
+  await db.query(`SELECT credit.append_diff('2026-09-12','上海银行','{"notes":"","total":0}'::jsonb,'auth0|test')`);
+  const count=(await db.query('SELECT count(*) n FROM credit.diff')).rows[0].n;
+  await db.query(`SELECT credit.append_diff('2026-09-12','上海银行','{"notes":null,"total":null}'::jsonb,'auth0|test')`);
+  assert.equal((await db.query('SELECT count(*) n FROM credit.diff')).rows[0].n,count);
+  assert.deepEqual((await db.query(`SELECT notes,total::float8 FROM credit.state_as_of('2026-09-12') WHERE institution_name='上海银行'`)).rows[0],{notes:'',total:0});
+  await finishCreditMigrations(db,migration);
+  const report=await loadCreditReport(db,'2026-08-28');
+  assert.equal(report.institutions.find(r=>r.institutionName==='上海银行').items.find(i=>i.type==='bond_investment').usedAmount,3);
+  assert.equal(report.calendarEvents.some(e=>e.date==='2026-08-28'&&e.usageComponent==='secondary'),false);
+});

@@ -1,0 +1,6 @@
+{
+  "name": "camel-crypto-test",
+  "main": "camel-crypto.ts",
+  "compatibility_date": "2026-08-29",
+  "compatibility_flags": ["nodejs_compat"]
+}

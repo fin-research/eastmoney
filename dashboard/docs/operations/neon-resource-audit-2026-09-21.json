@@ -1,0 +1,584 @@
+{
+  "projects": [
+    {
+      "id": "mute-king-39794724",
+      "name": "hasbai",
+      "region_id": "aws-ap-southeast-1",
+      "compute_cu_hours": 9.045277777777779,
+      "active_hours": 35.88111111111111,
+      "storage_bytes": 34177024,
+      "storage_limit_bytes": 536870912,
+      "quota_reset_at": "2026-10-01T00:00:00Z"
+    },
+    {
+      "id": "royal-heart-32426978",
+      "name": "eastmoney",
+      "region_id": "aws-us-west-2",
+      "compute_cu_hours": 32.20777777777778,
+      "active_hours": 127.2875,
+      "storage_bytes": 138993664,
+      "storage_limit_bytes": 536870912,
+      "quota_reset_at": "2026-10-01T00:00:00Z"
+    }
+  ],
+  "eastmoneyBranches": [
+    {
+      "name": "production",
+      "id": "br-shiny-star-a6j6n3de",
+      "default": true,
+      "compute_cu_hours": 30.524166666666666,
+      "logical_size": 138936320,
+      "data_transfer_bytes": 314361000
+    },
+    {
+      "name": "messenger-migration-check",
+      "id": "br-lively-breeze-a6mert0j",
+      "default": false,
+      "compute_cu_hours": 0.030555555555555555,
+      "logical_size": 138207232,
+      "data_transfer_bytes": 8936
+    },
+    {
+      "name": "quant-online-data-20260914",
+      "id": "br-cool-moon-a66iynqw",
+      "default": false,
+      "compute_cu_hours": 0.1322222222222222,
+      "logical_size": 137502720,
+      "data_transfer_bytes": 14906460
+    },
+    {
+      "name": "task-credit-validity-reconciliation-20260911",
+      "id": "br-autumn-dream-a659up9v",
+      "default": false,
+      "compute_cu_hours": 0.08027777777777778,
+      "logical_size": 79781888,
+      "data_transfer_bytes": 8322394
+    },
+    {
+      "name": "task-credit-date-baseline-20260911",
+      "id": "br-aged-base-a6djuz6u",
+      "default": false,
+      "compute_cu_hours": 0.0575,
+      "logical_size": 79822848,
+      "data_transfer_bytes": 11770017
+    },
+    {
+      "name": "task-credit-bond-secondary-20260910",
+      "id": "br-summer-bird-a69gba1u",
+      "default": false,
+      "compute_cu_hours": 0.06277777777777778,
+      "logical_size": 79364096,
+      "data_transfer_bytes": 5826957
+    },
+    {
+      "name": "task-bond-investors-20260910",
+      "id": "br-odd-field-a6mr5tbd",
+      "default": false,
+      "compute_cu_hours": 0.08916666666666667,
+      "logical_size": 78749696,
+      "data_transfer_bytes": 527558
+    },
+    {
+      "name": "credit-diff-20260909",
+      "id": "br-withered-feather-a65wz9gq",
+      "default": false,
+      "compute_cu_hours": 0.0636111111111111,
+      "logical_size": 77471744,
+      "data_transfer_bytes": 3801057
+    }
+  ],
+  "hasbaiBranches": [
+    {
+      "name": "production",
+      "compute_cu_hours": 7.143055555555556,
+      "data_transfer_bytes": 23958971
+    },
+    {
+      "name": "financial-007-validation-20260918",
+      "compute_cu_hours": 0.21722222222222223,
+      "data_transfer_bytes": 160290
+    },
+    {
+      "name": "financial-implementation",
+      "compute_cu_hours": 0.41694444444444445,
+      "data_transfer_bytes": 382830
+    },
+    {
+      "name": "financial-role-access-20260915",
+      "compute_cu_hours": 0.5411111111111111,
+      "data_transfer_bytes": 875533
+    },
+    {
+      "name": "financial-report-views-20260914",
+      "compute_cu_hours": 0.1736111111111111,
+      "data_transfer_bytes": 132820
+    },
+    {
+      "name": "financial-balance-validation-20260914",
+      "compute_cu_hours": 0.1947222222222222,
+      "data_transfer_bytes": 118650
+    },
+    {
+      "name": "financial-balance-validation-final-20260915",
+      "compute_cu_hours": 0.1486111111111111,
+      "data_transfer_bytes": 245564
+    },
+    {
+      "name": "financial-home-snapshot-20260914",
+      "compute_cu_hours": 0.20916666666666667,
+      "data_transfer_bytes": 221578
+    }
+  ],
+  "diagnostics": {
+    "tableSizes": {
+      "check": "table-sizes",
+      "describe": "Size of each table (including TOAST), largest first (pg_table_size)",
+      "projectId": "royal-heart-32426978",
+      "branchId": "br-shiny-star-a6j6n3de",
+      "databaseName": "neondb",
+      "databases": [
+        "neondb"
+      ],
+      "fields": [
+        "schema",
+        "name",
+        "size"
+      ],
+      "totalRowCount": 47,
+      "rows": [
+        {
+          "schema": "public",
+          "name": "quant_input",
+          "size": "36 MB"
+        },
+        {
+          "schema": "public",
+          "name": "edb",
+          "size": "16 MB"
+        },
+        {
+          "schema": "financing",
+          "name": "balance_snapshot",
+          "size": "3456 kB"
+        },
+        {
+          "schema": "financing",
+          "name": "debt",
+          "size": "2360 kB"
+        },
+        {
+          "schema": "financing",
+          "name": "income_certificate",
+          "size": "1872 kB"
+        },
+        {
+          "schema": "financing",
+          "name": "cashflow",
+          "size": "1856 kB"
+        },
+        {
+          "schema": "bond",
+          "name": "daily_position",
+          "size": "1240 kB"
+        },
+        {
+          "schema": "financing",
+          "name": "bond_investors",
+          "size": "408 kB"
+        },
+        {
+          "schema": "credit",
+          "name": "diff",
+          "size": "184 kB"
+        },
+        {
+          "schema": "bond",
+          "name": "daily_statistics",
+          "size": "160 kB"
+        },
+        {
+          "schema": "public",
+          "name": "client_alias",
+          "size": "160 kB"
+        },
+        {
+          "schema": "financing",
+          "name": "bond",
+          "size": "104 kB"
+        },
+        {
+          "schema": "public",
+          "name": "client",
+          "size": "96 kB"
+        },
+        {
+          "schema": "financing",
+          "name": "refinancing",
+          "size": "96 kB"
+        },
+        {
+          "schema": "financing_model",
+          "name": "model_run",
+          "size": "88 kB"
+        }
+      ],
+      "truncated": true,
+      "note": "Showing the first 15 of 47 rows. Raise `limit` to see more."
+    },
+    "vacuum": {
+      "check": "vacuum-stats",
+      "describe": "Autovacuum status per table: last (auto)vacuum, dead tuples, threshold",
+      "projectId": "royal-heart-32426978",
+      "branchId": "br-shiny-star-a6j6n3de",
+      "databaseName": "neondb",
+      "databases": [
+        "neondb"
+      ],
+      "fields": [
+        "schema",
+        "table",
+        "last_vacuum",
+        "last_autovacuum",
+        "rowcount",
+        "dead_rowcount",
+        "expect_autovacuum"
+      ],
+      "totalRowCount": 47,
+      "rows": [
+        {
+          "schema": "public",
+          "table": "edb",
+          "last_vacuum": null,
+          "last_autovacuum": "2026-09-18 16:02",
+          "rowcount": "172675",
+          "dead_rowcount": "2878",
+          "expect_autovacuum": "no"
+        },
+        {
+          "schema": "public",
+          "table": "quant_input",
+          "last_vacuum": null,
+          "last_autovacuum": "2026-09-14 10:28",
+          "rowcount": "177307",
+          "dead_rowcount": "1512",
+          "expect_autovacuum": "no"
+        },
+        {
+          "schema": "bond",
+          "table": "daily_position",
+          "last_vacuum": null,
+          "last_autovacuum": "2026-09-04 09:42",
+          "rowcount": "3890",
+          "dead_rowcount": "77",
+          "expect_autovacuum": "no"
+        },
+        {
+          "schema": "financing_model",
+          "table": "model_run_forecast_window",
+          "last_vacuum": null,
+          "last_autovacuum": "2026-09-11 06:07",
+          "rowcount": "70",
+          "dead_rowcount": "60",
+          "expect_autovacuum": "no"
+        },
+        {
+          "schema": "financing",
+          "table": "income_right",
+          "last_vacuum": null,
+          "last_autovacuum": "2026-09-04 06:25",
+          "rowcount": "57",
+          "dead_rowcount": "57",
+          "expect_autovacuum": "no"
+        },
+        {
+          "schema": "financing_model",
+          "table": "model_run_driver_group",
+          "last_vacuum": null,
+          "last_autovacuum": null,
+          "rowcount": "18",
+          "dead_rowcount": "48",
+          "expect_autovacuum": "no"
+        },
+        {
+          "schema": "financing_model",
+          "table": "model_run_market_driver",
+          "last_vacuum": null,
+          "last_autovacuum": null,
+          "rowcount": "25",
+          "dead_rowcount": "40",
+          "expect_autovacuum": "no"
+        },
+        {
+          "schema": "financing_model",
+          "table": "model_run_product_scenario",
+          "last_vacuum": null,
+          "last_autovacuum": null,
+          "rowcount": "12",
+          "dead_rowcount": "32",
+          "expect_autovacuum": "no"
+        },
+        {
+          "schema": "financing_model",
+          "table": "model_run",
+          "last_vacuum": null,
+          "last_autovacuum": null,
+          "rowcount": "5",
+          "dead_rowcount": "18",
+          "expect_autovacuum": "no"
+        },
+        {
+          "schema": "financing",
+          "table": "sop_templates",
+          "last_vacuum": null,
+          "last_autovacuum": null,
+          "rowcount": "-1",
+          "dead_rowcount": "18",
+          "expect_autovacuum": "no"
+        },
+        {
+          "schema": "public",
+          "table": "quant_input_sync",
+          "last_vacuum": null,
+          "last_autovacuum": null,
+          "rowcount": "41",
+          "dead_rowcount": "17",
+          "expect_autovacuum": "no"
+        },
+        {
+          "schema": "financing",
+          "table": "projects",
+          "last_vacuum": null,
+          "last_autovacuum": null,
+          "rowcount": "2",
+          "dead_rowcount": "16",
+          "expect_autovacuum": "no"
+        },
+        {
+          "schema": "financing",
+          "table": "reminder_deliveries",
+          "last_vacuum": null,
+          "last_autovacuum": null,
+          "rowcount": "-1",
+          "dead_rowcount": "15",
+          "expect_autovacuum": "no"
+        },
+        {
+          "schema": "financing",
+          "table": "liability_weekly_report_runs",
+          "last_vacuum": null,
+          "last_autovacuum": null,
+          "rowcount": "-1",
+          "dead_rowcount": "10",
+          "expect_autovacuum": "no"
+        },
+        {
+          "schema": "financing",
+          "table": "swap_facility",
+          "last_vacuum": null,
+          "last_autovacuum": null,
+          "rowcount": "1",
+          "dead_rowcount": "8",
+          "expect_autovacuum": "no"
+        }
+      ],
+      "truncated": true,
+      "note": "Showing the first 15 of 47 rows. Raise `limit` to see more."
+    },
+    "stalled": {
+      "check": "stalled-queries",
+      "describe": "Active queries running longer than 30 seconds with parallel-worker grouping, waits, and blockers, oldest query group first (compute-wide)",
+      "projectId": "royal-heart-32426978",
+      "branchId": "br-shiny-star-a6j6n3de",
+      "databases": [
+        "neondb"
+      ],
+      "fields": [
+        "observed_at",
+        "query_start",
+        "query_group",
+        "pid",
+        "leader_pid",
+        "role",
+        "backend_type",
+        "database",
+        "application_name",
+        "query_id",
+        "state",
+        "wait_event_type",
+        "wait_event",
+        "blocking_pids",
+        "duration",
+        "query"
+      ],
+      "totalRowCount": 0,
+      "rows": [],
+      "truncated": false,
+      "note": "No active queries running longer than 30 seconds on this compute."
+    },
+    "mostCalled": [
+      {
+        "ncalls": "584",
+        "total_exec_time": "00:00:00.062066",
+        "query": "WITH candidates AS (\n\t\t\tSELECT rule.id AS ruleId, rule.name AS ruleName,\n\t\t\t\trule.recipient_mode AS recipientMode, rule.recipients,\n\t\t\t\tperiod.id AS p"
+      },
+      {
+        "ncalls": "266",
+        "total_exec_time": "00:00:00.001296",
+        "query": "SELECT pg_is_in_recovery()"
+      },
+      {
+        "ncalls": "175",
+        "total_exec_time": "00:00:00.003032",
+        "query": "SET application_name=$1"
+      },
+      {
+        "ncalls": "14",
+        "total_exec_time": "00:00:00.003925",
+        "query": "WITH reminders AS (\n\t\tSELECT pt.id, pt.name AS taskName, pt.status, pt.due_date AS dueDate,\n\t\t\tp.id AS projectId, p.name AS projectName, p.debt_type A"
+      },
+      {
+        "ncalls": "12",
+        "total_exec_time": "00:00:00.406538",
+        "query": "WITH args AS (\n\t\t\tSELECT $1::text[] AS selected_types, $2::date AS today\n\t\t), latest AS (\n\t\t\tSELECT COALESCE(MAX(as_of_date), (SELECT today FROM args)"
+      },
+      {
+        "ncalls": "8",
+        "total_exec_time": "00:00:00.002508",
+        "query": "SELECT p.id, p.code, p.name, p.debt_type AS debtType, p.status,\n\t\t\tp.planned_start_date AS plannedStartDate, p.planned_issue_date AS plannedIssueDate,"
+      },
+      {
+        "ncalls": "7",
+        "total_exec_time": "00:00:00.025631",
+        "query": "WITH interest AS (\n\t\t\tSELECT debt_id, due_date, SUM(amount) AS amount\n\t\t\tFROM financing.cashflow WHERE cashflow_type = $1 AND due_date BETWEEN $2 AND "
+      },
+      {
+        "ncalls": "7",
+        "total_exec_time": "00:00:00.041948",
+        "query": "WITH latest AS (\n\t\t\tSELECT COALESCE(MAX(as_of_date), $1::date) AS as_of_date FROM financing.balance_snapshot\n\t\t), net_capital AS (\n\t\t\tSELECT value_yi,"
+      },
+      {
+        "ncalls": "7",
+        "total_exec_time": "00:00:00.000022",
+        "query": "BEGIN"
+      },
+      {
+        "ncalls": "5",
+        "total_exec_time": "00:00:00.000023",
+        "query": "COMMIT"
+      },
+      {
+        "ncalls": "5",
+        "total_exec_time": "00:00:00.000709",
+        "query": "SELECT extname, extversion, extowner::pg_catalog.int4 FROM pg_catalog.pg_extension"
+      },
+      {
+        "ncalls": "5",
+        "total_exec_time": "00:00:00.00079",
+        "query": "SELECT row_to_json(result) AS row FROM (SELECT \"period_end\",\"net_capital\",\"securities_net_assets\",\"group_net_assets\",\"total_assets\",\"total_liabilities"
+      },
+      {
+        "ncalls": "5",
+        "total_exec_time": "00:00:00.003488",
+        "query": "SET LOCAL ROLE authenticated"
+      },
+      {
+        "ncalls": "5",
+        "total_exec_time": "00:00:00.00046",
+        "query": "SELECT count(*) AS total FROM financing.\"financial_monthly_data\""
+      },
+      {
+        "ncalls": "5",
+        "total_exec_time": "00:00:00.000079",
+        "query": "SELECT set_config($4, $1, $5), set_config($6, $2, $7), set_config($8, $3, $9)"
+      }
+    ],
+    "outliers": [
+      {
+        "total_exec_time": "00:00:00.406538",
+        "prop_exec_time": "29.3%",
+        "ncalls": "12",
+        "query": "WITH args AS (\n\t\t\tSELECT $1::text[] AS selected_types, $2::date AS today\n\t\t), latest AS (\n\t\t\tSELECT COALESCE(MAX(as_of_date), (SELECT today FROM args)"
+      },
+      {
+        "total_exec_time": "00:00:00.253911",
+        "prop_exec_time": "18.3%",
+        "ncalls": "3",
+        "query": "SELECT to_char(d.date,$2) AS date,m.institution_name,\n    CASE u.debt_type WHEN $3 THEN $4 ELSE $5 END AS item_type,\n    (sum(u.amount)/$6)::float8 AS"
+      },
+      {
+        "total_exec_time": "00:00:00.250803",
+        "prop_exec_time": "18.1%",
+        "ncalls": "1",
+        "query": "SELECT\n        n.nspname AS schema,\n        c.relname AS name,\n        pg_size_pretty(pg_table_size(c.oid)) AS size\n      FROM pg_class c\n      LEFT J"
+      },
+      {
+        "total_exec_time": "00:00:00.107035",
+        "prop_exec_time": "7.7%",
+        "ncalls": "1",
+        "query": "SELECT\n       indicator_code AS code,\n       to_char(published_date, $2) AS date,\n       value::double precision AS value,\n       to_char(synced_at AT"
+      },
+      {
+        "total_exec_time": "00:00:00.062066",
+        "prop_exec_time": "4.5%",
+        "ncalls": "584",
+        "query": "WITH candidates AS (\n\t\t\tSELECT rule.id AS ruleId, rule.name AS ruleName,\n\t\t\t\trule.recipient_mode AS recipientMode, rule.recipients,\n\t\t\t\tperiod.id AS p"
+      },
+      {
+        "total_exec_time": "00:00:00.05609",
+        "prop_exec_time": "4.0%",
+        "ncalls": "2",
+        "query": "SELECT financing_model.publish_online_result($1::jsonb,$2) AS id"
+      },
+      {
+        "total_exec_time": "00:00:00.041948",
+        "prop_exec_time": "3.0%",
+        "ncalls": "7",
+        "query": "WITH latest AS (\n\t\t\tSELECT COALESCE(MAX(as_of_date), $1::date) AS as_of_date FROM financing.balance_snapshot\n\t\t), net_capital AS (\n\t\t\tSELECT value_yi,"
+      },
+      {
+        "total_exec_time": "00:00:00.040022",
+        "prop_exec_time": "2.9%",
+        "ncalls": "3",
+        "query": "SELECT COALESCE((\n\t\t\tSELECT jsonb_agg(jsonb_build_object(\n\t\t\t\t$1, st.id, $2, st.name, $3, st.debt_type,\n\t\t\t\t$4, st.description, $5, st.is_active,\n\t\t\t\t"
+      },
+      {
+        "total_exec_time": "00:00:00.025631",
+        "prop_exec_time": "1.8%",
+        "ncalls": "7",
+        "query": "WITH interest AS (\n\t\t\tSELECT debt_id, due_date, SUM(amount) AS amount\n\t\t\tFROM financing.cashflow WHERE cashflow_type = $1 AND due_date BETWEEN $2 AND "
+      },
+      {
+        "total_exec_time": "00:00:00.021015",
+        "prop_exec_time": "1.5%",
+        "ncalls": "3",
+        "query": "SELECT to_jsonb(d) AS data FROM credit.diff d ORDER BY effective_on,created_at,id"
+      },
+      {
+        "total_exec_time": "00:00:00.020721",
+        "prop_exec_time": "1.5%",
+        "ncalls": "3",
+        "query": "SELECT DISTINCT to_char(v.date,$1) AS date\n    FROM financing.debt d JOIN credit.institution_client m ON m.client_id=d.client_id\n    CROSS JOIN LATERA"
+      },
+      {
+        "total_exec_time": "00:00:00.007141",
+        "prop_exec_time": "0.5%",
+        "ncalls": "4",
+        "query": "SELECT count(*) FROM public.client c WHERE c.name ILIKE $1 OR c.fullname ILIKE $1 OR c.type ILIKE $1 OR EXISTS(SELECT $2 FROM public.client_alias a WH"
+      },
+      {
+        "total_exec_time": "00:00:00.006678",
+        "prop_exec_time": "0.5%",
+        "ncalls": "4",
+        "query": "SELECT c.id::text,c.name,c.fullname,c.type,c.subtype,\n  COALESCE((SELECT json_agg(a.alias ORDER BY a.alias) FROM public.client_alias a WHERE a.client_"
+      },
+      {
+        "total_exec_time": "00:00:00.006017",
+        "prop_exec_time": "0.4%",
+        "ncalls": "2",
+        "query": "SELECT i.investor_id::text AS id, COALESCE(c.name, $2) AS name, c.type, c.subtype AS client_subtype,\n      b.subtype, sum(i.amount)::text AS total,\n  "
+      }
+    ]
+  },
+  "assembledAt": "2026-09-20T16:25:58.943146+00:00",
+  "collectionNote": "Multiple read-only samples during 2026-09-20 evening UTC; counters can differ between samples."
+}

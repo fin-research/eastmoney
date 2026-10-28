@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "quant",
+  "main": "cron-entry.ts",
+  "compatibility_date": "2026-09-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [],
+  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true, "html_handling": "none", "not_found_handling": "none" },
+  "services": [{ "binding": "DATA", "service": "eastmoney-data", "entrypoint": "InternalData" }],
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
+  "r2_buckets": [{ "binding": "ARTIFACTS", "bucket_name": "eastmoney" }],
+  "hyperdrive": [
+    { "binding": "HYPERDRIVE", "id": "26b76413a03a4328836d95f3ca320a1e" },
+  ],
+  "workflows": [
+    {
+      "binding": "INFERENCE",
+      "name": "quant-bond-inference-trial",
+      "class_name": "BondInferenceWorkflow",
+    },
+  ],
+  "vars": { "MODEL_POINTER": "quant-trial/models/current.json" },
+  "triggers": { "crons": [] },
+}

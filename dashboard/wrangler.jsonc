@@ -1,0 +1,127 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "eastmoney-dashboard",
+  "main": "worker/entry.ts",
+  "compatibility_date": "2026-08-20",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "vars": {
+    "CLOUDFLARE_ACCOUNT_ID": "5cecc63c78acf8f5473f8745f4244448",
+    "AI_GATEWAY_ID": "default",
+    "DATA_API_BASE_URL": "https://eastmoney.hasbai.xyz/data",
+    "CHOICE_DATA_API_URL": "https://eastmoney.hasbai.xyz/data",
+    "FROM_EMAIL": "no-reply@hasbai.xyz"
+  },
+  "secrets": {
+    "required": [
+      "CF_AIG_TOKEN"
+    ]
+  },
+  "assets": {
+    "binding": "ASSETS",
+    "directory": ".svelte-kit/cloudflare",
+    "html_handling": "none",
+    "run_worker_first": true
+  },
+  "placement": {
+    "mode": "smart"
+  },
+  "triggers": {
+    "crons": []
+  },
+  "routes": [],
+  "services": [
+    {
+      "binding": "DATA",
+      "service": "eastmoney-data",
+      "entrypoint": "InternalData",
+      "remote": true
+    },
+    {
+      "binding": "IDENTITY",
+      "service": "eastmoney-gateway",
+      "entrypoint": "IdentityService",
+      "remote": true
+    },
+    {
+      "binding": "MESSENGER",
+      "service": "messenger",
+      "entrypoint": "Messaging"
+    },
+    {
+      "binding": "MESSENGER_ADMIN",
+      "service": "messenger",
+      "entrypoint": "MessengerAdmin"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "eastmoney",
+      "database_id": "b80cfbe1-1226-46cc-a22b-3ebbaefe85bf",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "EASTMONEY",
+      "bucket_name": "eastmoney",
+      "remote": true
+    },
+    {
+      "binding": "LIABILITY_REPORT_SNAPSHOTS",
+      "bucket_name": "eastmoney",
+      "remote": true
+    }
+  ],
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "26b76413a03a4328836d95f3ca320a1e"
+    }
+  ],
+  "workflows": [
+    {
+      "binding": "MARKET_BRIEFING",
+      "name": "market-briefing",
+      "class_name": "MarketBriefingWorkflow"
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "head_sampling_rate": 1
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.1,
+      "persist": true
+    }
+  },
+  "ai_search": [
+    {
+      "binding": "CREDIT_SEARCH",
+      "instance_name": "credit",
+      "remote": true
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "CREDIT_AGENT",
+        "class_name": "CreditAgent"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "credit-agent-v1",
+      "new_sqlite_classes": [
+        "CreditAgent"
+      ]
+    }
+  ],
+  "workers_dev": false,
+  "preview_urls": false
+}

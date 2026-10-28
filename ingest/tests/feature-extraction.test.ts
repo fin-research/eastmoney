@@ -1,0 +1,114 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  ARTICLE_FEATURE_MODEL,
+  articleFeatureOutputSchema,
+  articleFeatureSchema,
+  buildFeatureInferenceRequest,
+  buildR2Metadata,
+  extractArticleFeatures,
+  validateArticleFeatures,
+} from "../src/feature-extraction";
+
+const validFeatures = {
+  title: "债市如何定价降准降息？",
+  author: "国海固收",
+  summary: "研报讨论宽松政策的条件与约束，并提示利率债定价需等待关键外部条件验证。",
+  importance: 72,
+  keywords: [
+    {
+      topic: "降准降息预期",
+      fact: "研报认为基本面与银行息差约束减弱，宽松预期有合理性。",
+      interpretation: "政策宽松概率上升，但落地时点仍有不确定性。",
+      impact: "流动性改善预期可能提振股票估值并利多利率债，但债券定价需防范宽松预期抢跑。",
+    },
+  ],
+};
+
+describe("article feature extraction", () => {
+  it("uses gpt-6-luna Responses while keeping thinking disabled", () => {
+    expect(ARTICLE_FEATURE_MODEL).toBe("gpt-6-luna");
+  });
+
+  it("sends complete evidence separately from instructions with the versioned business schema", () => {
+    const markdown = "中".repeat(100_000);
+    const request = buildFeatureInferenceRequest("标题", markdown);
+
+    expect(request.schema).toBe(articleFeatureOutputSchema);
+    expect(articleFeatureSchema.safeParse(validFeatures).success).toBe(true);
+    expect(request.schemaName).toBe("article_features");
+    expect(request.promptCacheKey).toBe(
+      "article-features:v5-responses-provider-fallback",
+    );
+    expect(request.taskType).toBe("summary");
+    expect(request.enableThinking).toBe(false);
+    expect(request.messages[0]?.content).not.toContain(markdown);
+    expect(request.messages[1]?.content).toContain(markdown);
+    expect(request.messages[1]?.content).toContain("响应 JSON Schema");
+    expect(request.messages[1]?.content).not.toContain('"importance":70');
+    expect(request.messages[1]?.content).not.toContain("权益：影响；利率债：影响");
+    expect(request.messages[1]?.content).not.toContain("中间部分已省略");
+  });
+
+  it("rejects a result that does not satisfy the domain contract", async () => {
+    await expect(
+      extractArticleFeatures(
+        async () => ({ ...validFeatures, importance: 101 }),
+        validFeatures.title,
+        "正文",
+      ),
+    ).rejects.toThrow("importance");
+  });
+
+  it("accepts the AI SDK object and preserves the source title", async () => {
+    const extracted = await extractArticleFeatures(
+      async () => ({ ...validFeatures, title: "模型改写标题" }),
+      validFeatures.title,
+      "正文",
+    );
+
+    expect(extracted).toEqual(validFeatures);
+  });
+
+  it("rejects invalid importance and duplicate topics without enforcing topic wording", () => {
+    expect(() =>
+      validateArticleFeatures({ ...validFeatures, importance: 101 }, validFeatures.title),
+    ).toThrow("importance");
+    expect(() =>
+      validateArticleFeatures(
+        { ...validFeatures, keywords: [validFeatures.keywords[0], validFeatures.keywords[0]] },
+        validFeatures.title,
+      ),
+    ).toThrow("unique");
+    expect(
+      validateArticleFeatures(
+        {
+          ...validFeatures,
+          keywords: [{ ...validFeatures.keywords[0], topic: "货币政策预期" }],
+        },
+        validFeatures.title,
+      ).keywords[0]?.topic,
+    ).toBe("货币政策预期");
+  });
+
+  it("builds R2 archive and indexing metadata from extracted features", () => {
+    const features = {
+      ...validFeatures,
+      keywords: [
+        validFeatures.keywords[0]!,
+        { ...validFeatures.keywords[0]!, topic: "隔夜逆回购重启" },
+      ],
+    };
+
+    expect(buildR2Metadata(features, "2026-08-13T01:02:03Z")).toEqual({
+      type: "研报",
+      source: "国海固收",
+      tags: "降准降息预期,隔夜逆回购重启",
+      author: "国海固收",
+      summary: validFeatures.summary,
+      importance: "72",
+      keywords: "降准降息预期,隔夜逆回购重启",
+      published_at: "2026-08-13T01:02:03.000Z",
+    });
+  });
+});

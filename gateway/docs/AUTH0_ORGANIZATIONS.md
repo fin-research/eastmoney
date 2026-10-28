@@ -1,0 +1,20 @@
+# Eastmoney Auth0 组织与应用边界
+
+Eastmoney 在共享租户 `hasbai.eu.auth0.com` 内使用组织 `org_6yvoRRCkzk3eGkBS`。组织限定业务用户身份。管理 API、签名密钥、登录域名、邮件服务、套餐和租户管理员仍由整个租户共用。账号与权限的当前规则见 [共享 AUTH](../../docs/AUTH.md)。
+
+## 用户应用
+
+- 网站 `eastmoney` 使用授权码 + PKCE。ChatGPT/Codex MCP 使用官方 CIMD 自动识别客户端，配置与精确 ID 见 [MCP](MCP.md)。两者必须在 Eastmoney 组织登录，Gateway 校验签名 `org_id`；CIMD token 仅准入 `/mcp`。
+- 当前已部署的 `login claims` Action 源码为 `auth0/actions/login-claims.cjs`。MCP 分支校验组织、`eastmoney-email` 连接、18.cn 邮箱、验证与账号状态，并写入签名 namespace 身份。网站与其它共享租户应用的顶层声明保持。基础角色通过组织成员关系分配，不自动授予。
+- `eastmoney-email` 为 domain connection，以支持严格第三方登录。本组织允许第三方 user flow；两个官方 CIMD 各自有精确 API user grant，动态注册与全体第三方默认授权未开放。其它连接不变。
+- `eastmoney gateway management` 机器应用供 Gateway 身份服务和注册资料保存。角色准入使用 JWT 声明及授权缓存。本地租户管理通过 Auth0 skill 和已有 CLI 授权完成。不得把 CLI 管理授权并入业务运行时凭据。旧 profile 应用仅供可逆回退，不再参与当前身份服务。
+
+## 机器身份
+
+旧 `eastmoney quant gateway` 客户端已退役，Gateway 机器客户端白名单为空。将来若恢复机器 Choice 调用，须重新登记客户端、scope 与白名单，并单独验证 `gty=client-credentials`、机器 subject、audience 和 Choice 路由边界。用户 token 缺少本组织 `org_id`、未登记机器客户端及跨组织 token 均拒绝。
+
+## 配置与验证
+
+租户配置按[共享 AUTH](../../docs/AUTH.md#auth0-本地租户管理) 使用 Auth0 skill 和 CLI，先复用已有授权，再针对精确资源操作并回读组织连接、角色成员与授权。并行会话不共用导出目录，不提交用户资料或凭据。
+
+变更网站、MCP 或组织关联时，按 [Gateway 交付](DEVELOPMENT.md) 做程序化登录与只读探针。机器身份默认应被拒绝。回退逐项恢复受影响应用和成员关系，避免整租户导入覆盖其他应用的后续改动。

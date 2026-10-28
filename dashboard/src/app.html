@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/pwa-192.png" />
+    <meta name="theme-color" content="#2f6fd6" />
+    <link rel="icon" href="/favicon.svg" />
+    <script>
+      try {
+        const stored = JSON.parse(
+          localStorage.getItem("eastmoney:preferences:v1") || "null",
+        );
+        if (stored?.marketColorConvention === "green-up-red-down") {
+          document.documentElement.dataset.marketColorConvention =
+            "green-up-red-down";
+        }
+      } catch {}
+    </script>
+    %sveltekit.head%
+  </head>
+  <body data-sveltekit-preload-data="tap">
+    <div style="display: contents">%sveltekit.body%</div>
+  </body>
+</html>

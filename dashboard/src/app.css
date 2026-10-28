@@ -1,0 +1,89 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn-svelte/tailwind.css";
+@import "./report-controls.css";
+@source "./";
+
+/* Maia geometry with the established Eastmoney palette and system font. */
+:root {
+  --background: #f6f8fb;
+  --foreground: #172033;
+  --card: #ffffff;
+  --card-foreground: #172033;
+  --popover: #ffffff;
+  --popover-foreground: #172033;
+  --primary: #2f6fd6;
+  --primary-foreground: #ffffff;
+  --secondary: #eaf1fd;
+  --secondary-foreground: #245bb2;
+  --muted: #f1f5fb;
+  --muted-foreground: #667085;
+  --accent: #eaf1fd;
+  --accent-foreground: #245bb2;
+  --destructive: #b42318;
+  --border: #d8e2f0;
+  --input: #d8e2f0;
+  --ring: #2f6fd6;
+  --radius: 1rem;
+  --color-info: #eaf1fd;
+  --color-info-content: #245bb2;
+  --color-success: #e8f7f0;
+  --color-success-content: #12805c;
+  --color-warning: #fff2e8;
+  --color-warning-content: #b54708;
+  --color-error: #fff0ef;
+  --color-error-content: #b42318;
+  --business-accent: #16a394;
+  --business-purple: #6941c6;
+}
+@theme inline {
+  --font-sans: var(--font);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --font-weight-medium: normal;
+  --font-weight-semibold: bold;
+  --font-weight-bold: bold;
+}
+@layer base {
+  * { @apply border-border; }
+  button, input, select, textarea { font-family: inherit; }
+  :is(button, [role="button"], [data-slot="button"]):not(:disabled):not([aria-disabled="true"]):not([data-disabled]) { cursor: pointer; }
+  :is(button, [role="button"], [data-slot="button"]):is(:disabled, [aria-disabled="true"], [data-disabled]) { cursor: default; }
+}
+/* Accessible targets; compact report controls are isolated in report-controls.css. */
+[data-slot="button"], [data-slot="input"], [data-slot="native-select"] { min-height: 44px; }
+[data-slot="button"] { min-width: 44px; font-weight: bold; }
+[data-slot="input"], [data-slot="native-select"], [data-slot="textarea"] { font-size: 1rem; max-width: 100%; }
+[data-slot="dialog-content"] { max-height: calc(100dvh - 3rem); overflow-y: auto; }
+[data-slot="badge"] { height: auto; min-height: 24px; white-space: normal; font-weight: bold; }
+.ui-radio, .ui-checkbox { width: 1.125rem; height: 1.125rem; flex-shrink: 0; accent-color: var(--primary); }
+.ui-spinner { display: inline-block; width: 1.25rem; height: 1.25rem; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: ui-spin .8s linear infinite; }
+@keyframes ui-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  [data-slot], .ui-spinner { transition: none !important; animation: none !important; }
+}
+
+.dialog-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
+.dialog-body { min-width: 0; max-width: 100%; }
+
+[data-auth-hidden] { display: none !important; }

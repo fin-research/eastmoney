@@ -1,0 +1,88 @@
+name: Tests and visual regression
+on:
+  workflow_call:
+    inputs:
+      affected:
+        type: boolean
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+defaults:
+  run:
+    working-directory: dashboard
+jobs:
+  unit:
+    name: Unit tests and coverage
+    if: inputs.affected && github.event_name != 'pull_request'
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-dashboard
+      - uses: astral-sh/setup-uv@v6
+        with:
+          cache-dependency-glob: dashboard/tests/test_credit_materials.py
+      - run: pnpm test:python
+      - run: pnpm test:coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-evidence
+          path: dashboard/coverage/
+          retention-days: 14
+  build-visual:
+    name: Build and visual regression
+    if: inputs.affected && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04-arm
+    container:
+      image: ghcr.io/hasbai/financial-visual-ci@sha256:7c8b030fa654dfd7acb74db9fbca0fe413ca81024536f6d361712d0920fd6444
+      options: --ipc=host
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: pnpm install --frozen-lockfile
+      - run: test "$(pnpm exec playwright --version)" = 'Version 1.63.0'
+      - run: pnpm test:ci-tools
+      - run: pnpm check:visual-coverage
+      - name: Check application and Worker types
+        run: pnpm typecheck && pnpm worker:typecheck
+      - name: Build production bundle
+        run: pnpm exec vite build
+      - name: Prepare browser bundle with shipping CSS
+        run: pnpm build:visual
+      - name: Compare visual baselines
+        run: pnpm test:visual
+        env:
+          VISUAL_COVERAGE_GATE: '1'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-evidence
+          path: |
+            dashboard/playwright-report/
+            dashboard/test-results/
+            dashboard/visual-dist/production-css.json
+            dashboard/tests/visual/__screenshots__/linux-ci/
+          retention-days: 14
+  gate:
+    name: Dashboard CI
+    needs: [unit, build-visual]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read enforced merge rules for PR admission
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" > "$RUNNER_TEMP/dashboard-rules.json"
+      - name: Require queue protection or every full check
+        env:
+          CI_AFFECTED: ${{ inputs.affected }}
+          CI_EVENT: ${{ github.event_name }}
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: node scripts/ci-gate.mjs

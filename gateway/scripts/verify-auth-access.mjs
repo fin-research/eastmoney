@@ -1,0 +1,145 @@
+import { setTimeout as pause } from 'node:timers/promises';
+import { AuthTestError, SITE_ORIGIN, createHttpSession, loginTestAccount, readAuthTestConfig, boundedText } from './lib/programmatic-login.mjs';
+import { verifyAiResponses } from './lib/verify-ai-responses.mjs';
+
+// GET only. Missing-record probes verify the authorization/validation boundary
+// without querying paid Choice data, generating AI, or mutating business state.
+export const ACCESS_PROBES = [
+  ['login', '/auth/permissions', [200]],
+  ['public', '/market-briefing', [200]],
+  ['public', '/market-briefing/text', [200]],
+  ['public', '/api/market-report?date=invalid', [400]],
+  ['public', '/api/market-resources/unknown', [400]],
+  ['public', '/data/omo', [422]],
+  ['public', '/data/news?pageSize=invalid', [422]],
+  ['public', '/data/margin?date=invalid', [422]],
+  ['research.hotspot:read', '/trading-research/market-hotspots', [200]],
+  ['research.policy:read', '/trading-research/policy-tracking', [200]],
+  ['research.article:read', '/news/auth-test-missing-record', [200]],
+  ['research.workspace:read', '/trading-research', [200]],
+  ['research.interbank:read', '/trading-research/interbank-ledger', [200]],
+  ['research.interbank:read', '/data/camel/borrowings?date=invalid', [400, 422]],
+  ['research.economic_indicator:read', '/api/economic-indicators', [200]],
+  ['bond.ledger:read', '/secondary-bond-pool', [200]],
+  ['credit.institution:read', '/credit-workbench', [200]],
+  ['login', '/credit-workbench/assistant', [200]],
+  ['fund.report:read', '/fund-report', [200]],
+  ['model.financing:read', '/financing-model', [200]],
+  ['financing.overview:read', '/financing', [200]],
+  ['financing.project:read', '/financing/projects', [200]],
+  ['financing.sop:read', '/financing/sop', [200]],
+  ['financing.reminder:read', '/financing/sop/reminders', [200]],
+  ['financing.data:read', '/financing/data', [200]],
+  ['financing.data:read', '/financing/bond-investors', [200]],
+  ['financing.report:read', '/financing/liability-report', [200]],
+  ['account.profile:read', '/api/profile', [200]],
+  ['admin', '/management/people', [200]],
+  ['admin', '/management/messenger', [200]],
+  ['login', '/management/me', [200]],
+  ['login', '/management/permissions', [200]],
+  ['login', '/management/notifications', [200]],
+  ['login', '/api/notifications/settings', [200]],
+  ['public', '/service-worker.js', [200]],
+  ['public', '/manifest.webmanifest', [200]],
+  ['public', '/data/health', [200]],
+  ['public', '/data/graphql', [200]],
+  ['login', '/data/choice/css', [422]],
+  ['login', '/data/choice/csd', [422]],
+  ['login', '/data/choice/ctr', [422]],
+  ['login', '/data/choice/edb', [422]],
+  ['login', '/data/camel', [403]],
+  ['login', '/mcp', [405]],
+  ['public', '/api/mcp', [410]],
+  ['public', '/data/mcp', [410]],
+];
+
+function denied(response) {
+  if ([401, 403].includes(response.status)) return true;
+  if (response.status === 200) { try { return JSON.parse(response.text).type === 'redirect'; } catch {} }
+  if (![302, 303].includes(response.status)) return false;
+  const location = response.headers.get('location');
+  if (!location) return false;
+  const target = new URL(location, SITE_ORIGIN);
+  return (target.origin === SITE_ORIGIN && target.pathname === '/auth/login')
+;
+}
+
+async function main() {
+  const config = await readAuthTestConfig();
+  const anonymous = createHttpSession();
+  const failures = [];
+  const probes = process.argv.includes('--mcp-only') ? [] : ACCESS_PROBES.map(([scope,path,status]) => [scope, scope !== 'public' && path !== '/mcp' && !path.startsWith('/api/') && !path.startsWith('/data/') && !path.startsWith('/auth/') ? path + '/__data.json' : path, status]);
+  for (const [scope, path, expected] of probes) {
+    const response = await anonymous.request(SITE_ORIGIN + path, { headers: { Accept: path.endsWith('/__data.json') || path.startsWith('/api/') || path.startsWith('/data/') ? 'application/json' : 'text/html' }, followRedirects: false });
+    const passed = scope === 'public' ? expected.includes(response.status) : denied(response);
+    console.log(JSON.stringify({ identity: 'anonymous', scope, path: new URL(path, SITE_ORIGIN).pathname, status: response.status, passed }));
+    if (!passed) failures.push(`anonymous ${scope}`);
+  }
+  const session = await loginTestAccount(config);
+  const permissions = new Set((session.profile.permissions ?? []).map(item => item.name));
+  for (const [scope, path, expected] of probes) {
+    await pause(1500);
+    const response = await session.request(SITE_ORIGIN + path, { headers: { Accept: path.endsWith('/__data.json') || path.startsWith('/api/') || path.startsWith('/data/') ? 'application/json' : 'text/html' }, followRedirects: false });
+    const permitted = ['public', 'login'].includes(scope) || permissions.has(scope);
+    const passed = permitted ? expected.includes(response.status) : response.status === 403;
+    let failureDetail;
+    if (!passed && response.headers.get('content-type')?.includes('json')) {
+      try { const error = JSON.parse(response.text); failureDetail = String(error.detail ?? error.message ?? '').slice(0,180); } catch { /* no raw body in logs */ }
+    }
+    console.log(JSON.stringify({ identity: config.email, scope, path: new URL(path, SITE_ORIGIN).pathname,
+      granted: permitted, status: response.status, passed, ...(failureDetail ? { detail: failureDetail } : {}) }));
+    if (!passed) failures.push(`test-account ${scope}`);
+  }
+  if (process.argv.includes('--refresh-permissions')) {
+    const response = await fetch(SITE_ORIGIN + '/auth/permissions/refresh', {
+      method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(60000),
+      headers: { Origin: SITE_ORIGIN, ...session.bearerHeaders() },
+    });
+    const result = JSON.parse(await boundedText(response));
+    if (response.status !== 403) failures.push('ordinary user must not refresh shared permission cache');
+    const own = await session.request(SITE_ORIGIN + '/auth/permissions', { followRedirects: false });
+    const snapshot = JSON.parse(own.text);
+    const hasBaseline = session.claims._roles.includes('authenticated');
+    if (own.status !== 200 || !hasBaseline || snapshot.permissions?.length !== permissions.size) failures.push('cached permission snapshot');
+    console.log(JSON.stringify({ permissionCacheRefresh: response.status, ownPermissions: snapshot.permissions?.length,
+      authenticatedRole: hasBaseline, cacheUpdatedAt: snapshot.updatedAt }));
+  }
+  for (const path of ['/mcp']) {
+    let id = 0;
+    const rpc = async (method, params) => {
+      // Keep login form submission restricted to Auth0. Only this fixed
+      // MCP endpoint receives JSON and the verified site Bearer token.
+      const response = await fetch(SITE_ORIGIN + path, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(60000),
+        headers: { Origin: SITE_ORIGIN, ...session.bearerHeaders(), Accept: 'application/json, text/event-stream', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: ++id, method, params }),
+      });
+      const raw = await boundedText(response);
+      const payload = response.headers.get('content-type')?.includes('text/event-stream')
+        ? raw.split('\n').filter(line => line.startsWith('data: ')).map(line => JSON.parse(line.slice(6))).find(value => value.id === id)
+        : JSON.parse(raw);
+      if (response.status !== 200 || payload.error) throw new AuthTestError('MCP_VERIFICATION_FAILED', `${path} ${method} failed: HTTP ${response.status}, RPC ${payload.error?.code ?? 'none'}, ${String(payload.error?.message ?? '').slice(0, 300)}`);
+      return payload.result;
+    };
+    await rpc('initialize', { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'eastmoney-verification', version: '1' } });
+    const list = await rpc('tools/list', {});
+    const names = list.tools.map(tool => tool.name);
+    const expected = 38;
+    if (names.length !== expected) failures.push(`${path} tool count: expected ${expected}, got ${names.length}`);
+    const call = await rpc('tools/call', { name: 'chinamoney_shibor', arguments: {} });
+    if (call.isError) failures.push(`${path} market data`);
+    const invalid = await rpc('tools/call', { name: 'choice_css', arguments: {} });
+    if (invalid.isError !== true) failures.push(`${path} validation`);
+    console.log(JSON.stringify({ identity: config.email, path, initialize: true, tools: names.length, marketDataRead: !call.isError, invalidChoiceRejected: invalid.isError === true }));
+
+  }
+  if (process.argv.includes('--ai')) await verifyAiResponses(session);
+  console.log(JSON.stringify({ programmaticLogin: true, browserUsed: false, probes: probes.length * 2,
+    testAccount: config.email, permissions: permissions.size, failures }));
+  if (failures.length) process.exitCode = 1;
+}
+main().catch(error => {
+  console.error(JSON.stringify({ programmaticLogin: false, browserUsed: false,
+    code: error instanceof AuthTestError ? error.code : 'VERIFICATION_FAILED',
+    message: error instanceof AuthTestError ? error.message : 'Access verification failed; inspect the sanitized probe results' }));
+  process.exitCode = 1;
+});

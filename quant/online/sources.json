@@ -1,0 +1,70 @@
+{
+  "funding": {
+    "E1300004": "DR007",
+    "E1704420": "R007",
+    "E1300079": "SHIBOR_3M",
+    "E1715081": "reverse_repo_rate",
+    "E1000172": "GOV_1Y",
+    "E1000174": "GOV_3Y",
+    "E1000180": "GOV_10Y",
+    "E1701708": "CDB_3Y",
+    "E1701714": "CDB_10Y",
+    "E1000413": "AAA_3Y"
+  },
+  "macro": {
+    "EMM00000012": "GDP",
+    "EMM00121996": "PMI",
+    "EMM00072301": "CPI",
+    "EMM00073348": "PPI",
+    "EMM00634721": "SOCIAL_FINANCE",
+    "EMM00087086": "M2"
+  },
+  "equity": {
+    "csi300_close": "csi300_close",
+    "all_a_turnover_rate": "all_a_turnover_rate",
+    "equity_bond_spread": "equity_bond_spread",
+    "vix_close": "vix_close"
+  },
+  "primary": {
+    "ISSUE_AMT": "issue_size",
+    "ISSUE_NUM": "issue_count",
+    "WEIGHTED_COST": "weighted_cost",
+    "NET_FINANCE_AMT": "net_financing",
+    "END_REPAY_AMT": "maturity_amount",
+    "RESALE_AMT": "redemption_amount"
+  },
+  "secondary": {
+    "TOTAL_VOLUME": "VOL",
+    "INTEREST_BOND_VOLUME": "RATE_VOL",
+    "INTEREST_BOND_RATIO": "RATE_RATIO",
+    "NCD_VOLUME": "NCD_VOL",
+    "NCD_RATIO": "NCD_RATIO",
+    "FINANCIAL_BOND_VOLUME": "FIN_VOL",
+    "FINANCIAL_BOND_RATIO": "FIN_RATIO",
+    "CORPORATE_BOND_VOLUME": "CORP_VOL",
+    "CORPORATE_BOND_RATIO": "CORP_RATIO",
+    "ABS_VOLUME": "ABS_VOL",
+    "ABS_RATIO": "ABS_RATIO",
+    "AGENCY_BOND_VOLUME": "AGENCY_VOL",
+    "AGENCY_BOND_RATIO": "AGENCY_RATIO",
+    "INTL_AGENCY_BOND_VOLUME": "INTL_AGENCY_VOL",
+    "INTL_AGENCY_BOND_RATIO": "INTL_AGENCY_RATIO",
+    "FOREIGN_BOND_VOLUME": "FOREIGN_VOL",
+    "FOREIGN_BOND_RATIO": "FOREIGN_RATIO"
+  },
+  "issue": {
+    "ISSUER_NAME": "issuer",
+    "ISSUER_RATING": "rating",
+    "BOND_EXPIRE_YEAR": "tenor",
+    "ISSUERATE_REFERENCE": "coupon",
+    "ACTUAL_ISSUE_SCALE": "issue_size",
+    "BOND_TYPE": "bond_type",
+    "IS_OEB": "has_option",
+    "ISSUECREDITSPREAD": "spread_to_benchmark",
+    "PI_RATE_TYPE": "利率类型",
+    "TENDERDATE": "pricing_date",
+    "TENDERFINALCOUPON": "final_coupon",
+    "ISSCORPCREDITRAT": "issuance_rating",
+    "TENDERANNCDATE": "announcement_date"
+  }
+}

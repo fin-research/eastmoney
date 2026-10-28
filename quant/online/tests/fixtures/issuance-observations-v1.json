@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "scope": "synthetic contract fixture; not production observations",
+  "instance": "synthetic-contract-v1",
+  "cutoff": "2026-09-30T02:00:00.000Z",
+  "objects": [
+    {
+      "key": "data-observations/bond-issuance/synthetic-contract-v1/contents/8c584f3ee167d5a508d11b77feff6c44db85666ce8d28f5cbdd668e6a996e585.json",
+      "bytes": "{\"kind\":\"response\",\"payload\":{\"fields\":[\"ACTUAL_ISSUE_SCALE\",\"BOND_EXPIRE_YEAR\",\"BOND_NAME_ABBR\",\"BOND_RATING\",\"BOND_TYPE\",\"DEC_TOMRTYYEAR1\",\"ISSUERATE_REFERENCE\",\"ISSUER_NAME\",\"ISSUER_RATING\",\"ISSUE_DATE\",\"IS_GUARANTEE\",\"IS_OEB\",\"ORGFORM\",\"PAYPERYEAR\",\"PI_RATE_TYPE\",\"SECUCODE\",\"TOMRTY_YEAR\"],\"function\":\"CTR\",\"rows\":[{\"ACTUAL_ISSUE_SCALE\":1e-7,\"BOND_EXPIRE_YEAR\":1e+21,\"BOND_NAME_ABBR\":\"合成测试债\",\"ISSUER_NAME\":\"合成发行人\",\"ISSUE_DATE\":\"2026-09-30\",\"PI_RATE_TYPE\":\"固定利率\",\"SECUCODE\":\"123456.SH\"}]}}",
+      "uploaded": "2026-09-30T01:00:00.002Z",
+      "etag": "8c584f3ee167d5a508d11b77feff6c44db85666ce8d28f5cbdd668e6a996e585",
+      "version": "synthetic-v1"
+    },
+    {
+      "key": "data-observations/bond-issuance/synthetic-contract-v1/requests/issue-detail/416582e5027e47601f6f3eaf6485c99ca3ab7e57d51cba2ae69da1d2a8a5befb.json",
+      "bytes": "{\"archived_at\":\"2026-09-30T01:00:00.001Z\",\"content_key\":\"data-observations/bond-issuance/synthetic-contract-v1/contents/8c584f3ee167d5a508d11b77feff6c44db85666ce8d28f5cbdd668e6a996e585.json\",\"content_sha256\":\"8c584f3ee167d5a508d11b77feff6c44db85666ce8d28f5cbdd668e6a996e585\",\"final_coupon_published_at\":null,\"instance_id\":\"synthetic-contract-v1\",\"observed_at\":\"2026-09-30T01:00:00.000Z\",\"quality\":{\"duplicate_codes\":[],\"missing_codes\":[],\"requested_codes\":[],\"returned_codes\":[\"123456.SH\"],\"rows\":[{\"code\":\"123456.SH\",\"fields\":[{\"field\":\"ACTUAL_ISSUE_SCALE\",\"state\":\"value\"},{\"field\":\"BOND_EXPIRE_YEAR\",\"state\":\"value\"},{\"field\":\"BOND_NAME_ABBR\",\"state\":\"value\"},{\"field\":\"BOND_RATING\",\"state\":\"absent\"},{\"field\":\"BOND_TYPE\",\"state\":\"absent\"},{\"field\":\"DEC_TOMRTYYEAR1\",\"state\":\"absent\"},{\"field\":\"ISSUERATE_REFERENCE\",\"state\":\"absent\"},{\"field\":\"ISSUER_NAME\",\"state\":\"value\"},{\"field\":\"ISSUER_RATING\",\"state\":\"absent\"},{\"field\":\"ISSUE_DATE\",\"state\":\"value\"},{\"field\":\"IS_GUARANTEE\",\"state\":\"absent\"},{\"field\":\"IS_OEB\",\"state\":\"absent\"},{\"field\":\"ORGFORM\",\"state\":\"absent\"},{\"field\":\"PAYPERYEAR\",\"state\":\"absent\"},{\"field\":\"PI_RATE_TYPE\",\"state\":\"value\"},{\"field\":\"SECUCODE\",\"state\":\"value\"},{\"field\":\"TOMRTY_YEAR\",\"state\":\"absent\"}],\"quarantined\":false,\"unexpected_code\":false}]},\"request\":{\"bonds\":[],\"parameters\":{\"indicators\":\"ACTUAL_ISSUE_SCALE,BOND_EXPIRE_YEAR,BOND_NAME_ABBR,BOND_RATING,BOND_TYPE,DEC_TOMRTYYEAR1,ISSUERATE_REFERENCE,ISSUER_NAME,ISSUER_RATING,ISSUE_DATE,IS_GUARANTEE,IS_OEB,ORGFORM,PAYPERYEAR,PI_RATE_TYPE,SECUCODE,TOMRTY_YEAR\",\"options\":\"StartDate=2026-09-30,EndDate=2026-09-30,Ispandas=1\",\"reportName\":\"BondIssueDetail\"},\"path\":\"/choice/ctr\",\"source\":\"issue-detail\"},\"request_sha256\":\"416582e5027e47601f6f3eaf6485c99ca3ab7e57d51cba2ae69da1d2a8a5befb\",\"response_received_at\":\"2026-09-30T01:00:00.000Z\",\"scheduled_date\":\"2026-09-30\",\"schema_version\":1}",
+      "uploaded": "2026-09-30T01:00:00.002Z",
+      "etag": "553a0eb3604d0ad1f2ab76e578843093d8299c3e940b762b2b37840410c6a4ae",
+      "version": "synthetic-v1"
+    },
+    {
+      "key": "data-observations/bond-issuance/synthetic-contract-v1/contents/89a3b664976a15a367481c3c2aa95a7d05f4acbf27dcb38bf6b20d2376d1d9da.json",
+      "bytes": "{\"kind\":\"response\",\"payload\":{\"fields\":[\"ISSCORPCREDITRAT\",\"TENDERANNCDATE\",\"TENDERDATE\",\"TENDERFINALCOUPON\"],\"function\":\"CSS\",\"rows\":[{\"ISSCORPCREDITRAT\":\"AAA\",\"TENDERANNCDATE\":\"2026/9/1\",\"TENDERDATE\":\"2026/9/29\",\"TENDERFINALCOUPON\":2.1,\"code\":\"123456.SH\"},{\"ISSCORPCREDITRAT\":\"—\",\"TENDERDATE\":\"2026/10/1\",\"TENDERFINALCOUPON\":null,\"code\":\"123457.SH\"}]}}",
+      "uploaded": "2026-09-30T01:00:00.002Z",
+      "etag": "89a3b664976a15a367481c3c2aa95a7d05f4acbf27dcb38bf6b20d2376d1d9da",
+      "version": "synthetic-v1"
+    },
+    {
+      "key": "data-observations/bond-issuance/synthetic-contract-v1/requests/issue-pricing/024898c6e500a0d15cee2fecef9573dcb7175911c979d2e894e515a423aa8b1b.json",
+      "bytes": "{\"archived_at\":\"2026-09-30T01:00:00.001Z\",\"content_key\":\"data-observations/bond-issuance/synthetic-contract-v1/contents/89a3b664976a15a367481c3c2aa95a7d05f4acbf27dcb38bf6b20d2376d1d9da.json\",\"content_sha256\":\"89a3b664976a15a367481c3c2aa95a7d05f4acbf27dcb38bf6b20d2376d1d9da\",\"final_coupon_published_at\":null,\"instance_id\":\"synthetic-contract-v1\",\"observed_at\":\"2026-09-30T01:00:00.000Z\",\"quality\":{\"duplicate_codes\":[],\"missing_codes\":[],\"requested_codes\":[\"123456.SH\",\"123457.SH\"],\"returned_codes\":[\"123456.SH\",\"123457.SH\"],\"rows\":[{\"code\":\"123456.SH\",\"fields\":[{\"field\":\"ISSCORPCREDITRAT\",\"state\":\"value\"},{\"field\":\"TENDERANNCDATE\",\"state\":\"value\"},{\"field\":\"TENDERDATE\",\"state\":\"value\"},{\"field\":\"TENDERFINALCOUPON\",\"state\":\"value\"}],\"quarantined\":false,\"unexpected_code\":false},{\"code\":\"123457.SH\",\"fields\":[{\"field\":\"ISSCORPCREDITRAT\",\"state\":\"empty\"},{\"field\":\"TENDERANNCDATE\",\"state\":\"absent\"},{\"field\":\"TENDERDATE\",\"state\":\"value\"},{\"field\":\"TENDERFINALCOUPON\",\"state\":\"null\"}],\"quarantined\":true,\"unexpected_code\":false}]},\"request\":{\"bonds\":[{\"code\":\"123456.SH\",\"date\":\"2026-09-30\"},{\"code\":\"123457.SH\",\"date\":\"2026-09-30\"}],\"parameters\":{\"codes\":\"123456.SH,123457.SH\",\"indicators\":\"ISSCORPCREDITRAT,TENDERANNCDATE,TENDERDATE,TENDERFINALCOUPON\",\"options\":\"Ispandas=1\"},\"path\":\"/choice/css\",\"source\":\"issue-pricing\"},\"request_sha256\":\"024898c6e500a0d15cee2fecef9573dcb7175911c979d2e894e515a423aa8b1b\",\"response_received_at\":\"2026-09-30T01:00:00.000Z\",\"scheduled_date\":\"2026-09-30\",\"schema_version\":1}",
+      "uploaded": "2026-09-30T01:00:00.002Z",
+      "etag": "0eade4287128bbafb21992994e48ed98fd0c56315e97c37db8d311a34048e534",
+      "version": "synthetic-v1"
+    },
+    {
+      "key": "data-observations/bond-issuance/synthetic-contract-v1/contents/2340bd6ddebbb3122dd9236f4c46413a25d424c20e97b5d4deabc527e42a57f0.json",
+      "bytes": "{\"kind\":\"response\",\"payload\":{\"fields\":[\"MATURITYDATE\",\"RAISEWAY\"],\"function\":\"CSS\",\"rows\":[{\"MATURITYDATE\":\"2029/9/30\",\"RAISEWAY\":\"公募\",\"code\":\"123456.SH\"}]}}",
+      "uploaded": "2026-09-30T01:00:00.002Z",
+      "etag": "2340bd6ddebbb3122dd9236f4c46413a25d424c20e97b5d4deabc527e42a57f0",
+      "version": "synthetic-v1"
+    },
+    {
+      "key": "data-observations/bond-issuance/synthetic-contract-v1/requests/bond-placement/61ab96e52e754bd83f926b2767d0a90c522c5e64b850cfb9bc7af1b0f600f840.json",
+      "bytes": "{\"archived_at\":\"2026-09-30T01:00:00.001Z\",\"content_key\":\"data-observations/bond-issuance/synthetic-contract-v1/contents/2340bd6ddebbb3122dd9236f4c46413a25d424c20e97b5d4deabc527e42a57f0.json\",\"content_sha256\":\"2340bd6ddebbb3122dd9236f4c46413a25d424c20e97b5d4deabc527e42a57f0\",\"final_coupon_published_at\":null,\"instance_id\":\"synthetic-contract-v1\",\"observed_at\":\"2026-09-30T01:00:00.000Z\",\"quality\":{\"duplicate_codes\":[],\"missing_codes\":[],\"requested_codes\":[\"123456.SH\"],\"returned_codes\":[\"123456.SH\"],\"rows\":[{\"code\":\"123456.SH\",\"fields\":[{\"field\":\"MATURITYDATE\",\"state\":\"value\"},{\"field\":\"RAISEWAY\",\"state\":\"value\"}],\"quarantined\":false,\"unexpected_code\":false}]},\"request\":{\"bonds\":[{\"code\":\"123456.SH\",\"date\":\"2026-09-30\"}],\"parameters\":{\"codes\":\"123456.SH\",\"indicators\":\"MATURITYDATE,RAISEWAY\",\"options\":\"Ispandas=1\"},\"path\":\"/choice/css\",\"source\":\"bond-placement\"},\"request_sha256\":\"61ab96e52e754bd83f926b2767d0a90c522c5e64b850cfb9bc7af1b0f600f840\",\"response_received_at\":\"2026-09-30T01:00:00.000Z\",\"scheduled_date\":\"2026-09-30\",\"schema_version\":1}",
+      "uploaded": "2026-09-30T01:00:00.002Z",
+      "etag": "3ac952f3a35fd34a60c8097488f58b1c48a70a7e34344fd704b655c8b3d5c6ff",
+      "version": "synthetic-v1"
+    },
+    {
+      "key": "data-observations/bond-issuance/synthetic-contract-v1/live-manifest.json",
+      "bytes": "{\"instance_id\":\"synthetic-contract-v1\",\"requests\":[{\"key\":\"data-observations/bond-issuance/synthetic-contract-v1/requests/issue-detail/416582e5027e47601f6f3eaf6485c99ca3ab7e57d51cba2ae69da1d2a8a5befb.json\",\"outcome\":\"response\",\"source\":\"issue-detail\",\"status\":\"archived\"},{\"key\":\"data-observations/bond-issuance/synthetic-contract-v1/requests/issue-pricing/024898c6e500a0d15cee2fecef9573dcb7175911c979d2e894e515a423aa8b1b.json\",\"outcome\":\"response\",\"source\":\"issue-pricing\",\"status\":\"archived\"},{\"key\":\"data-observations/bond-issuance/synthetic-contract-v1/requests/bond-placement/61ab96e52e754bd83f926b2767d0a90c522c5e64b850cfb9bc7af1b0f600f840.json\",\"outcome\":\"response\",\"source\":\"bond-placement\",\"status\":\"archived\"}],\"schema_version\":1}",
+      "uploaded": "2026-09-30T01:00:00.003Z",
+      "etag": "1213e8bc2ff0448041950cef181b490e09d69f8544d08c29a74203dc9c38a2c9",
+      "version": "synthetic-v1"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+# 仅本机真实授信问答验收使用；线上复用既有 Worker Secret。
+CF_AIG_TOKEN=
+# Auth0 账号管理应用，仅通过 Worker Secret 注入；不得放入 VITE_*。
+AUTH0_MANAGEMENT_CLIENT_SECRET=

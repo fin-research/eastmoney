@@ -1,0 +1,1 @@
+export const MAX_FUND_REPORT_BYTES = 20 * 1024 * 1024;

@@ -1,0 +1,4 @@
+interface:
+  display_name: "债券融资择时报告"
+  short_description: "完整执行模型更新、卖方研报交叉验证并生成融资择时报告"
+  default_prompt: "Use $bond-financing-timing-report to update the model, cross-check this week’s research, and generate the full financing timing report."

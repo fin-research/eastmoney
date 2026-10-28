@@ -1,0 +1,113 @@
+/* Frozen report controls. Business/report layout and chart rules remain in their
+   existing owners; these values preserve the pre-migration report chrome. */
+:where(.page-shell, .layout-report, .tr-shell:not(.tr-shell--workspace) .tr-workspace) [data-slot="button"] {
+  height: auto;
+  min-height: 44px;
+  border: 1px solid #f6f8fb;
+  border-radius: 8px;
+  padding: 0 16px;
+  gap: 6px;
+  color: #172033;
+  background: #f6f8fb;
+  font-size: .875rem;
+  line-height: 1.5;
+  vertical-align: middle;
+  box-shadow: none;
+}
+.page-shell [data-slot="button"] {
+  min-width: var(--report-control-size);
+  min-height: var(--report-control-size);
+  line-height: 1.35;
+}
+:where(.page-shell, .layout-report, .tr-shell:not(.tr-shell--workspace) .tr-workspace) [data-slot="input"] {
+  width: auto;
+  height: 40px;
+  border-radius: 8px;
+  color: #172033;
+  background: #fff;
+  font-size: 1rem;
+  line-height: 1.5;
+  padding: 0 12px;
+}
+.page-shell [data-slot="input"] { min-height: var(--report-control-size); }
+.report-view-switch { display: inline-flex; align-items: stretch; border-radius: 8px; }
+.report-view-switch > [data-slot="button"] { border-radius: 0; }
+.report-view-switch > [data-slot="button"]:first-child { border-start-start-radius: 8px; border-end-start-radius: 8px; }
+.report-view-switch > [data-slot="button"]:last-child { border-start-end-radius: 8px; border-end-end-radius: 8px; }
+:where(.page-shell, .layout-report) .ui-table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; font-size: .875rem; font-variant-numeric: tabular-nums; }
+:where(.page-shell, .layout-report) .ui-table :where(th, td) { padding: 12px 16px; }
+:where(.page-shell, .layout-report) .ui-table thead { color: color-mix(in oklab, #172033 60%, transparent); }
+:where(.page-shell, .layout-report) .ui-badge { display: inline-flex; align-items: center; justify-content: center; padding: 0 8px; border: 1px solid transparent; border-radius: 6px; min-height: 24px; font-size: .875rem; font-weight: bold; vertical-align: middle; }
+.tr-shell:not(.tr-shell--workspace) .tr-credit-toolbar [data-slot="input"] {
+  width: 8.625rem;
+  border: 0;
+  border-radius: 0;
+  color: #667085;
+  background: transparent;
+  padding: 0;
+}
+/* Report toolbars retain their original inline grouping and icon proportions. */
+.report-view-switch { display: block; white-space: nowrap; }
+.report-view-switch > [data-slot="button"] { display: inline-flex; border-radius: 8px; }
+.page-shell :is(.refresh-button, .export-button) svg { height: 15px; }
+@media (max-width: 420px) {
+  .page-shell :is(.refresh-button, .export-button) svg { height: 19px; }
+}
+
+/* Market report controls use the existing semantic palette and visible interaction states. */
+.page-shell [data-slot="button"] {
+  border-color: var(--border-color);
+  background: var(--card);
+  color: var(--foreground);
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+.page-shell [data-slot="button"][data-variant="default"] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+.page-shell [data-slot="button"]:hover:not(:disabled):not([aria-disabled="true"]):not([data-disabled]) {
+  background: color-mix(in srgb, var(--primary) 10%, var(--card));
+  border-color: var(--primary);
+}
+.page-shell [data-slot="button"][data-variant="default"]:hover:not(:disabled):not([aria-disabled="true"]):not([data-disabled]) {
+  background: color-mix(in srgb, var(--primary) 85%, var(--foreground));
+}
+.page-shell [data-slot="button"]:active:not(:disabled):not([aria-disabled="true"]):not([data-disabled]) {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--primary) 50%, transparent);
+  filter: brightness(.9);
+}
+.page-shell [data-slot="button"]:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.page-shell [data-slot="button"]:is(:disabled, [aria-disabled="true"], [data-disabled]) { cursor: not-allowed; opacity: .5; }
+.page-shell .hero-date:hover { background: color-mix(in srgb, var(--primary) 8%, var(--card)); }
+@media (prefers-reduced-motion: reduce) {
+  .page-shell [data-slot="button"] { transition: none; }
+}
+
+/* A single compact rhythm for the market report header, including account/date. */
+.page-shell .page-header__meta { gap: 8px; }
+.page-shell .page-header__meta [data-slot="button"],
+.page-shell .page-header__meta .hero-date {
+  box-sizing: border-box;
+  height: var(--report-control-size);
+  min-height: var(--report-control-size);
+  border-radius: var(--radius-control);
+  padding: 0 10px;
+  font-size: 1rem;
+  line-height: 1.35;
+  white-space: nowrap;
+  box-shadow: none;
+}
+.page-shell .page-header__meta [data-slot="button"] svg { width: 16px; height: 16px; }
+.page-shell .page-header__meta .export-button { min-width: 110px; }
+.page-shell .page-header__meta .hero-date { border-color: var(--border-color); background: var(--card); }
+.page-shell .hero-date [data-slot="input"] { width: 100%; height: 100%; min-height: 0; }
+.page-shell .hero-date:has(input:disabled) { opacity: .5; cursor: not-allowed; }
+.page-shell .focus-generate-button { width: var(--report-control-size); height: var(--report-control-size); padding: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .page-shell .focus-generate-button.is-loading svg { animation: none; }
+}

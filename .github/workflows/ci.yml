@@ -1,0 +1,128 @@
+name: Eastmoney CI
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+    types: [checks_requested]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: eastmoney-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      gateway: ${{ steps.plan.outputs.gateway }}
+      dashboard: ${{ steps.plan.outputs.dashboard }}
+      data: ${{ steps.plan.outputs.data }}
+      choice: ${{ steps.plan.outputs.choice }}
+      messenger: ${{ steps.plan.outputs.messenger }}
+      ingest: ${{ steps.plan.outputs.ingest }}
+      quant: ${{ steps.plan.outputs.quant }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test scripts/ci/*.test.mjs
+      - run: python3 -m unittest discover -s scripts/ci -p '*_test.py' -v
+      - id: plan
+        run: node scripts/ci/affected.mjs
+        env:
+          CI_BASE_SHA: ${{ github.event.merge_group.base_sha || github.event.pull_request.base.sha }}
+      - run: python3 scripts/ci/public-safety.py
+      - name: Scan public Git content for credentials
+        shell: bash
+        run: |
+          curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz -o "$RUNNER_TEMP/gitleaks.tar.gz"
+          curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_checksums.txt -o "$RUNNER_TEMP/gitleaks-checksums.txt"
+          expected=$(awk '$2 == "gitleaks_8.30.1_linux_x64.tar.gz" {print $1}' "$RUNNER_TEMP/gitleaks-checksums.txt")
+          test -n "$expected"
+          printf '%s  %s\n' "$expected" "$RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" git --redact --no-banner --config .gitleaks.toml --log-opts="--all" .
+  gateway:
+    needs: changes
+    if: needs.changes.outputs.gateway == 'true'
+    uses: ./.github/workflows/worker.yml
+    with:
+      project: gateway
+      command: pnpm check && pnpm deploy:dry
+  data:
+    needs: changes
+    if: needs.changes.outputs.data == 'true'
+    uses: ./.github/workflows/worker.yml
+    with:
+      project: data
+      command: pnpm check && pnpm deploy:dry
+  messenger:
+    needs: changes
+    if: needs.changes.outputs.messenger == 'true'
+    uses: ./.github/workflows/worker.yml
+    with:
+      project: messenger
+      command: pnpm typegen && pnpm check && pnpm test && pnpm deploy:dry
+  ingest:
+    needs: changes
+    if: needs.changes.outputs.ingest == 'true'
+    uses: ./.github/workflows/worker.yml
+    with:
+      project: ingest
+      command: pnpm check && pnpm test && pnpm deploy:dry
+  dashboard:
+    needs: changes
+    uses: ./.github/workflows/dashboard.yml
+    with:
+      affected: ${{ needs.changes.outputs.dashboard == 'true' }}
+  quant:
+    needs: changes
+    if: needs.changes.outputs.quant == 'true'
+    uses: ./.github/workflows/quant.yml
+  choice:
+    needs: changes
+    if: needs.changes.outputs.choice == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --target build -t choice:ci choice
+  integration:
+    needs: changes
+    if: needs.changes.outputs.gateway == 'true' || needs.changes.outputs.dashboard == 'true' || needs.changes.outputs.data == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: |
+          pnpm --dir gateway install --frozen-lockfile
+          pnpm --dir dashboard install --frozen-lockfile
+          pnpm --dir data install --frozen-lockfile
+          pnpm --dir dashboard build
+      - run: node scripts/verify-integration.mjs
+        working-directory: gateway
+      - run: node scripts/verify-mcp-integration.mjs
+        working-directory: dashboard
+  gate:
+    name: Monorepo CI
+    needs: [changes, gateway, data, messenger, ingest, dashboard, quant, choice, integration]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node scripts/ci/gate.mjs
+        env:
+          CI_PLAN: ${{ toJSON(needs.changes.outputs) }}
+          CI_NEEDS: ${{ toJSON(needs) }}

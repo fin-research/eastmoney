@@ -1,0 +1,74 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "ingest",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-12",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "vars": {
+    "ARTICLE_API_BASE_URL": "https://eastmoney.hasbai.xyz/data",
+    "CLOUDFLARE_ACCOUNT_ID": "5cecc63c78acf8f5473f8745f4244448",
+    "AI_GATEWAY_ID": "default"
+  },
+  "services": [
+    {
+      "binding": "DATA",
+      "service": "eastmoney-data",
+      "entrypoint": "InternalData"
+    },
+    {
+      "binding": "MESSENGER",
+      "service": "messenger",
+      "entrypoint": "Messaging"
+    }
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "triggers": {
+    "crons": []
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "eastmoney",
+      "database_id": "b80cfbe1-1226-46cc-a22b-3ebbaefe85bf",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "workflows": [
+    {
+      "binding": "OMO_WORKFLOW",
+      "name": "omo",
+      "class_name": "OmoWorkflow"
+    },
+    {
+      "binding": "ARTICLE_WORKFLOW",
+      "name": "article",
+      "class_name": "ArticleWorkflow"
+    },
+    {
+      "binding": "TELEGRAM_WORKFLOW",
+      "name": "telegram",
+      "class_name": "TelegramWorkflow"
+    },
+    {
+      "binding": "POLICY_WORKFLOW",
+      "name": "policy-aggregation",
+      "class_name": "PolicyWorkflow"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ARTICLE_BUCKET",
+      "bucket_name": "article"
+    }
+  ],
+  "secrets": {
+    "required": [
+      "CF_AIG_TOKEN"
+    ]
+  }
+}

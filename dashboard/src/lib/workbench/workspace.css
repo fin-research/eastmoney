@@ -1,0 +1,70 @@
+/* Content refinements never restyle the shared header or navigation.
+   Report canvases retain their own typography and controls. */
+.tr-shell--workspace .tr-workspace,
+.credit-detail-dialog {
+  --radius-card: 16px;
+  --radius-control: 24px;
+  --radius-tag: 12px;
+  --tr-radius-card: var(--radius-card);
+  --tr-radius-control: var(--radius-control);
+}
+
+.tr-shell--workspace h2 {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+
+/* Labels remain emphasized; entered values use normal body weight. */
+.tr-shell--workspace :is(.ui-input, .ui-select, .ui-textarea, [data-slot="input"], [data-slot="textarea"], [data-slot="native-select"]) { font-weight: normal; }
+.tr-shell--workspace .ui-tone-success {
+  color: color-mix(in srgb, var(--color-success-content) 80%, var(--text-1));
+}
+.tr-shell--workspace :is(a, button, summary, main, [tabindex]):not([data-slot="button"]):focus-visible {
+  outline: 2px solid var(--brand-deep);
+  outline-offset: 3px;
+}
+.tr-shell--workspace main:focus-visible { outline-offset: -4px; }
+.tr-shell--workspace #tr-workbench-main:has(.floating-create-button) { padding-bottom: 104px; }
+.tr-shell--workspace .tr-credit-calendar-panel { overflow: visible; }
+.tr-shell--workspace .tr-credit-calendar-toolbar { min-width: 0; flex-wrap: wrap; }
+.tr-shell--workspace .tr-credit-calendar-scroll { min-width: 0; max-width: 100%; overflow-x: auto; }
+.tr-shell--workspace .tr-credit-calendar-event :is(strong, span) { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+
+/* Intrinsic card widths also work when the app is shown in a narrow panel. */
+.tr-shell--workspace .tr-view-stack { grid-template-columns: minmax(0, 1fr); }
+.tr-shell--workspace .tr-view-stack > section { min-width: 0; }
+.tr-shell--workspace .tr-metric-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
+}
+.tr-shell--workspace .tr-metric-grid--five {
+  grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
+}
+
+@media (max-width: 720px) {
+  .tr-shell--workspace .tr-credit-calendar-nav { width: 100%; justify-content: space-between; }
+}
+
+@media (min-width: 1200px) {
+  .tr-shell--workspace .tr-credit-metric-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .tr-shell--workspace .tr-credit-metric-grid .research-metric-card__content { align-self: stretch; justify-content: flex-start; }
+}
+
+@media (min-width: 1200px) {
+  .tr-shell--workspace .tr-credit-editor-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .tr-shell--workspace .tr-credit-item-grid,
+  .credit-detail-dialog .tr-credit-item-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: stretch; }
+  .tr-shell--workspace .tr-credit-item-grid fieldset,
+  .credit-detail-dialog .tr-credit-item-grid fieldset { align-content: start; }
+  .tr-shell--workspace .tr-credit-item-grid fieldset:first-child,
+  .credit-detail-dialog .tr-credit-item-grid fieldset:first-child { grid-row: span 2; }
+  .tr-shell--workspace .tr-credit-item-grid .tr-credit-item-other,
+  .credit-detail-dialog .tr-credit-item-grid .tr-credit-item-other { grid-column: 2 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Keep the last action row reachable above the fixed AI launcher on desktop. */
+@media (min-width: 1024px) {
+  .tr-shell--workspace #tr-workbench-main:where(:not(.tr-chat-page):not(.tr-canvas-page)) { padding-bottom: 88px; }
+  .tr-shell--workspace #tr-workbench-main:has(.floating-create-button) { padding-bottom: 104px; }
+}

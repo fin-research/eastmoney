@@ -1,0 +1,231 @@
+:where(.financing-scope) .management-page .eyebrow {
+	margin: 0 0 0.25rem !important;
+	font-size: 0.75rem !important;
+	font-weight: bold;
+	letter-spacing: 0.16em;
+	color: #2f6fed !important;
+}
+
+:where(.financing-scope) .management-page .primary-action,
+:where(.financing-scope) .management-page .secondary-action,
+:where(.financing-scope) .management-page .link-button {
+	display: inline-flex;
+	min-height: 2.75rem;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4375rem;
+	padding: 0 0.875rem;
+	border-radius: 0.5rem;
+	font-weight: bold;
+}
+
+:where(.financing-scope) .management-page .secondary-action,
+:where(.financing-scope) .management-page .link-button {
+	border: 1px solid #d0d5dd;
+	color: #344054;
+	background: #fff;
+}
+
+:where(.financing-scope) .management-page .link-button {
+	min-height: 2.75rem;
+	padding-inline: 0.625rem;
+	font-size: 0.875rem;
+	color: #175cd3;
+}
+
+:where(.financing-scope) .management-page .spin {
+	animation: management-spin 900ms linear infinite;
+}
+
+@keyframes management-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+:where(.financing-scope) .management-page .section-card {
+	overflow: hidden;
+}
+
+:where(.financing-scope) .management-page .card-header {
+	display: grid;
+	grid-template-columns: 2.75rem minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 1rem 1.125rem;
+}
+
+:where(.financing-scope) .management-page .card-header h2 {
+	margin: 0;
+	font-size: 1.125rem;
+}
+
+:where(.financing-scope) .management-page .card-header p {
+	margin: 0.1875rem 0 0;
+	font-size: 0.875rem;
+	color: #667085;
+}
+
+:where(.financing-scope) .management-page .header-icon {
+	display: grid;
+	width: 2.5rem;
+	height: 2.5rem;
+	place-items: center;
+	border-radius: 0.5rem;
+}
+
+:where(.financing-scope) .management-page .header-icon.blue {
+	color: #175cd3;
+	background: #eff4ff;
+}
+
+:where(.financing-scope) .management-page .header-icon.orange {
+	color: #b54708;
+	background: #fff7ed;
+}
+
+:where(.financing-scope) .management-page .header-icon.violet {
+	color: #5925dc;
+	background: #f4f3ff;
+}
+
+:where(.financing-scope) .management-page .header-icon.green {
+	color: #067647;
+	background: #ecfdf3;
+}
+
+:where(.financing-scope) .management-page .header-actions {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+:where(.financing-scope) .management-page .status-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	padding: 0.1875rem 0.4375rem;
+	border-radius: 999rem;
+	font-size: 0.875rem;
+	font-weight: bold;
+	color: #067647;
+	background: #ecfdf3;
+}
+
+:where(.financing-scope) .management-page .status-badge.inactive {
+	color: #475467;
+	background: #f2f4f7;
+}
+
+:where(.financing-scope) .management-page .empty-state {
+	margin: 0;
+	padding: 1.25rem;
+	border-top: 1px solid var(--line);
+	color: #667085;
+}
+
+:where(.financing-scope) .config-modal {
+	width: min(100%, 36rem);
+	padding: 0;
+}
+
+:where(.financing-scope) .config-modal form {
+	padding: 1.25rem;
+}
+
+:where(.financing-scope) .config-modal .modal-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	padding-bottom: 0.9375rem;
+	border-bottom: 1px solid #eaecf0;
+}
+
+:where(.financing-scope) .config-modal .modal-header h2 {
+	margin: 0;
+	font-size: 1.125rem;
+}
+
+:where(.financing-scope) .config-modal .modal-header p:not(.eyebrow) {
+	margin: 0.3125rem 0 0;
+	font-size: 0.875rem;
+	color: #667085;
+}
+
+:where(.financing-scope) .config-modal .modal-header > button {
+	display: grid;
+	width: 2.75rem;
+	flex: 0 0 auto;
+	place-items: center;
+}
+
+:where(.financing-scope) .management-page .form-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.8125rem;
+	padding: 1.0625rem 0;
+}
+
+:where(.financing-scope) .management-page .form-grid label {
+	display: grid;
+	gap: 0.3125rem;
+}
+
+:where(.financing-scope) .management-page .form-grid .wide {
+	grid-column: 1 / -1;
+}
+
+:where(.financing-scope) .management-page .form-grid label span {
+	font-size: 0.875rem;
+	font-weight: bold;
+	color: #475467;
+}
+
+:where(.financing-scope) .management-page .form-grid input,
+:where(.financing-scope) .management-page .form-grid select,
+:where(.financing-scope) .management-page .form-grid textarea {
+	width: 100%;
+	padding: 0 0.625rem;
+}
+
+:where(.financing-scope) .management-page .form-grid textarea {
+	padding-top: 0.5625rem;
+	resize: vertical;
+}
+
+:where(.financing-scope) .config-modal .modal-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	padding-top: 1rem;
+}
+
+:where(.financing-scope) .config-modal .modal-actions > button:first-child {
+	padding: 0 0.8125rem;
+}
+
+@media (max-width: 51.25rem) {
+	:where(.financing-scope) .management-page .card-header {
+		grid-template-columns: 2.75rem minmax(0, 1fr);
+	}
+
+	:where(.financing-scope) .management-page .card-header > :last-child:not(:nth-child(2)) {
+		grid-column: 2;
+		justify-self: start;
+	}
+
+	:where(.financing-scope) .management-page .form-grid {
+		grid-template-columns: 1fr;
+	}
+
+	:where(.financing-scope) .management-page .form-grid .wide {
+		grid-column: auto;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	:where(.financing-scope) .management-page .spin {
+		animation: none;
+	}
+}

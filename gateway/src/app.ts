@@ -1,0 +1,115 @@
+import { authorizeRequest } from './lib/server/authorization.ts';
+import { accessFailure, AccessError } from './lib/server/access.ts';
+import { loginUrl } from './lib/auth-navigation.ts';
+import { canonicalPath, dashboardRoute, clientPageShell, pageDataRequest } from './policy.ts';
+import { forwardedRequest, backendResponse } from './forward.ts';
+import { clearLegacyCookies } from './session.ts';
+import { dataRequest } from './data.ts';
+import { permissionCache } from './lib/server/permission-cache.ts';
+import { profileRequest } from './identity-service.ts';
+import { createDirectory } from './lib/server/auth0-directory.ts';
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { ProfileError, readProfileJson } from './lib/server/profile.ts';
+import { Auth0Error } from './lib/server/auth0-management.js';
+import { aiResponses } from './ai.ts';
+import { handleMcp } from './mcp.ts';
+import { mcpResourceMetadata, mcpChallenge } from './mcp-auth.ts';
+
+export const app = new Hono<{ Bindings: Env }>({ strict: false });
+const responsesCors = cors({
+  origin: origin => origin,
+  credentials: true,
+  allowMethods: ['POST', 'OPTIONS'],
+  exposeHeaders: ['cf-aig-log-id', 'WWW-Authenticate'],
+  maxAge: 86400,
+});
+app.use('*', async (c, next) => {
+  if (new URL(c.req.url).origin !== c.env.SITE_ORIGIN) throw new AccessError(403, '请求域名无效');
+  const path = canonicalPath(c.req.raw);
+  if (['/auth/login', '/auth/callback', '/financing/login'].includes(path) && c.req.method !== 'GET') throw new AccessError(403, '操作未登记');
+  // Normalize segment encodings/trailing slashes before dispatch, retaining the
+  // original request for SvelteKit's data protocol and business handlers.
+  if (['/api/mcp', '/data/mcp'].includes(path)) return c.json({ detail: 'MCP 入口已移至 /mcp', mcpUrl: c.env.SITE_ORIGIN + '/mcp' }, 410, { 'Cache-Control': 'no-store' });
+  if (path === '/data' || path.startsWith('/data/')) return dataRequest(c.req.raw, c.env);
+  if (path === '/api/ai/responses' && !pageDataRequest(c.req.raw)) return responsesCors(c, next);
+  await next();
+});
+app.get('/.well-known/oauth-protected-resource/mcp', c => c.json(mcpResourceMetadata(c.env), 200, { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=300' }));
+app.get('/.well-known/oauth-protected-resource', c => c.json(mcpResourceMetadata(c.env), 200, { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=300' }));
+app.all('/mcp', async c => {
+  const { user } = await authorizeRequest(c.req.raw, c.env, '/mcp');
+  return handleMcp(c.req.raw, c.env, user!);
+});
+app.all('/auth/session', c => c.json({ detail: '入口已移除' }, 404, { 'Cache-Control': 'no-store' }));
+app.all('*', async c => {
+    const request = c.req.raw, env = c.env;
+    const path = canonicalPath(request);
+    const route = dashboardRoute(request);
+    if (clientPageShell(request, route)) {
+      const response = await backendResponse(env.DASHBOARD, forwardedRequest(request, { version: 1, user: null, choice: { status: 401 } }), 'dashboard', route);
+      const shell = new Response(response.body, response);
+      shell.headers.set('Cache-Control', 'no-store');
+      return shell;
+    }
+    const { user, permissionUpdatedAt } = await authorizeRequest(request, env, route);
+    if (path === '/auth/permissions') {
+      return Response.json({ permissions: user!.authorization!.permissions, updatedAt: permissionUpdatedAt },
+        { headers: { 'Cache-Control': 'no-store, private', Vary: 'Cookie, Authorization' } });
+    }
+    if (path === '/auth/permissions/refresh') {
+      const snapshot = await permissionCache(env).refresh();
+      return Response.json({ success: true, updatedAt: snapshot.updatedAt }, { headers: { 'Cache-Control': 'no-store, private' } });
+    }
+    if (path === '/api/profile') return await profileRequest(request, env, user);
+    if (path === '/api/ai/responses') {
+      if (pageDataRequest(request)) throw new AccessError(403, '该入口未登记', 'ROUTE_NOT_REGISTERED');
+      return aiResponses(request, env);
+    }
+    if (path === '/api/management/people') {
+      const headers = { 'Cache-Control': 'no-store, private', Vary: 'Cookie, Authorization' };
+      if (request.method === 'GET' || request.method === 'HEAD') {
+        const response = Response.json(await createDirectory(env).people(false), { headers });
+        return request.method === 'HEAD' ? new Response(null, response) : response;
+      }
+      if (!request.headers.get('Content-Type')?.includes('application/json')) throw new ProfileError(415, '请提交 JSON 格式的人员资料');
+      return Response.json(await createDirectory(env).updatePerson(await readProfileJson(request, 4096)), { headers });
+    }
+    const forwarded = forwardedRequest(request, { version: 1, user, choice: { status: 401 } });
+    const response = path === '/financing-model/research'
+      ? await backendResponse(env.QUANT_REPORT, new Request(new URL('/REPORT.html', request.url), forwarded), 'quant-report', route)
+      : await backendResponse(env.DASHBOARD, forwarded, 'dashboard', route);
+    if (response.status === 101) return response;
+    const result = new Response(response.body, response);
+    if (user) {
+      result.headers.set('Cache-Control', path === '/financing-model/research' ? 'no-store, private, no-transform' : 'no-store, private');
+      result.headers.append('Vary', 'Cookie, Authorization');
+    }
+    result.headers.set('X-Eastmoney-Gateway', '1');
+    return request.method === 'HEAD' ? new Response(null, result) : result;
+});
+app.onError((error, c) => {
+    const request = c.req.raw;
+    if (error instanceof ProfileError) return Response.json({ detail: error.message }, { status: error.status, headers: { 'Cache-Control': 'no-store' } });
+    if (error instanceof AccessError && error.status === 401 && request.method === 'GET'
+      && !/^\/(?:api(?:\/|$)|data(?:\/|$)|mcp(?:\/|$))/.test(new URL(request.url).pathname)
+      && (request.headers.get('Accept')?.includes('text/html') || pageDataRequest(request))) {
+      const url = new URL(request.url);
+      const path = canonicalPath(request);
+      if (pageDataRequest(request)) return Response.json({ type: 'redirect', location: loginUrl(path + url.search) }, { headers: { 'Cache-Control': 'no-store, private' } });
+      return new Response(null, { status: 303, headers: { Location: loginUrl(path + url.search), 'Cache-Control': 'no-store, private' } });
+    }
+    if (!(error instanceof AccessError) && !(error instanceof Auth0Error)) {
+      console.error(JSON.stringify({ event: 'gateway_request_failed', route: dashboardRoute(request), method: request.method }));
+      return accessFailure(new AccessError(503, '网关服务暂时不可用，请稍后重试', 'GATEWAY_UNAVAILABLE'));
+    }
+    const response = accessFailure(error);
+    if (error instanceof AccessError && error.status === 401 && canonicalPath(request) === '/mcp') {
+      response.headers.set('WWW-Authenticate', mcpChallenge(c.env));
+    }
+    return response;
+});
+export async function gatewayRequest(request: Request, env: Env): Promise<Response> {
+  const response = await app.fetch(request, env);
+  return new URL(request.url).origin === env.SITE_ORIGIN ? clearLegacyCookies(request, response) : response;
+}

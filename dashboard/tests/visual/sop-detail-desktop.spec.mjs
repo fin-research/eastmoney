@@ -1,0 +1,71 @@
+import {test,expect} from '@playwright/test';
+import {mockResources} from './fixtures.mjs';
+import {reminderMore} from './sop-fixtures.mjs';
+
+test('desktop reminder editor keeps multiple periods and custom recipients readable',async({page},testInfo)=>{
+ test.skip(testInfo.project.name!=='desktop','Desktop UI audit');
+ await mockResources(page);await page.setViewportSize({width:1280,height:900});
+ await page.goto('/financing/sop');
+ const add=page.getByRole('button',{name:'新增提醒',exact:true});await add.click();
+ const dialog=page.getByRole('dialog',{name:'配置邮件提醒',exact:true});
+ await dialog.getByRole('checkbox',{name:'簿记发行',exact:true}).check();
+ await dialog.getByRole('button',{name:'添加周期',exact:true}).click();
+ await dialog.getByRole('combobox',{name:'收件人',exact:true}).selectOption('custom');
+ await dialog.getByRole('textbox',{name:'指定邮箱',exact:true}).fill('test@18.cn');
+ await expect(dialog.getByRole('spinbutton',{name:'天',exact:true})).toHaveCount(2);
+ await expect(dialog).toHaveScreenshot('sop-reminder-periods-desktop.png');
+ await dialog.getByRole('button',{name:'删除第 2 个提醒周期',exact:true}).click();
+ await expect(dialog.getByRole('button',{name:'删除第 1 个提醒周期',exact:true})).toBeDisabled();
+ await page.keyboard.press('Escape');await expect(add).toBeFocused();
+ await add.click();await expect(dialog.getByRole('checkbox',{name:'簿记发行',exact:true})).not.toBeChecked();
+ await expect(dialog.getByRole('combobox',{name:'收件人',exact:true})).toHaveValue('assignee');
+ await expect(dialog.getByRole('spinbutton',{name:'天',exact:true})).toHaveValue('3');
+ await expect(dialog.getByRole('textbox',{name:'指定邮箱',exact:true})).toHaveCount(0);
+ await page.keyboard.press('Escape');
+});
+
+test('desktop SOP opens node dialog and cancels keyboard sorting cleanly',async({page},testInfo)=>{
+ test.skip(testInfo.project.name!=='desktop','Desktop UI audit');
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await mockResources(page);await page.setViewportSize({width:1280,height:900});
+ await page.goto('/financing/sop/short-term');
+ const first=page.getByRole('button',{name:'拖拽排序 材料准备与内部审批，当前第 1 项',exact:true});
+ await first.press('Space');await first.press('ArrowDown');
+ const moved=page.getByRole('button',{name:'拖拽排序 材料准备与内部审批，当前第 2 项',exact:true});
+ await expect(moved).toHaveAttribute('aria-pressed','true');
+ await expect(page.locator('.node-card.dragging')).toHaveCount(1);
+ await expect(page.locator('.tr-workspace')).toHaveScreenshot('sop-keyboard-sort-desktop.png');
+ await moved.press('Escape');await expect(first).toHaveAttribute('aria-pressed','false');
+ const add=page.getByRole('button',{name:'添加流程节点',exact:true});
+ await add.click();const dialog=page.getByRole('dialog',{name:'添加流程节点',exact:true});
+ await expect(dialog.getByRole('textbox',{name:'节点名称',exact:true})).toBeFocused();
+ await dialog.getByRole('combobox',{name:'节点时间配置',exact:true}).selectOption('period');
+ await dialog.getByRole('spinbutton',{name:'节点启动偏移天数',exact:true}).fill('-7');
+ await dialog.getByRole('spinbutton',{name:'节点完成偏移天数',exact:true}).fill('-1');
+ await expect(dialog.getByRole('status')).toHaveText('T-7 至 T-1');
+ await expect(dialog).toHaveScreenshot('sop-add-period-desktop.png');
+ await page.keyboard.press('Escape');await expect(add).toBeFocused();
+ expect(errors).toEqual([]);
+});
+
+test('desktop reminder history supports pagination filters and empty recovery',async({page},testInfo)=>{
+ test.skip(testInfo.project.name!=='desktop','Desktop UI audit');
+ await mockResources(page);await page.setViewportSize({width:1280,height:900});
+ await page.route('**/financing/sop/reminders/more?**',route=>route.fulfill({json:reminderMore}));
+ await page.goto('/financing/sop/reminders');
+ await expect(page.locator('.history-row')).toHaveCount(4);
+ await expect(page.getByRole('link',{name:'查看投递',exact:true})).toHaveAttribute('href','/management/messenger?id=fixture-message-0');
+ await expect(page.locator('.tr-workspace')).toHaveScreenshot('reminder-history-desktop.png');
+ await page.getByRole('button',{name:'加载更多',exact:true}).click();
+ await expect(page.locator('.history-row')).toHaveCount(5);
+ await expect(page.getByRole('button',{name:'加载更多',exact:true})).toHaveCount(0);
+ await page.getByRole('combobox',{name:'状态',exact:true}).selectOption('failed');
+ await page.getByRole('button',{name:'查询',exact:true}).click();
+ await expect(page.locator('.history-row')).toHaveCount(1);
+ await page.getByRole('textbox',{name:'提醒关键词',exact:true}).fill('不存在的提醒');
+ await page.getByRole('button',{name:'查询',exact:true}).click();
+ await expect(page.getByText('没有匹配的提醒记录',{exact:true})).toBeVisible();
+ await expect(page.locator('.tr-workspace')).toHaveScreenshot('reminder-empty-desktop.png');
+ await page.getByRole('link',{name:'清除',exact:true}).click();
+ await expect(page.locator('.history-row')).toHaveCount(4);
+});

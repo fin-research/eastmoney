@@ -1,0 +1,1676 @@
+{
+  "collectedAt": "2026-09-20T16:18:59.977Z",
+  "from": "2026-09-01T00:00:00.000Z",
+  "to": "2026-09-20T16:00:00.000Z",
+  "notes": [
+    "Adaptive analytics are estimates, not invoices.",
+    "Daily groups use UTC; partial days must not be compared as full days.",
+    "Empty datasets are not evidence of zero usage.",
+    "AI custom-provider cost=0 may mean pricing is unavailable.",
+    "Workers GraphQL CPU and wall-time values are microseconds."
+  ],
+  "coverage": {
+    "workers": {
+      "available": true,
+      "potentiallyTruncated": false
+    },
+    "d1": {
+      "available": true,
+      "potentiallyTruncated": false
+    },
+    "hyperdrive": {
+      "available": true,
+      "potentiallyTruncated": false
+    },
+    "pools": {
+      "available": true,
+      "potentiallyTruncated": false
+    },
+    "r2": {
+      "available": true,
+      "potentiallyTruncated": false
+    },
+    "queues": {
+      "available": true,
+      "potentiallyTruncated": false
+    },
+    "workflows": {
+      "available": true,
+      "potentiallyTruncated": false
+    },
+    "builds": {
+      "available": true,
+      "potentiallyTruncated": false
+    },
+    "ai": {
+      "available": true,
+      "potentiallyTruncated": false
+    }
+  },
+  "totals": {
+    "workers": {
+      "errors": 4253,
+      "subrequests": 136861,
+      "cpuTimeUs": 652267845,
+      "requests": 74059
+    },
+    "d1": {
+      "writeQueries": 8517,
+      "rowsRead": 158883,
+      "readQueries": 70076,
+      "rowsWritten": 10731
+    },
+    "hyperdrive": {
+      "resultBytes": 277096050,
+      "queryBytes": 13544106,
+      "count": 19377
+    },
+    "pools": {},
+    "r2": {
+      "responseBytes": 916902305,
+      "requests": 60043
+    },
+    "queues": {
+      "billableOperations": 671
+    },
+    "workflows": {
+      "stepCount": 7217,
+      "cpuTime": 58978,
+      "retryCount": 135
+    },
+    "builds": {
+      "buildMinutes": 524.5555166666667
+    },
+    "ai": {
+      "erroredRequests": 89,
+      "tokensOut": 672515,
+      "tokensIn": 15770582,
+      "cost": 0.11591603410963874,
+      "count": 7360,
+      "cachedRequests": 0
+    }
+  },
+  "dailyPeaksUTC": {
+    "workers": {
+      "errors": {
+        "value": 2134,
+        "date": "2026-09-19"
+      },
+      "subrequests": {
+        "value": 38841,
+        "date": "2026-09-18"
+      },
+      "cpuTimeUs": {
+        "value": 94066037,
+        "date": "2026-09-18"
+      },
+      "requests": {
+        "value": 9840,
+        "date": "2026-09-18"
+      }
+    },
+    "d1": {
+      "writeQueries": {
+        "value": 2964,
+        "date": "2026-09-18"
+      },
+      "rowsRead": {
+        "value": 24837,
+        "date": "2026-09-18"
+      },
+      "readQueries": {
+        "value": 19664,
+        "date": "2026-09-18"
+      },
+      "rowsWritten": {
+        "value": 3388,
+        "date": "2026-09-18"
+      }
+    },
+    "hyperdrive": {
+      "resultBytes": {
+        "value": 52746995,
+        "date": "2026-09-04"
+      },
+      "queryBytes": {
+        "value": 2375358,
+        "date": "2026-09-18"
+      },
+      "count": {
+        "value": 7361,
+        "date": "2026-09-07"
+      }
+    },
+    "pools": {},
+    "r2": {
+      "responseBytes": {
+        "value": 382888693,
+        "date": "2026-09-07"
+      },
+      "requests": {
+        "value": 42339,
+        "date": "2026-09-07"
+      }
+    },
+    "queues": {
+      "billableOperations": {
+        "value": 629,
+        "date": "2026-09-18"
+      }
+    },
+    "workflows": {
+      "stepCount": {
+        "value": 4237,
+        "date": "2026-09-07"
+      },
+      "cpuTime": {
+        "value": 13065,
+        "date": "2026-09-07"
+      },
+      "retryCount": {
+        "value": 42,
+        "date": "2026-09-17"
+      }
+    },
+    "builds": {
+      "buildMinutes": {
+        "value": 71.45895,
+        "date": "2026-09-08"
+      }
+    },
+    "ai": {
+      "erroredRequests": {
+        "value": 33,
+        "date": "2026-09-07"
+      },
+      "tokensOut": {
+        "value": 133996,
+        "date": "2026-09-07"
+      },
+      "tokensIn": {
+        "value": 7883472,
+        "date": "2026-09-07"
+      },
+      "cost": {
+        "value": 0.079756245815379,
+        "date": "2026-09-07"
+      },
+      "count": {
+        "value": 5292,
+        "date": "2026-09-07"
+      },
+      "cachedRequests": {
+        "value": 0,
+        "date": "2026-09-03"
+      }
+    }
+  },
+  "workerOutcomes": {
+    "eastmoney-gateway": {
+      "exceededResources": {
+        "cpuTimeUs": 12883746,
+        "errors": 1283,
+        "requests": 1283,
+        "subrequests": 13516
+      },
+      "success": {
+        "cpuTimeUs": 97304501,
+        "errors": 0,
+        "requests": 12985,
+        "subrequests": 73245
+      },
+      "clientDisconnected": {
+        "cpuTimeUs": 327584,
+        "errors": 0,
+        "requests": 49,
+        "subrequests": 155
+      }
+    },
+    "eastmoney-data": {
+      "clientDisconnected": {
+        "cpuTimeUs": 1084185,
+        "errors": 0,
+        "requests": 444,
+        "subrequests": 468
+      },
+      "success": {
+        "cpuTimeUs": 67369907,
+        "errors": 0,
+        "requests": 7838,
+        "subrequests": 7758
+      },
+      "scriptThrewException": {
+        "cpuTimeUs": 355256,
+        "errors": 1,
+        "requests": 1,
+        "subrequests": 28
+      }
+    },
+    "messenger": {
+      "success": {
+        "cpuTimeUs": 16217367,
+        "errors": 0,
+        "requests": 3914,
+        "subrequests": 2730
+      },
+      "internalError": {
+        "cpuTimeUs": 6277537,
+        "errors": 1334,
+        "requests": 1334,
+        "subrequests": 1334
+      },
+      "scriptThrewException": {
+        "cpuTimeUs": 9569,
+        "errors": 2,
+        "requests": 2,
+        "subrequests": 2
+      },
+      "clientDisconnected": {
+        "cpuTimeUs": 12140,
+        "errors": 0,
+        "requests": 5,
+        "subrequests": 1
+      }
+    },
+    "ingest": {
+      "scriptThrewException": {
+        "cpuTimeUs": 1243049,
+        "errors": 333,
+        "requests": 333,
+        "subrequests": 1053
+      },
+      "clientDisconnected": {
+        "cpuTimeUs": 9150597,
+        "errors": 0,
+        "requests": 140,
+        "subrequests": 1253
+      },
+      "success": {
+        "cpuTimeUs": 38102089,
+        "errors": 0,
+        "requests": 1630,
+        "subrequests": 5812
+      }
+    },
+    "eastmoney-dashboard": {
+      "success": {
+        "cpuTimeUs": 165422396,
+        "errors": 0,
+        "requests": 16780,
+        "subrequests": 12203
+      },
+      "clientDisconnected": {
+        "cpuTimeUs": 7124158,
+        "errors": 0,
+        "requests": 56,
+        "subrequests": 431
+      },
+      "exceededResources": {
+        "cpuTimeUs": 1943444,
+        "errors": 15,
+        "requests": 15,
+        "subrequests": 0
+      },
+      "scriptThrewException": {
+        "cpuTimeUs": 1376526,
+        "errors": 1277,
+        "requests": 1277,
+        "subrequests": 1289
+      }
+    },
+    "quant": {
+      "clientDisconnected": {
+        "cpuTimeUs": 1103480,
+        "errors": 0,
+        "requests": 2,
+        "subrequests": 0
+      }
+    }
+  },
+  "hyperdriveCache": {
+    "26b76413a03a4328836d95f3ca320a1e/hit/complete": 379,
+    "26b76413a03a4328836d95f3ca320a1e/clienthit/complete": 2315,
+    "26b76413a03a4328836d95f3ca320a1e//client_disconnected": 18,
+    "4029d2cc81ff452bbc2c907162273162/disabled/complete": 83,
+    "26b76413a03a4328836d95f3ca320a1e/miss/complete": 5479,
+    "26b76413a03a4328836d95f3ca320a1e/transaction/complete": 8639,
+    "26b76413a03a4328836d95f3ca320a1e/uncacheable/complete": 933,
+    "26b76413a03a4328836d95f3ca320a1e/notaquery/complete": 1488,
+    "26b76413a03a4328836d95f3ca320a1e/parseerror/complete": 26,
+    "26b76413a03a4328836d95f3ca320a1e/cachestateerror/error": 1,
+    "26b76413a03a4328836d95f3ca320a1e/errorresponse/complete": 16
+  },
+  "aiProviders": {
+    "workers-ai/@cf/qwen/qwen3-embedding-0.6b": {
+      "requests": 6603,
+      "cachedRequests": 0,
+      "cost": 0.11591603410963873,
+      "erroredRequests": 0,
+      "tokensIn": 9806384,
+      "tokensOut": 0
+    },
+    "custom-codex/gpt-5.6-luna": {
+      "requests": 477,
+      "cachedRequests": 0,
+      "cost": 0,
+      "erroredRequests": 41,
+      "tokensIn": 4692477,
+      "tokensOut": 512903
+    },
+    "custom-opencode/deepseek-v4-flash": {
+      "requests": 3,
+      "cachedRequests": 0,
+      "cost": 0,
+      "erroredRequests": 3,
+      "tokensIn": 0,
+      "tokensOut": 0
+    },
+    "custom-opencode/gpt-5.6-luna": {
+      "requests": 277,
+      "cachedRequests": 0,
+      "cost": 0,
+      "erroredRequests": 45,
+      "tokensIn": 1271721,
+      "tokensOut": 159612
+    }
+  },
+  "previousShanghaiDay": {
+    "d1AnalyticsAdaptiveGroups": [
+      {
+        "dimensions": {
+          "databaseId": "b80cfbe1-1226-46cc-a22b-3ebbaefe85bf"
+        },
+        "quantiles": {
+          "queryBatchTimeMsP95": 1.84
+        },
+        "sum": {
+          "readQueries": 13,
+          "rowsRead": 40,
+          "rowsWritten": 4,
+          "writeQueries": 3
+        }
+      },
+      {
+        "dimensions": {
+          "databaseId": "5856d6a7-cf25-4dcf-9b6a-e6397394fd42"
+        },
+        "quantiles": {
+          "queryBatchTimeMsP95": 0.33
+        },
+        "sum": {
+          "readQueries": 2975,
+          "rowsRead": 15,
+          "rowsWritten": 6,
+          "writeQueries": 4
+        }
+      },
+      {
+        "dimensions": {
+          "databaseId": "95bddaf6-ceeb-4881-bd56-a14124f9c2b4"
+        },
+        "quantiles": {
+          "queryBatchTimeMsP95": 0.51
+        },
+        "sum": {
+          "readQueries": 10116,
+          "rowsRead": 15428,
+          "rowsWritten": 2088,
+          "writeQueries": 2049
+        }
+      }
+    ],
+    "hyperdrivePoolSizesAdaptiveGroups": [
+      {
+        "avg": {
+          "currentPoolSize": 0.9919284529066007,
+          "waitingClients": 2.812385746829035e-05
+        },
+        "dimensions": {
+          "configId": "26b76413a03a4328836d95f3ca320a1e"
+        },
+        "max": {
+          "currentPoolSize": 1,
+          "maxPoolSize": 4,
+          "waitingClients": 1
+        }
+      }
+    ],
+    "r2StorageAdaptiveGroups": [
+      {
+        "dimensions": {
+          "bucketName": "eastmoney"
+        },
+        "max": {
+          "metadataSize": 23880,
+          "objectCount": 203,
+          "payloadSize": 88267456
+        }
+      },
+      {
+        "dimensions": {
+          "bucketName": "article"
+        },
+        "max": {
+          "metadataSize": 341830,
+          "objectCount": 1570,
+          "payloadSize": 12981623
+        }
+      },
+      {
+        "dimensions": {
+          "bucketName": "ppcloud"
+        },
+        "max": {
+          "metadataSize": 101,
+          "objectCount": 5,
+          "payloadSize": 195305690
+        }
+      },
+      {
+        "dimensions": {
+          "bucketName": "pic"
+        },
+        "max": {
+          "metadataSize": 1689,
+          "objectCount": 56,
+          "payloadSize": 13475251
+        }
+      },
+      {
+        "dimensions": {
+          "bucketName": "credit"
+        },
+        "max": {
+          "metadataSize": 4886,
+          "objectCount": 111,
+          "payloadSize": 41484582
+        }
+      },
+      {
+        "dimensions": {
+          "bucketName": "backup"
+        },
+        "max": {
+          "metadataSize": 0,
+          "objectCount": 0,
+          "payloadSize": 0
+        }
+      }
+    ],
+    "workersInvocationsAdaptive": [
+      {
+        "dimensions": {
+          "scriptName": "messenger",
+          "status": "internalError"
+        },
+        "quantiles": {
+          "cpuTimeP50": 4142,
+          "cpuTimeP95": 6169,
+          "cpuTimeP99": 7057,
+          "wallTimeP50": 2595129,
+          "wallTimeP95": 4017680,
+          "wallTimeP99": 4239763
+        },
+        "sum": {
+          "cpuTimeUs": 3908372,
+          "errors": 882,
+          "requests": 882,
+          "subrequests": 882
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "__unknown__",
+          "status": "scriptThrewException"
+        },
+        "quantiles": {
+          "cpuTimeP50": 857,
+          "cpuTimeP95": 857,
+          "cpuTimeP99": 857,
+          "wallTimeP50": 5012914,
+          "wallTimeP95": 5012914,
+          "wallTimeP99": 5012914
+        },
+        "sum": {
+          "cpuTimeUs": 857,
+          "errors": 1,
+          "requests": 1,
+          "subrequests": 1
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "matrix-delegation",
+          "status": "success"
+        },
+        "quantiles": {
+          "cpuTimeP50": 375,
+          "cpuTimeP95": 709,
+          "cpuTimeP99": 913,
+          "wallTimeP50": 593,
+          "wallTimeP95": 1023,
+          "wallTimeP99": 1212
+        },
+        "sum": {
+          "cpuTimeUs": 10057,
+          "errors": 0,
+          "requests": 23,
+          "subrequests": 0
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "eastmoney-data",
+          "status": "success"
+        },
+        "quantiles": {
+          "cpuTimeP50": 2772,
+          "cpuTimeP95": 25919,
+          "cpuTimeP99": 43611,
+          "wallTimeP50": 1117025,
+          "wallTimeP95": 2079786,
+          "wallTimeP99": 5044396
+        },
+        "sum": {
+          "cpuTimeUs": 913039,
+          "errors": 0,
+          "requests": 109,
+          "subrequests": 91
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "redirect",
+          "status": "success"
+        },
+        "quantiles": {
+          "cpuTimeP50": 418,
+          "cpuTimeP95": 620,
+          "cpuTimeP99": 718,
+          "wallTimeP50": 681,
+          "wallTimeP95": 951,
+          "wallTimeP99": 1051
+        },
+        "sum": {
+          "cpuTimeUs": 25591,
+          "errors": 0,
+          "requests": 66,
+          "subrequests": 0
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "quant",
+          "status": "clientDisconnected"
+        },
+        "quantiles": {
+          "cpuTimeP50": 18863,
+          "cpuTimeP95": 18863,
+          "cpuTimeP99": 18863,
+          "wallTimeP50": 124471860,
+          "wallTimeP95": 124471860,
+          "wallTimeP99": 124471860
+        },
+        "sum": {
+          "cpuTimeUs": 18863,
+          "errors": 0,
+          "requests": 1,
+          "subrequests": 0
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "cms",
+          "status": "success"
+        },
+        "quantiles": {
+          "cpuTimeP50": 635,
+          "cpuTimeP95": 1427,
+          "cpuTimeP99": 1453,
+          "wallTimeP50": 19412516,
+          "wallTimeP95": 19978156,
+          "wallTimeP99": 20041460
+        },
+        "sum": {
+          "cpuTimeUs": 21721,
+          "errors": 0,
+          "requests": 26,
+          "subrequests": 26
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "eastmoney-dashboard",
+          "status": "scriptThrewException"
+        },
+        "quantiles": {
+          "cpuTimeP50": 948,
+          "cpuTimeP95": 1461,
+          "cpuTimeP99": 2275,
+          "wallTimeP50": 1881126,
+          "wallTimeP95": 3294915,
+          "wallTimeP99": 3449202
+        },
+        "sum": {
+          "cpuTimeUs": 859510,
+          "errors": 851,
+          "requests": 851,
+          "subrequests": 851
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "bark-server",
+          "status": "success"
+        },
+        "quantiles": {
+          "cpuTimeP50": 1495,
+          "cpuTimeP95": 2454,
+          "cpuTimeP99": 4644,
+          "wallTimeP50": 157762,
+          "wallTimeP95": 251993,
+          "wallTimeP99": 296514
+        },
+        "sum": {
+          "cpuTimeUs": 1818400,
+          "errors": 0,
+          "requests": 1139,
+          "subrequests": 3
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "messenger",
+          "status": "success"
+        },
+        "quantiles": {
+          "cpuTimeP50": 2932,
+          "cpuTimeP95": 8140,
+          "cpuTimeP99": 12723,
+          "wallTimeP50": 6783492,
+          "wallTimeP95": 8108691,
+          "wallTimeP99": 12726936
+        },
+        "sum": {
+          "cpuTimeUs": 2400960,
+          "errors": 0,
+          "requests": 597,
+          "subrequests": 599
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "matrix-reverse-proxy",
+          "status": "success"
+        },
+        "quantiles": {
+          "cpuTimeP50": 2498,
+          "cpuTimeP95": 2717,
+          "cpuTimeP99": 2717,
+          "wallTimeP50": 1629319,
+          "wallTimeP95": 1629319,
+          "wallTimeP99": 1629319
+        },
+        "sum": {
+          "cpuTimeUs": 42487,
+          "errors": 0,
+          "requests": 19,
+          "subrequests": 19
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "eastmoney-gateway",
+          "status": "exceededResources"
+        },
+        "quantiles": {
+          "cpuTimeP50": 10000,
+          "cpuTimeP95": 10000,
+          "cpuTimeP99": 10000,
+          "wallTimeP50": 1872383,
+          "wallTimeP95": 3291670,
+          "wallTimeP99": 3444476
+        },
+        "sum": {
+          "cpuTimeUs": 8795488,
+          "errors": 879,
+          "requests": 879,
+          "subrequests": 9821
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "saki",
+          "status": "success"
+        },
+        "quantiles": {
+          "cpuTimeP50": 5812,
+          "cpuTimeP95": 6431,
+          "cpuTimeP99": 6431,
+          "wallTimeP50": 2198946,
+          "wallTimeP95": 4463110,
+          "wallTimeP99": 47101908
+        },
+        "sum": {
+          "cpuTimeUs": 104300,
+          "errors": 0,
+          "requests": 21,
+          "subrequests": 77
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "eastmoney-gateway",
+          "status": "clientDisconnected"
+        },
+        "quantiles": {
+          "cpuTimeP50": 2303,
+          "cpuTimeP95": 6462,
+          "cpuTimeP99": 6462,
+          "wallTimeP50": 214310,
+          "wallTimeP95": 486362,
+          "wallTimeP99": 486362
+        },
+        "sum": {
+          "cpuTimeUs": 8765,
+          "errors": 0,
+          "requests": 2,
+          "subrequests": 2
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "eastmoney-dashboard",
+          "status": "success"
+        },
+        "quantiles": {
+          "cpuTimeP50": 4238,
+          "cpuTimeP95": 29956,
+          "cpuTimeP99": 129049,
+          "wallTimeP50": 5653794,
+          "wallTimeP95": 6854532,
+          "wallTimeP99": 13280364
+        },
+        "sum": {
+          "cpuTimeUs": 12283598,
+          "errors": 0,
+          "requests": 1273,
+          "subrequests": 1111
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "__unknown__",
+          "status": "success"
+        },
+        "quantiles": {
+          "cpuTimeP50": 896,
+          "cpuTimeP95": 1706,
+          "cpuTimeP99": 1706,
+          "wallTimeP50": 699503,
+          "wallTimeP95": 1733613,
+          "wallTimeP99": 1733613
+        },
+        "sum": {
+          "cpuTimeUs": 6405,
+          "errors": 0,
+          "requests": 6,
+          "subrequests": 6
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "cms",
+          "status": "clientDisconnected"
+        },
+        "quantiles": {
+          "cpuTimeP50": 441,
+          "cpuTimeP95": 777,
+          "cpuTimeP99": 777,
+          "wallTimeP50": 8905877,
+          "wallTimeP95": 14946324,
+          "wallTimeP99": 14946324
+        },
+        "sum": {
+          "cpuTimeUs": 3395,
+          "errors": 0,
+          "requests": 6,
+          "subrequests": 6
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "eastmoney-gateway",
+          "status": "success"
+        },
+        "quantiles": {
+          "cpuTimeP50": 8958,
+          "cpuTimeP95": 23145,
+          "cpuTimeP99": 38425,
+          "wallTimeP50": 932691,
+          "wallTimeP95": 6365901,
+          "wallTimeP99": 13431511
+        },
+        "sum": {
+          "cpuTimeUs": 16221835,
+          "errors": 0,
+          "requests": 1487,
+          "subrequests": 14857
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "saki",
+          "status": "clientDisconnected"
+        },
+        "quantiles": {
+          "cpuTimeP50": 2484,
+          "cpuTimeP95": 4688,
+          "cpuTimeP99": 4688,
+          "wallTimeP50": 59992784,
+          "wallTimeP95": 59997336,
+          "wallTimeP99": 59997336
+        },
+        "sum": {
+          "cpuTimeUs": 51510,
+          "errors": 0,
+          "requests": 19,
+          "subrequests": 57
+        }
+      },
+      {
+        "dimensions": {
+          "scriptName": "messenger",
+          "status": "scriptThrewException"
+        },
+        "quantiles": {
+          "cpuTimeP50": 3240,
+          "cpuTimeP95": 3240,
+          "cpuTimeP99": 3240,
+          "wallTimeP50": 10871007,
+          "wallTimeP95": 10871007,
+          "wallTimeP99": 10871007
+        },
+        "sum": {
+          "cpuTimeUs": 3240,
+          "errors": 1,
+          "requests": 1,
+          "subrequests": 1
+        }
+      }
+    ]
+  },
+  "previousShanghaiDayWindow": {
+    "from": "2026-09-19T16:00:00Z",
+    "to": "2026-09-20T16:00:00Z"
+  },
+  "limitations": [
+    "Workers subscription and historical Observability APIs denied by available credentials. Free-tier reference is not a verified bill.",
+    "Neon regional log API unavailable; pg_stat_statements reset at 2026-09-20T06:14:17.105Z.",
+    "First Hyperdrive query using isFree returned empty; corrected query without isFree returned month and daily usage."
+  ],
+  "workersAI": {
+    "aiInferenceAdaptiveGroups": [
+      {
+        "count": 12,
+        "dimensions": {
+          "date": "2026-09-04",
+          "modelId": "@cf/qwen/qwen3-embedding-0.6b"
+        },
+        "sum": {
+          "totalInferenceTimeMs": 26108,
+          "totalInputTokens": 23008,
+          "totalNeurons": 24.724117684177315,
+          "totalOutputTokens": 0
+        }
+      },
+      {
+        "count": 13,
+        "dimensions": {
+          "date": "2026-09-03",
+          "modelId": "@cf/qwen/qwen3-embedding-0.6b"
+        },
+        "sum": {
+          "totalInferenceTimeMs": 39342,
+          "totalInputTokens": 25402,
+          "totalNeurons": 27.296681041962447,
+          "totalOutputTokens": 0
+        }
+      },
+      {
+        "count": 12,
+        "dimensions": {
+          "date": "2026-09-01",
+          "modelId": "@cf/qwen/qwen3-embedding-0.6b"
+        },
+        "sum": {
+          "totalInferenceTimeMs": 28968,
+          "totalInputTokens": 19256,
+          "totalNeurons": 20.69226400063101,
+          "totalOutputTokens": 0
+        }
+      },
+      {
+        "count": 33,
+        "dimensions": {
+          "date": "2026-09-17",
+          "modelId": "@cf/qwen/qwen3-embedding-0.6b"
+        },
+        "sum": {
+          "totalInferenceTimeMs": 42431,
+          "totalInputTokens": 9565,
+          "totalNeurons": 10.27843296458432,
+          "totalOutputTokens": 0
+        }
+      },
+      {
+        "count": 56,
+        "dimensions": {
+          "date": "2026-09-10",
+          "modelId": "@cf/qwen/qwen3-embedding-0.6b"
+        },
+        "sum": {
+          "totalInferenceTimeMs": 519808,
+          "totalInputTokens": 29853,
+          "totalNeurons": 32.07967164576431,
+          "totalOutputTokens": 0
+        }
+      },
+      {
+        "count": 37,
+        "dimensions": {
+          "date": "2026-09-18",
+          "modelId": "@cf/qwen/qwen3-embedding-0.6b"
+        },
+        "sum": {
+          "totalInferenceTimeMs": 78435,
+          "totalInputTokens": 10649,
+          "totalNeurons": 11.443286214308252,
+          "totalOutputTokens": 0
+        }
+      },
+      {
+        "count": 5210,
+        "dimensions": {
+          "date": "2026-09-07",
+          "modelId": "@cf/qwen/qwen3-embedding-0.6b"
+        },
+        "sum": {
+          "totalInferenceTimeMs": 13089952,
+          "totalInputTokens": 6774996,
+          "totalNeurons": 7280.328512423093,
+          "totalOutputTokens": 0
+        }
+      },
+      {
+        "count": 3,
+        "dimensions": {
+          "date": "2026-09-20",
+          "modelId": "@cf/qwen/qwen3-embedding-0.6b"
+        },
+        "sum": {
+          "totalInferenceTimeMs": 5393,
+          "totalInputTokens": 9,
+          "totalNeurons": 0.009671290818741126,
+          "totalOutputTokens": 0
+        }
+      },
+      {
+        "count": 14,
+        "dimensions": {
+          "date": "2026-09-11",
+          "modelId": "@cf/qwen/qwen3-embedding-0.6b"
+        },
+        "sum": {
+          "totalInferenceTimeMs": 35904,
+          "totalInputTokens": 10818,
+          "totalNeurons": 11.624891564126834,
+          "totalOutputTokens": 0
+        }
+      },
+      {
+        "count": 29,
+        "dimensions": {
+          "date": "2026-09-14",
+          "modelId": "@cf/qwen/qwen3-embedding-0.6b"
+        },
+        "sum": {
+          "totalInferenceTimeMs": 71701,
+          "totalInputTokens": 46258,
+          "totalNeurons": 49.708285632591895,
+          "totalOutputTokens": 0
+        }
+      },
+      {
+        "count": 1,
+        "dimensions": {
+          "date": "2026-09-12",
+          "modelId": "@cf/qwen/qwen3-embedding-0.6b"
+        },
+        "sum": {
+          "totalInferenceTimeMs": 1906,
+          "totalInputTokens": 3,
+          "totalNeurons": 0.0032237636062470423,
+          "totalOutputTokens": 0
+        }
+      },
+      {
+        "count": 13,
+        "dimensions": {
+          "date": "2026-09-16",
+          "modelId": "@cf/qwen/qwen3-embedding-0.6b"
+        },
+        "sum": {
+          "totalInferenceTimeMs": 22660,
+          "totalInputTokens": 24256,
+          "totalNeurons": 26.065203344376087,
+          "totalOutputTokens": 0
+        }
+      },
+      {
+        "count": 6,
+        "dimensions": {
+          "date": "2026-09-08",
+          "modelId": "@cf/qwen/qwen3-embedding-0.6b"
+        },
+        "sum": {
+          "totalInferenceTimeMs": 19872,
+          "totalInputTokens": 14880,
+          "totalNeurons": 15.989867486985329,
+          "totalOutputTokens": 0
+        }
+      },
+      {
+        "count": 20,
+        "dimensions": {
+          "date": "2026-09-02",
+          "modelId": "@cf/qwen/qwen3-embedding-0.6b"
+        },
+        "sum": {
+          "totalInferenceTimeMs": 70838,
+          "totalInputTokens": 33057,
+          "totalNeurons": 35.522651177236156,
+          "totalOutputTokens": 0
+        }
+      },
+      {
+        "count": 16,
+        "dimensions": {
+          "date": "2026-09-15",
+          "modelId": "@cf/qwen/qwen3-embedding-0.6b"
+        },
+        "sum": {
+          "totalInferenceTimeMs": 53501,
+          "totalInputTokens": 33008,
+          "totalNeurons": 35.469996371667456,
+          "totalOutputTokens": 0
+        }
+      },
+      {
+        "count": 80,
+        "dimensions": {
+          "date": "2026-09-05",
+          "modelId": "@cf/qwen/qwen3-embedding-0.6b"
+        },
+        "sum": {
+          "totalInferenceTimeMs": 290433,
+          "totalInputTokens": 156439,
+          "totalNeurons": 168.10745159922698,
+          "totalOutputTokens": 0
+        }
+      },
+      {
+        "count": 1116,
+        "dimensions": {
+          "date": "2026-09-09",
+          "modelId": "@cf/qwen/qwen3-embedding-0.6b"
+        },
+        "sum": {
+          "totalInferenceTimeMs": 3889122,
+          "totalInputTokens": 2623022,
+          "totalNeurons": 2818.6676206617753,
+          "totalOutputTokens": 0
+        }
+      }
+    ]
+  },
+  "durableObjects": {
+    "durableObjectsPeriodicGroups": [
+      {
+        "dimensions": {
+          "date": "2026-09-14",
+          "namespaceId": "17ddf906c6d242dca2e444ffecd96e58"
+        },
+        "sum": {
+          "cpuTime": 163021,
+          "duration": 1.00066944,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 346,
+          "rowsWritten": 173
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-09",
+          "namespaceId": "ffc75f15fbcd418ca583e95e80305f01"
+        },
+        "sum": {
+          "cpuTime": 5430549,
+          "duration": 55.105473152,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 31026,
+          "rowsWritten": 6890
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-02",
+          "namespaceId": "ffc75f15fbcd418ca583e95e80305f01"
+        },
+        "sum": {
+          "cpuTime": 842394,
+          "duration": 6.614013696,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 5231,
+          "rowsWritten": 1293
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-19",
+          "namespaceId": "17ddf906c6d242dca2e444ffecd96e58"
+        },
+        "sum": {
+          "cpuTime": 400622,
+          "duration": 3.5042388480000013,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 876,
+          "rowsWritten": 438
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-16",
+          "namespaceId": "17ddf906c6d242dca2e444ffecd96e58"
+        },
+        "sum": {
+          "cpuTime": 51729,
+          "duration": 0.29307072,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 104,
+          "rowsWritten": 52
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-15",
+          "namespaceId": "17ddf906c6d242dca2e444ffecd96e58"
+        },
+        "sum": {
+          "cpuTime": 64253,
+          "duration": 0.342090752,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 124,
+          "rowsWritten": 62
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-07",
+          "namespaceId": "c3754162ef0f4a60b49f40cafea594bb"
+        },
+        "sum": {
+          "cpuTime": 5140499,
+          "duration": 497.07186764799997,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 10965,
+          "rowsWritten": 1757
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-01",
+          "namespaceId": "ffc75f15fbcd418ca583e95e80305f01"
+        },
+        "sum": {
+          "cpuTime": 1407428,
+          "duration": 9.471316352,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 9313,
+          "rowsWritten": 1784
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-07",
+          "namespaceId": "ffc75f15fbcd418ca583e95e80305f01"
+        },
+        "sum": {
+          "cpuTime": 3796999,
+          "duration": 41.78665088,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 23523,
+          "rowsWritten": 5253
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-18",
+          "namespaceId": "17ddf906c6d242dca2e444ffecd96e58"
+        },
+        "sum": {
+          "cpuTime": 268409,
+          "duration": 1.519446144,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 520,
+          "rowsWritten": 260
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-20",
+          "namespaceId": "17ddf906c6d242dca2e444ffecd96e58"
+        },
+        "sum": {
+          "cpuTime": 59235,
+          "duration": 0.32150361600000005,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 128,
+          "rowsWritten": 64
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-03",
+          "namespaceId": "17ddf906c6d242dca2e444ffecd96e58"
+        },
+        "sum": {
+          "cpuTime": 37595,
+          "duration": 0.22873472,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 64,
+          "rowsWritten": 32
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-12",
+          "namespaceId": "ffc75f15fbcd418ca583e95e80305f01"
+        },
+        "sum": {
+          "cpuTime": 1202338,
+          "duration": 6.455151232,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 5635,
+          "rowsWritten": 1199
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-09",
+          "namespaceId": "17ddf906c6d242dca2e444ffecd96e58"
+        },
+        "sum": {
+          "cpuTime": 167779,
+          "duration": 2.6464206079999997,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 416,
+          "rowsWritten": 208
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-08",
+          "namespaceId": "ffc75f15fbcd418ca583e95e80305f01"
+        },
+        "sum": {
+          "cpuTime": 1432114,
+          "duration": 13.442350207999999,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 7823,
+          "rowsWritten": 1355
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-08",
+          "namespaceId": "17ddf906c6d242dca2e444ffecd96e58"
+        },
+        "sum": {
+          "cpuTime": 36345,
+          "duration": 0.518676864,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 72,
+          "rowsWritten": 36
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-11",
+          "namespaceId": "c3754162ef0f4a60b49f40cafea594bb"
+        },
+        "sum": {
+          "cpuTime": 48213,
+          "duration": 0.026631424,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 824,
+          "rowsWritten": 108
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-16",
+          "namespaceId": "ffc75f15fbcd418ca583e95e80305f01"
+        },
+        "sum": {
+          "cpuTime": 1887947,
+          "duration": 9.836834176000002,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 9181,
+          "rowsWritten": 1815
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-01",
+          "namespaceId": "17ddf906c6d242dca2e444ffecd96e58"
+        },
+        "sum": {
+          "cpuTime": 44029,
+          "duration": 0.329682176,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 100,
+          "rowsWritten": 50
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-14",
+          "namespaceId": "ffc75f15fbcd418ca583e95e80305f01"
+        },
+        "sum": {
+          "cpuTime": 3125863,
+          "duration": 28.160998911999997,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 79225,
+          "rowsWritten": 5541
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-15",
+          "namespaceId": "ffc75f15fbcd418ca583e95e80305f01"
+        },
+        "sum": {
+          "cpuTime": 1728619,
+          "duration": 9.995640704000001,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 8897,
+          "rowsWritten": 2040
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-11",
+          "namespaceId": "ffc75f15fbcd418ca583e95e80305f01"
+        },
+        "sum": {
+          "cpuTime": 5854249,
+          "duration": 44.43755788800001,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 38982,
+          "rowsWritten": 9567
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-13",
+          "namespaceId": "ffc75f15fbcd418ca583e95e80305f01"
+        },
+        "sum": {
+          "cpuTime": 323455,
+          "duration": 1.6034000640000001,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 1690,
+          "rowsWritten": 312
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-07",
+          "namespaceId": "17ddf906c6d242dca2e444ffecd96e58"
+        },
+        "sum": {
+          "cpuTime": 107636,
+          "duration": 1.9285273600000001,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 320,
+          "rowsWritten": 160
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-10",
+          "namespaceId": "17ddf906c6d242dca2e444ffecd96e58"
+        },
+        "sum": {
+          "cpuTime": 252308,
+          "duration": 1.469097728,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 464,
+          "rowsWritten": 232
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-10",
+          "namespaceId": "ffc75f15fbcd418ca583e95e80305f01"
+        },
+        "sum": {
+          "cpuTime": 4451071,
+          "duration": 36.884968448,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 30270,
+          "rowsWritten": 7724
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-17",
+          "namespaceId": "c3754162ef0f4a60b49f40cafea594bb"
+        },
+        "sum": {
+          "cpuTime": 14887625,
+          "duration": 79.105792768,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 868,
+          "rowsWritten": 178
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-17",
+          "namespaceId": "17ddf906c6d242dca2e444ffecd96e58"
+        },
+        "sum": {
+          "cpuTime": 35269,
+          "duration": 0.24070144,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 92,
+          "rowsWritten": 46
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-10",
+          "namespaceId": "c3754162ef0f4a60b49f40cafea594bb"
+        },
+        "sum": {
+          "cpuTime": 58173146,
+          "duration": 444.023227264,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 1287,
+          "rowsWritten": 438
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-11",
+          "namespaceId": "17ddf906c6d242dca2e444ffecd96e58"
+        },
+        "sum": {
+          "cpuTime": 239639,
+          "duration": 1.7080433919999998,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 584,
+          "rowsWritten": 292
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-04",
+          "namespaceId": "ffc75f15fbcd418ca583e95e80305f01"
+        },
+        "sum": {
+          "cpuTime": 2246519,
+          "duration": 15.850004607999999,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 14071,
+          "rowsWritten": 3203
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-13",
+          "namespaceId": "17ddf906c6d242dca2e444ffecd96e58"
+        },
+        "sum": {
+          "cpuTime": 8782,
+          "duration": 0.059301888,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 20,
+          "rowsWritten": 10
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-02",
+          "namespaceId": "17ddf906c6d242dca2e444ffecd96e58"
+        },
+        "sum": {
+          "cpuTime": 37291,
+          "duration": 0.23260608,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 76,
+          "rowsWritten": 38
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-08",
+          "namespaceId": "c3754162ef0f4a60b49f40cafea594bb"
+        },
+        "sum": {
+          "cpuTime": 2041779,
+          "duration": 31.908582271999997,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 579,
+          "rowsWritten": 82
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-04",
+          "namespaceId": "17ddf906c6d242dca2e444ffecd96e58"
+        },
+        "sum": {
+          "cpuTime": 89749,
+          "duration": 0.611676288,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 192,
+          "rowsWritten": 96
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-12",
+          "namespaceId": "17ddf906c6d242dca2e444ffecd96e58"
+        },
+        "sum": {
+          "cpuTime": 31654,
+          "duration": 0.18257241600000002,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 68,
+          "rowsWritten": 34
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-03",
+          "namespaceId": "ffc75f15fbcd418ca583e95e80305f01"
+        },
+        "sum": {
+          "cpuTime": 1055304,
+          "duration": 6.3418128639999995,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 5025,
+          "rowsWritten": 1086
+        }
+      },
+      {
+        "dimensions": {
+          "date": "2026-09-09",
+          "namespaceId": "c3754162ef0f4a60b49f40cafea594bb"
+        },
+        "sum": {
+          "cpuTime": 1335625,
+          "duration": 26.493589888,
+          "exceededCpuErrors": 0,
+          "exceededMemoryErrors": 0,
+          "rowsRead": 503,
+          "rowsWritten": 93
+        }
+      }
+    ]
+  },
+  "aiSearchIngestion": {
+    "aiSearchIngestedItemsAdaptiveGroups": []
+  }
+}

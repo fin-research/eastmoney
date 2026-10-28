@@ -1,0 +1,5 @@
+/* Floating launchers are tested through interaction, not visual baselines. */
+.ai-trigger,
+.floating-create-button {
+  opacity: 0 !important;
+}

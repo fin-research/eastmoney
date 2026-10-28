@@ -1,0 +1,2047 @@
+{
+  "version": 1,
+  "scope": "组件集成与生产CSS；不代表生产路由、Gateway或真实数据E2E。豁免页不计作已覆盖。",
+  "inventory": {
+    "root": "src/routes",
+    "suffix": "+page.svelte"
+  },
+  "baselineTemplate": "tests/visual/__screenshots__/linux-ci/{project}/{snapshot}",
+  "baselineDirectories": [
+    "tests/visual/__screenshots__/linux-ci"
+  ],
+  "pages": [
+    {
+      "source": "src/routes/+page.svelte",
+      "scenarios": [
+        "home"
+      ]
+    },
+    {
+      "source": "src/routes/articles/[id]/+page.svelte",
+      "scenarios": [
+        "articles-detail"
+      ]
+    },
+    {
+      "source": "src/routes/auth/verify-email/+page.svelte",
+      "scenarios": [
+        "verification-notice"
+      ]
+    },
+    {
+      "source": "src/routes/bond/+page.svelte",
+      "exemption": "兼容URL复用WorkbenchPage；共享header由工作台桌面/手机场景覆盖，兼容URL装配仍未单独进行浏览器验收"
+    },
+    {
+      "source": "src/routes/commentaries/[id]/+page.svelte",
+      "scenarios": [
+        "commentaries-detail"
+      ]
+    },
+    {
+      "source": "src/routes/credit-workbench/[[view]]/+page.svelte",
+      "scenarios": [
+        "credit",
+        "credit-ledger",
+        "calendar",
+        "credit-weekly",
+        "browser-agent-credit",
+        "sidebar-credit",
+        "credit-usage-interactions",
+        "credit-bank-status",
+        "credit-error"
+      ]
+    },
+    {
+      "source": "src/routes/financing-model/+page.svelte",
+      "exemption": "兼容URL复用WorkbenchPage；共享header由工作台桌面/手机场景覆盖，兼容URL装配仍未单独进行浏览器验收"
+    },
+    {
+      "source": "src/routes/financing/+page.svelte",
+      "scenarios": [
+        "financing-dashboard",
+        "financing-calendar",
+        "sidebar-financing"
+      ]
+    },
+    {
+      "source": "src/routes/financing/bond-investors/+page.svelte",
+      "scenarios": [
+        "financing-investors"
+      ]
+    },
+    {
+      "source": "src/routes/financing/data/+page.svelte",
+      "scenarios": [
+        "financing-data",
+        "financing-debt-admin",
+        "financing-debt-guards"
+      ]
+    },
+    {
+      "source": "src/routes/financing/debts/[id]/+page.svelte",
+      "scenarios": [
+        "financing-debt"
+      ]
+    },
+    {
+      "source": "src/routes/financing/liability-report/+page.svelte",
+      "scenarios": [
+        "liability-six-pages"
+      ]
+    },
+    {
+      "source": "src/routes/financing/login/+page.svelte",
+      "exemption": "统一登录跳转页，认证边界"
+    },
+    {
+      "source": "src/routes/financing/projects/+page.svelte",
+      "scenarios": [
+        "financing-projects"
+      ]
+    },
+    {
+      "source": "src/routes/financing/projects/[id]/+page.svelte",
+      "scenarios": [
+        "financing-project-detail"
+      ]
+    },
+    {
+      "source": "src/routes/financing/sop/+page.svelte",
+      "scenarios": [
+        "sop-actions"
+      ]
+    },
+    {
+      "source": "src/routes/financing/sop/[id]/+page.svelte",
+      "scenarios": [
+        "sop-detail"
+      ]
+    },
+    {
+      "source": "src/routes/financing/sop/reminders/+page.svelte",
+      "scenarios": [
+        "sop-history"
+      ]
+    },
+    {
+      "source": "src/routes/fund-report/+page.svelte",
+      "scenarios": [
+        "fund-report-header",
+        "header-fund-report-actions"
+      ]
+    },
+    {
+      "source": "src/routes/management/+page.svelte",
+      "exemption": "服务端303跳转到/management/me，无独立页面正文；目标页面已覆盖"
+    },
+    {
+      "source": "src/routes/management/me/+page.svelte",
+      "scenarios": [
+        "management-me",
+        "sidebar-management"
+      ]
+    },
+    {
+      "source": "src/routes/management/messenger/+page.svelte",
+      "scenarios": [
+        "messenger",
+        "workbench-navigation"
+      ]
+    },
+    {
+      "source": "src/routes/management/notifications/+page.svelte",
+      "scenarios": [
+        "management-notifications"
+      ]
+    },
+    {
+      "source": "src/routes/management/people/+page.svelte",
+      "scenarios": [
+        "management-people",
+        "management-people-roles",
+        "management-people-loading"
+      ]
+    },
+    {
+      "source": "src/routes/management/permissions/+page.svelte",
+      "scenarios": [
+        "permissions-filtered"
+      ]
+    },
+    {
+      "source": "src/routes/market-briefing/+page.svelte",
+      "scenarios": [
+        "market-report",
+        "market-report-edit-export",
+        "ai-panel",
+        "market-report-readable"
+      ]
+    },
+    {
+      "source": "src/routes/market-briefing/text/+page.svelte",
+      "scenarios": [
+        "market-text-link"
+      ]
+    },
+    {
+      "source": "src/routes/market-hotspots/+page.svelte",
+      "exemption": "本模块是 LegacyWorkbenchRedirect；仅 canonical dynamic URL 有交互，无重定向截图"
+    },
+    {
+      "source": "src/routes/news/[id]/+page.svelte",
+      "scenarios": [
+        "news-detail"
+      ]
+    },
+    {
+      "source": "src/routes/policy-tracking/+page.svelte",
+      "exemption": "LegacyWorkbenchRedirect；canonical政策跟踪视图已覆盖，兼容URL不重复计作页面"
+    },
+    {
+      "source": "src/routes/profile/+page.svelte",
+      "exemption": "服务端303跳转到/management/me，无独立页面正文；目标页面已覆盖"
+    },
+    {
+      "source": "src/routes/secondary-bond-pool/+page.svelte",
+      "exemption": "兼容URL复用WorkbenchPage；共享header由工作台桌面/手机场景覆盖，兼容URL装配仍未单独进行浏览器验收"
+    },
+    {
+      "source": "src/routes/trading-research/+page.svelte",
+      "scenarios": [
+        "overview",
+        "sidebar-trading"
+      ]
+    },
+    {
+      "source": "src/routes/trading-research/[view]/+page.svelte",
+      "scenarios": [
+        "trading",
+        "market-hotspots",
+        "policy-tracking",
+        "tracking-commentary",
+        "research",
+        "workflow",
+        "secondary",
+        "bond",
+        "financing-model",
+        "interbank-ledger",
+        "interbank-directory"
+      ]
+    },
+    {
+      "source": "src/routes/financing/clients/+page.svelte",
+      "scenarios": [
+        "clients-toolbar"
+      ]
+    },
+    {
+      "source": "src/routes/auth/login/+page.svelte",
+      "scenarios": [
+        "login-verification-modal",
+        "login-verification-redirect"
+      ]
+    },
+    {
+      "source": "src/routes/auth/callback/+page.svelte",
+      "exemption": "Auth0 SDK 浏览器跳转入口；认证验收仅程序化 HTTP、单元测试与 CLI，不进行浏览器权限登录验收"
+    },
+    {
+      "source": "src/routes/auth/logout/+page.svelte",
+      "exemption": "Auth0 SDK 浏览器跳转入口；认证验收仅程序化 HTTP、单元测试与 CLI，不进行浏览器权限登录验收"
+    }
+  ],
+  "registries": [
+    {
+      "source": "src/lib/trading-research/demo-data.ts",
+      "export": "workbenchRoutes",
+      "scenarios": {
+        "overview": "overview",
+        "trading": "trading",
+        "market-hotspots": "market-hotspots",
+        "tracking-commentary": "tracking-commentary",
+        "policy-tracking": "policy-tracking",
+        "research": "research",
+        "workflow": "workflow",
+        "secondary-bond-pool": "secondary",
+        "bond": "bond",
+        "financing-model": "financing-model",
+        "interbank-ledger": "interbank-ledger"
+      }
+    },
+    {
+      "source": "src/lib/credit-workbench/navigation.ts",
+      "export": "creditWorkbenchViews",
+      "scenarios": {
+        "overview": "credit",
+        "calendar": "calendar",
+        "weekly": "credit-weekly",
+        "ledger": "credit-ledger"
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "home",
+      "url": "/",
+      "kind": "screenshot",
+      "state": "normal",
+      "evidence": [
+        {
+          "spec": "tests/visual/workspaces.spec.mjs",
+          "test": "home renders",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "home.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "overview",
+      "url": "/trading-research",
+      "kind": "screenshot",
+      "state": "normal",
+      "evidence": [
+        {
+          "spec": "tests/visual/workspaces.spec.mjs",
+          "test": "overview renders",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "overview.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "trading",
+      "url": "/trading-research/trading",
+      "kind": "screenshot",
+      "state": "交易管理工作区；独立顶栏标签、悬浮态及侧栏证据",
+      "evidence": [
+        {
+          "spec": "tests/visual/workspaces.spec.mjs",
+          "test": "trading renders",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "trading.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/page-layout.spec.mjs",
+          "test": "交易管理标签悬浮时保持连续的白色顶栏",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "trading-tabs-hover.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/page-layout.spec.mjs",
+          "test": "带标签或附加操作的顶栏分别截图",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "header-trading-tabs.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "workflow",
+      "url": "/trading-research/workflow",
+      "kind": "screenshot",
+      "state": "交易管理的交易流程标签选中，侧栏仍选中交易管理",
+      "evidence": [
+        {
+          "spec": "tests/visual/workspaces.spec.mjs",
+          "test": "workflow renders",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "workflow.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/workflow-inquiry.spec.mjs",
+          "test": "desktop workflow exposes complete inquiry labels and reachable node settings",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "workflow-inquiry-labels-desktop.png",
+            "workflow-node-editor-desktop.png",
+            "workflow-node-settings-desktop.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/page-layout.spec.mjs",
+          "test": "带标签或附加操作的顶栏分别截图",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "header-workflow-actions.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "credit",
+      "url": "/credit-workbench",
+      "kind": "screenshot",
+      "state": "normal/bank-types/products/registered-product-amounts/status/expiry-histogram/top-institutions",
+      "evidence": [
+        {
+          "spec": "tests/visual/workspaces.spec.mjs",
+          "test": "credit renders",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "credit.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/credit-desktop.spec.mjs",
+          "test": "credit overview charts display all categories and products",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "credit-overview-bank-limits.png",
+            "credit-overview-bank-usage.png",
+            "credit-overview-bank-utilization.png",
+            "credit-overview-product-limits.png",
+            "credit-overview-product-usage.png",
+            "credit-overview-product-utilization.png",
+            "credit-overview-status.png",
+            "credit-overview-top-limits.png",
+            "credit-overview-top-usage.png",
+            "credit-overview-top-utilization.png",
+            "credit-overview-expiry.png",
+            "credit-overview-risk.png",
+            "credit-overview-alerts.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "credit-ledger",
+      "url": "/credit-workbench/ledger",
+      "kind": "screenshot",
+      "state": "normal/quarter-final/report-date-picker/detail-dialog/editable-maintenance/readonly-total/editable-item-limits/application-new/application-increase/multisort-default/multisort-custom/export-loading/export-download/export-failure/export-empty/usage-details/usage-empty/draft-preservation/late-response/financing-link",
+      "evidence": [
+        {
+          "spec": "tests/visual/workspaces.spec.mjs",
+          "test": "credit-ledger renders",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "credit-ledger.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/credit-desktop.spec.mjs",
+          "test": "desktop credit metrics and detail dialog stay within the viewport",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "credit-detail-dialog.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/credit-desktop.spec.mjs",
+          "test": "credit application separates requests from editable maintenance details and derives dated status",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "credit-application-new.png",
+            "credit-application-increase.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/credit-desktop.spec.mjs",
+          "test": "credit report dates and quarter final badges support keyboard and mobile dialogs",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "credit-report-date-picker.png",
+            "credit-verified-detail.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/credit-desktop.spec.mjs",
+          "test": "credit multisort preserves priorities and restores the default order",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "credit-multisort-default.png",
+            "credit-multisort-custom.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/credit-export.spec.mjs",
+          "test": "credit Excel export downloads the complete report snapshot while filtered and changing date",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "credit-export-loading.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/credit-export.spec.mjs",
+          "test": "credit Excel export shows global feedback for generation failure and empty reports",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "credit-export-empty.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/credit-desktop.spec.mjs",
+          "test": "credit usage drilldowns preserve drafts and open financing debt details",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "credit-usage-details.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "calendar",
+      "url": "/credit-workbench/calendar",
+      "kind": "screenshot",
+      "state": "normal",
+      "evidence": [
+        {
+          "spec": "tests/visual/workspaces.spec.mjs",
+          "test": "calendar renders",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "calendar.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "credit-weekly",
+      "url": "/credit-workbench/weekly",
+      "kind": "screenshot",
+      "state": "非空快讯、空态与持平指标、完整表头、完整长图下载",
+      "evidence": [
+        {
+          "spec": "tests/visual/credit-desktop.spec.mjs",
+          "test": "credit weekly detail keeps the complete grouped header while scrolling",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "credit-weekly-sticky-header.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/workspaces.spec.mjs",
+          "test": "credit-weekly renders",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "credit-weekly.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/credit-desktop.spec.mjs",
+          "test": "desktop credit weekly report presents nonempty news and five product details",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "credit-weekly-full-desktop.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/credit-desktop.spec.mjs",
+          "test": "credit weekly empty news uses standard text and unchanged metrics say flat",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "credit-weekly-empty.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/credit-export.spec.mjs",
+          "test": "credit weekly exports one complete PNG after scrolling through the detail table",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "credit-weekly-export-image.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "research",
+      "url": "/trading-research/research",
+      "kind": "screenshot",
+      "state": "常规和丰富历史数据；桌面主图/小图日期刻度及指标卡",
+      "evidence": [
+        {
+          "spec": "tests/visual/workspaces.spec.mjs",
+          "test": "research renders",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "research.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/research-audit.spec.mjs",
+          "test": "desktop research history keeps main and small time axes readable",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "research-rates-history.png",
+            "research-prices-history.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "secondary",
+      "url": "/trading-research/secondary-bond-pool",
+      "kind": "screenshot",
+      "state": "normal",
+      "evidence": [
+        {
+          "spec": "tests/visual/workspaces.spec.mjs",
+          "test": "secondary renders",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "secondary.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/secondary-desktop.spec.mjs",
+          "test": "desktop secondary report date range shows endpoints and selected interval",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "secondary-date-range.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "market-report",
+      "url": "/market-briefing",
+      "kind": "screenshot",
+      "state": "归档展示、统一页头、直接编辑、重新生成及并发导出归档",
+      "evidence": [
+        {
+          "spec": "tests/visual/workspaces.spec.mjs",
+          "test": "market-report renders",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "market-report.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/page-layout.spec.mjs",
+          "test": "带标签或附加操作的顶栏分别截图",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "header-market-tabs.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "schedule",
+      "url": "/financing/schedule",
+      "kind": "screenshot",
+      "state": "normal",
+      "evidence": [
+        {
+          "spec": "tests/visual/workspaces.spec.mjs",
+          "test": "schedule renders",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "schedule.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "financing-model",
+      "url": "/trading-research/financing-model",
+      "kind": "screenshot",
+      "state": "legacy market contributions and complete MLP encoded-column contributions",
+      "evidence": [
+        {
+          "spec": "tests/visual/reports.spec.mjs",
+          "test": "financing-model preserves its approved report layout",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "financing-model.png",
+            "financing-model-products.png",
+            "financing-model-factors.png",
+            "financing-model-supporting.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/reports.spec.mjs",
+          "test": "desktop financing seller views load their shipping institution logos",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "financing-seller-logos.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/reports.spec.mjs",
+          "test": "financing-model shows complete MLP contribution sources",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "financing-model-mlp-factors.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/reports.spec.mjs",
+          "test": "financing-model suspends numbers while keeping manual work accessible",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "financing-model-suspended.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "financing-model-online",
+      "url": "/trading-research/financing-model",
+      "kind": "screenshot",
+      "state": "three-state conclusion, four-product comparison, four business metrics, net SHAP, date switching",
+      "evidence": [
+        {
+          "spec": "tests/visual/reports.spec.mjs",
+          "test": "financing-model switches between issuance model dates",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "financing-model-online.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "financing-model-metrics-progressive",
+      "url": "/trading-research/financing-model",
+      "kind": "interaction",
+      "state": "published model displays before independent business metrics finish",
+      "evidence": [
+        {
+          "spec": "tests/visual/reports.spec.mjs",
+          "test": "published model appears while business metrics are still loading",
+          "projects": [
+            "desktop",
+            "mobile"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tracking-commentary",
+      "url": "/trading-research/tracking-commentary?id=archive-1",
+      "kind": "screenshot",
+      "state": "normal",
+      "evidence": [
+        {
+          "spec": "tests/visual/tracking-commentary.spec.mjs",
+          "test": "tracking archive opens, edits, generates and retains source evidence",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "tracking-commentary.png",
+            "tracking-commentary-editor.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/tracking-commentary.spec.mjs",
+          "test": "manual edits autosave and print isolates the A4 report",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "tracking-commentary-print.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/research-overlays.spec.mjs",
+          "test": "desktop commentary preview prioritizes the report and returns to its draft",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "tracking-reading-desktop.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "messenger",
+      "url": "/management/messenger",
+      "kind": "screenshot",
+      "state": "共享主题蓝导航、紧凑 header、消息长 JSON/URL 换行不覆盖相邻列、测试单发/群发及 tab 深链",
+      "evidence": [
+        {
+          "spec": "tests/visual/messenger.spec.mjs",
+          "test": "消息记录、尝试明细和不确定结果重试确认",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "messenger.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/messenger.spec.mjs",
+          "test": "通知管理测试消息支持编辑、单发群发和渠道选择",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "messenger-test-single.png",
+            "messenger-test-bulk.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/page-layout.spec.mjs",
+          "test": "带标签或附加操作的顶栏分别截图",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "header-management-tabs.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "market-hotspots",
+      "url": "/trading-research/market-hotspots",
+      "kind": "interaction",
+      "state": "normal",
+      "evidence": [
+        {
+          "spec": "tests/visual/ui-contracts.spec.mjs",
+          "test": "hotspot scope tabs and detail dialog support keyboard dismissal and restore focus",
+          "projects": [
+            "desktop",
+            "mobile"
+          ]
+        },
+        {
+          "spec": "tests/visual/research-overlays.spec.mjs",
+          "test": "desktop hotspot scope selection is visible and details use readable width",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "hotspot-scope-desktop.png",
+            "hotspot-detail-desktop.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "policy-tracking",
+      "url": "/trading-research/policy-tracking",
+      "kind": "screenshot",
+      "state": "非空政策与关联研报、取消选择及政策类型筛选",
+      "evidence": [
+        {
+          "spec": "tests/visual/research-overlays.spec.mjs",
+          "test": "desktop policy association choices remain square and cancel preserves the list",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "policy-card-desktop.png",
+            "policy-association-desktop.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bond",
+      "url": "/trading-research/bond",
+      "kind": "screenshot",
+      "state": "60日历史、六类持仓、非空成交、账户切换和台账管理；2026-09-21仅替换导入传输与解析逻辑，布局不变，直导入错误与提交行为由单元测试覆盖",
+      "evidence": [
+        {
+          "spec": "tests/visual/bond-ledger-desktop.spec.mjs",
+          "test": "desktop daily ledger shows balanced metrics and recoverable management controls",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "bond-ledger-desktop.png",
+            "bond-ledger-trades-desktop.png",
+            "bond-ledger-management-desktop.png",
+            "bond-ledger-distributions-desktop.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "browser-agent-credit",
+      "url": "/credit-workbench",
+      "kind": "screenshot",
+      "state": "通用对话取代授信助手页面；公开材料工具和本地历史",
+      "evidence": [
+        {
+          "spec": "tests/visual/credit-assistant-desktop.spec.mjs",
+          "test": "通用 AI 侧栏接替授信助手并可选择公开材料工具",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "agent-credit-tools.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/credit-assistant-desktop.spec.mjs",
+          "test": "本地授信对话刷新后恢复且保留来源文本",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "agent-credit-history.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "workflow-expanded",
+      "url": "/trading-research/workflow",
+      "kind": "screenshot",
+      "state": "expanded/editor",
+      "evidence": [
+        {
+          "spec": "tests/visual/workspaces.spec.mjs",
+          "test": "workflow expands a branch and opens the real editor",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "workflow-expanded.png",
+            "workflow-editor.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "workflow-branch",
+      "url": "/trading-research/workflow",
+      "kind": "screenshot",
+      "state": "expanded branch",
+      "evidence": [
+        {
+          "spec": "tests/visual/workspaces.spec.mjs",
+          "test": "workflow branches expand to the right without displacing the main path",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "workflow-branch.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "credit-error",
+      "url": "/credit-workbench",
+      "kind": "screenshot",
+      "state": "error",
+      "evidence": [
+        {
+          "spec": "tests/visual/workspaces.spec.mjs",
+          "test": "credit failure is visible instead of an empty success",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "credit-error.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "secondary-empty",
+      "url": "/trading-research/secondary-bond-pool",
+      "kind": "screenshot",
+      "state": "empty",
+      "evidence": [
+        {
+          "spec": "tests/visual/workspaces.spec.mjs",
+          "test": "secondary pool empty state is a successful empty report",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "secondary-empty.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "schedule-point",
+      "url": "/financing/schedule",
+      "kind": "screenshot",
+      "state": "point mode",
+      "evidence": [
+        {
+          "spec": "tests/visual/workspaces.spec.mjs",
+          "test": "schedule switches modes and resets without stale fields",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "schedule-point.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fund-report-header",
+      "url": "/fund-report",
+      "kind": "interaction",
+      "state": "单面页面无标签，跨板块标题字体一致",
+      "evidence": [
+        {
+          "spec": "tests/visual/page-layout.spec.mjs",
+          "test": "单面页面共用标题且不显示标签栏",
+          "projects": [
+            "desktop",
+            "mobile"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "market-text-link",
+      "url": "/market-briefing/text?date=2026-09-15",
+      "kind": "interaction",
+      "state": "文字标签直达、日期及前进后退刷新",
+      "evidence": [
+        {
+          "spec": "tests/visual/market-report.spec.mjs",
+          "test": "市场点评标签链接可直达并保留日期和浏览器历史",
+          "projects": [
+            "desktop",
+            "mobile"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai-panel",
+      "url": "/market-briefing",
+      "kind": "screenshot",
+      "state": "AI 任务详情的流式摘要与完成结果",
+      "evidence": [
+        {
+          "spec": "tests/visual/market-report.spec.mjs",
+          "test": "AI 生成自动展开任务详情、轮替模型摘要并保留完成结果",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "ai-panel-progress.png",
+            "ai-panel-complete.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "browser-agent-panel",
+      "url": "/market-briefing",
+      "kind": "screenshot",
+      "state": "通用 AI 对话、会话与工具设置；桌面侧栏挤压页面",
+      "evidence": [
+        {
+          "spec": "tests/visual/market-report.spec.mjs",
+          "test": "AI 对话侧栏挤压桌面页面并提供会话与工具设置",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "ai-agent-welcome.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "market-report-edit-export",
+      "url": "/market-briefing",
+      "kind": "interaction",
+      "state": "直接编辑、重生成、并发导出与归档失败恢复、页头尺寸",
+      "evidence": [
+        {
+          "spec": "tests/visual/market-report.spec.mjs",
+          "test": "聚焦直接编辑、生成失败保留原稿，重新生成后跨标签保留修改",
+          "projects": [
+            "desktop",
+            "mobile"
+          ]
+        },
+        {
+          "spec": "tests/visual/market-report.spec.mjs",
+          "test": "导出并发下载图片与归档，保存失败保留编辑且可重试",
+          "projects": [
+            "desktop",
+            "mobile"
+          ]
+        },
+        {
+          "spec": "tests/visual/market-report.spec.mjs",
+          "test": "市场点评页头操作、日期和个人入口尺寸一致",
+          "projects": [
+            "desktop",
+            "mobile"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "workbench-navigation",
+      "url": "/management/messenger",
+      "kind": "interaction",
+      "state": "普通页与报告页共享白色顶栏、淡色工作区和深色导航；各一级工作台侧栏另行截图",
+      "evidence": [
+        {
+          "spec": "tests/visual/page-layout.spec.mjs",
+          "test": "普通页与报告页共用白色顶栏和深色导航",
+          "projects": [
+            "desktop",
+            "mobile"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "permissions-filtered",
+      "url": "/management/permissions",
+      "kind": "screenshot",
+      "state": "范围筛选与搜索组合、清除范围恢复结果",
+      "evidence": [
+        {
+          "spec": "tests/visual/ui-contracts.spec.mjs",
+          "test": "permission search keeps the active scope visible and recoverable",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "permissions-filtered.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sop-actions",
+      "url": "/financing/sop",
+      "kind": "screenshot",
+      "state": "桌面新增按钮与AI不重叠，真实新增弹窗打开与关闭",
+      "evidence": [
+        {
+          "spec": "tests/visual/desktop-ui.spec.mjs",
+          "test": "desktop SOP create action remains clear of AI and opens a dismissible dialog",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "sop-actions.png",
+            "sop-create.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/sop-detail-desktop.spec.mjs",
+          "test": "desktop reminder editor keeps multiple periods and custom recipients readable",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "sop-reminder-periods-desktop.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "market-report-readable",
+      "url": "/market-briefing",
+      "kind": "screenshot",
+      "state": "桌面1280非空表格与完整名称",
+      "evidence": [
+        {
+          "spec": "tests/visual/desktop-ui.spec.mjs",
+          "test": "desktop market report retains full names and table cells at 1280 pixels",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "market-report-readable.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "market-heatmap-sectors",
+      "url": "/market-briefing",
+      "kind": "screenshot",
+      "state": "桌面1920下31个行业的大板块左上排列与至少27个可见名称",
+      "evidence": [
+        {
+          "spec": "tests/visual/desktop-ui.spec.mjs",
+          "test": "desktop industry heatmap keeps names visible across market-cap sizes",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "market-heatmap-sectors-desktop.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "clients-toolbar",
+      "url": "/financing/clients",
+      "kind": "screenshot",
+      "state": "桌面搜索单行、别名搜索与编辑取消焦点恢复",
+      "evidence": [
+        {
+          "spec": "tests/visual/desktop-ui.spec.mjs",
+          "test": "desktop client search stays on one row and edit dialog restores focus",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "clients-toolbar.png",
+            "clients-edit.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "financing-data",
+      "url": "/financing/data",
+      "kind": "screenshot",
+      "state": "桌面财务指标、月份切换、编辑取消与焦点恢复；不包含真实导入写入",
+      "evidence": [
+        {
+          "spec": "tests/visual/desktop-ui.spec.mjs",
+          "test": "desktop financing data has balanced metrics and a compact financial editor",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "financing-data.png",
+            "financing-data-edit.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "financing-investors",
+      "url": "/financing/bond-investors",
+      "kind": "screenshot",
+      "state": "桌面筛选标签、排序、独立品种及空范围",
+      "evidence": [
+        {
+          "spec": "tests/visual/financing-layout.spec.mjs",
+          "test": "desktop investor filters remain horizontal and update independent distributions",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "investor-filters.png",
+            "investor-distribution.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "financing-debt",
+      "url": "/financing/debts/1",
+      "kind": "screenshot",
+      "state": "桌面核心字段、单行现金流与完整字段排列",
+      "evidence": [
+        {
+          "spec": "tests/visual/financing-layout.spec.mjs",
+          "test": "desktop debt details group secondary fields beneath cashflows",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "debt-details.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "financing-presets",
+      "url": "/financing/filters",
+      "kind": "screenshot",
+      "state": "仅实际筛选组件；长预设可见和两组选择独立，不覆盖完整仪表盘",
+      "evidence": [
+        {
+          "spec": "tests/visual/financing-layout.spec.mjs",
+          "test": "desktop financing presets show complete labels and retain selections",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "overview-preset.png",
+            "calendar-preset.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "news-detail",
+      "url": "/news/news-1",
+      "kind": "screenshot",
+      "state": "nonempty/reading",
+      "evidence": [
+        {
+          "spec": "tests/visual/document-details.spec.mjs",
+          "test": "desktop news detail recovers and shows structured content",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "news-detail-desktop.png",
+            "document-retry-desktop.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "articles-detail",
+      "url": "/articles/A001",
+      "kind": "screenshot",
+      "state": "nonempty/reading",
+      "evidence": [
+        {
+          "spec": "tests/visual/document-details.spec.mjs",
+          "test": "desktop research detail shows its body and related policies",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "article-detail-desktop.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "commentaries-detail",
+      "url": "/commentaries/archive-1",
+      "kind": "screenshot",
+      "state": "nonempty/reading",
+      "evidence": [
+        {
+          "spec": "tests/visual/document-details.spec.mjs",
+          "test": "desktop commentary detail wraps titles and centers standalone reports",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "commentary-detail-desktop.png",
+            "commentary-standalone-desktop.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "liability-six-pages",
+      "url": "/financing/liability-report",
+      "kind": "screenshot",
+      "state": "nonempty/six-pages",
+      "evidence": [
+        {
+          "spec": "tests/visual/liability-desktop.spec.mjs",
+          "test": "desktop liability report retains six complete pages with readable charts",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "liability-page-1.png",
+            "liability-page-2.png",
+            "liability-page-3.png",
+            "liability-page-4.png",
+            "liability-page-5.png",
+            "liability-page-6.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "management-people",
+      "url": "/management/people",
+      "kind": "screenshot",
+      "state": "desktop/person-selection-and-keyboard-focus",
+      "evidence": [
+        {
+          "spec": "tests/visual/management-desktop.spec.mjs",
+          "test": "desktop personnel cards align and selected name has one focus indicator",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "management-people-desktop.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/management-mobile.spec.mjs",
+          "test": "mobile personnel list precedes the editor without horizontal overflow",
+          "projects": [
+            "mobile"
+          ],
+          "snapshots": [
+            "management-people-mobile.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "management-people-loading",
+      "url": "/management/people?loading=1",
+      "kind": "screenshot",
+      "state": "personnel-loading",
+      "evidence": [
+        {
+          "spec": "tests/visual/management-desktop.spec.mjs",
+          "test": "desktop personnel navigation shows stable loading cards",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "management-people-loading-desktop.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/management-mobile.spec.mjs",
+          "test": "mobile personnel navigation keeps loading cards in order",
+          "projects": [
+            "mobile"
+          ],
+          "snapshots": [
+            "management-people-loading-mobile.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "management-people-roles",
+      "url": "/management/people?tab=roles",
+      "kind": "screenshot",
+      "state": "desktop/role-selection",
+      "evidence": [
+        {
+          "spec": "tests/visual/management-desktop.spec.mjs",
+          "test": "desktop role catalog identifies the selected role without changing permissions",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "management-role-desktop.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/management-mobile.spec.mjs",
+          "test": "mobile role tab shows role permissions separately",
+          "projects": [
+            "mobile"
+          ],
+          "snapshots": [
+            "management-role-mobile.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "management-me",
+      "url": "/management/me",
+      "kind": "screenshot",
+      "state": "desktop/selection",
+      "evidence": [
+        {
+          "spec": "tests/visual/management-desktop.spec.mjs",
+          "test": "desktop profile aligns actions and keeps unsaved settings local",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "management-profile-desktop.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "management-notifications",
+      "url": "/management/notifications",
+      "kind": "screenshot",
+      "state": "desktop/selection",
+      "evidence": [
+        {
+          "spec": "tests/visual/management-desktop.spec.mjs",
+          "test": "desktop notification choices align with their channel headings",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "management-notifications-desktop.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "financing-projects",
+      "url": "/financing/projects",
+      "kind": "screenshot",
+      "state": "desktop/forms",
+      "evidence": [
+        {
+          "spec": "tests/visual/projects-desktop.spec.mjs",
+          "test": "desktop projects expose selected timeline views and consistent edit dialogs",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "projects-expanded-desktop.png",
+            "project-create-desktop.png",
+            "project-edit-desktop.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "financing-project-detail",
+      "url": "/financing/projects/project-1",
+      "kind": "screenshot",
+      "state": "desktop/forms",
+      "evidence": [
+        {
+          "spec": "tests/visual/projects-desktop.spec.mjs",
+          "test": "desktop project detail displays period endpoints and unscheduled tasks",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "project-detail-desktop.png",
+            "project-add-period-desktop.png",
+            "project-members-desktop.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sop-detail",
+      "url": "/financing/sop/short-term",
+      "kind": "screenshot",
+      "state": "desktop/interaction",
+      "evidence": [
+        {
+          "spec": "tests/visual/sop-detail-desktop.spec.mjs",
+          "test": "desktop SOP opens node dialog and cancels keyboard sorting cleanly",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "sop-keyboard-sort-desktop.png",
+            "sop-add-period-desktop.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sop-history",
+      "url": "/financing/sop/reminders",
+      "kind": "screenshot",
+      "state": "desktop/interaction",
+      "evidence": [
+        {
+          "spec": "tests/visual/sop-detail-desktop.spec.mjs",
+          "test": "desktop reminder history supports pagination filters and empty recovery",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "reminder-history-desktop.png",
+            "reminder-empty-desktop.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "financing-dashboard",
+      "url": "/financing/?preset=all",
+      "kind": "screenshot",
+      "state": "desktop/nonempty/interaction",
+      "evidence": [
+        {
+          "spec": "tests/visual/financing-dashboard-desktop.spec.mjs",
+          "test": "desktop financing dashboard keeps balanced metrics and complete table values",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "financing-dashboard-desktop.png",
+            "financing-quota-desktop.png",
+            "financing-simulation-desktop.png"
+          ]
+        },
+        {
+          "spec": "tests/visual/page-layout.spec.mjs",
+          "test": "带标签或附加操作的顶栏分别截图",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "header-financing-actions.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "financing-calendar",
+      "url": "/financing/?preset=all",
+      "kind": "screenshot",
+      "state": "desktop/nonempty/interaction",
+      "evidence": [
+        {
+          "spec": "tests/visual/financing-dashboard-desktop.spec.mjs",
+          "test": "desktop financing calendar reveals busy dates without stretching every week",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "financing-calendar-desktop.png",
+            "financing-calendar-more-desktop.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "verification-notice",
+      "url": "/auth/verify-email",
+      "kind": "screenshot",
+      "state": "静态验证提示与返回入口，不模拟认证服务",
+      "evidence": [
+        {
+          "spec": "tests/visual/verification-notice.spec.mjs",
+          "test": "desktop verification notice provides clear navigation without handling credentials",
+          "projects": [
+            "desktop"
+          ],
+          "snapshots": [
+            "verification-notice-desktop.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sidebar-trading",
+      "url": "/trading-research",
+      "kind": "screenshot",
+      "state": "一级工作台侧栏独立取景与当前选中项",
+      "evidence": [
+        {
+          "spec": "tests/visual/page-layout.spec.mjs",
+          "test": "普通页与报告页共用白色顶栏和深色导航",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "sidebar-trading.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sidebar-credit",
+      "url": "/credit-workbench",
+      "kind": "screenshot",
+      "state": "一级工作台侧栏独立取景与当前选中项",
+      "evidence": [
+        {
+          "spec": "tests/visual/page-layout.spec.mjs",
+          "test": "普通页与报告页共用白色顶栏和深色导航",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "sidebar-credit.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sidebar-financing",
+      "url": "/financing/",
+      "kind": "screenshot",
+      "state": "一级工作台侧栏独立取景与当前选中项",
+      "evidence": [
+        {
+          "spec": "tests/visual/page-layout.spec.mjs",
+          "test": "普通页与报告页共用白色顶栏和深色导航",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "sidebar-financing.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sidebar-management",
+      "url": "/management/me",
+      "kind": "screenshot",
+      "state": "一级工作台侧栏独立取景与当前选中项",
+      "evidence": [
+        {
+          "spec": "tests/visual/page-layout.spec.mjs",
+          "test": "普通页与报告页共用白色顶栏和深色导航",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "sidebar-management.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "header-fund-report-actions",
+      "url": "/fund-report",
+      "kind": "screenshot",
+      "state": "资金日报附加操作顶栏独立取景",
+      "evidence": [
+        {
+          "spec": "tests/visual/page-layout.spec.mjs",
+          "test": "带标签或附加操作的顶栏分别截图",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "header-fund-report-actions.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "login-verification-modal",
+      "url": "/auth/login?error=callback&modal=1",
+      "kind": "screenshot",
+      "state": "静态验证反馈展示，不执行认证或权限登录",
+      "evidence": [
+        {
+          "spec": "tests/visual/login-feedback.spec.mjs",
+          "test": "verification feedback remains readable in the original page modal",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "login-verification-modal.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "login-verification-redirect",
+      "url": "/auth/login?error=callback",
+      "kind": "screenshot",
+      "state": "静态验证反馈展示，不执行认证或权限登录",
+      "evidence": [
+        {
+          "spec": "tests/visual/login-feedback.spec.mjs",
+          "test": "redirect verification feedback offers an explicit retry without automatic login",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "login-verification-redirect.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "button-hover",
+      "url": "/ui-contracts",
+      "kind": "interaction",
+      "state": "可用按钮和原生按钮手形、实际悬浮反馈、原生/ARIA/数据属性禁用与报告链接禁用",
+      "evidence": [
+        {
+          "spec": "tests/visual/ui-contracts.spec.mjs",
+          "test": "available buttons expose hover feedback and disabled controls keep a neutral cursor",
+          "projects": [
+            "desktop",
+            "mobile"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "credit-usage-interactions",
+      "url": "/credit-workbench/ledger",
+      "kind": "interaction",
+      "state": "late-response/retry/financing-link-visibility",
+      "evidence": [
+        {
+          "spec": "tests/visual/credit-desktop.spec.mjs",
+          "test": "credit usage ignores late requests after returning and reopening another institution",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": []
+        },
+        {
+          "spec": "tests/visual/credit-desktop.spec.mjs",
+          "test": "credit usage retries failures and omits financing links without data read visibility",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": []
+        }
+      ]
+    },
+    {
+      "id": "financing-debt-admin",
+      "url": "/financing/data?tab=debt-0",
+      "evidence": [
+        {
+          "spec": "tests/visual/financing-debt-admin.spec.mjs",
+          "test": "financing debt table and shared editor support filtered CRUD and Excel export",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "financing-debt-table.png",
+            "financing-debt-edit.png",
+            "financing-debt-new.png",
+            "financing-debt-menu.png"
+          ]
+        }
+      ],
+      "kind": "screenshot",
+      "state": "精简品种标签与图标工具栏、到期与搜索筛选、排序、共享新增编辑、删除确认、完整Excel导出；夹具验证"
+    },
+    {
+      "id": "financing-debt-guards",
+      "url": "/financing/data?tab=debt-0",
+      "kind": "interaction",
+      "state": "并发读取、写入错误保留、独立权限和删除末页回退",
+      "evidence": [
+        {
+          "spec": "tests/visual/financing-debt-admin.spec.mjs",
+          "test": "debt editor preserves failed inputs and hides independent write permissions",
+          "projects": [
+            "desktop",
+            "mobile"
+          ]
+        },
+        {
+          "spec": "tests/visual/financing-debt-admin.spec.mjs",
+          "test": "debt table ignores stale reads and clamps a deleted last page",
+          "projects": [
+            "desktop",
+            "mobile"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "interbank-ledger",
+      "url": "/trading-research/interbank-ledger",
+      "kind": "screenshot",
+      "evidence": [
+        {
+          "spec": "tests/visual/interbank.spec.mjs",
+          "test": "interbank archive previews renamed files and saves only repayment drafts",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "interbank-empty.png",
+            "interbank-preview.png",
+            "interbank-complete.png"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "interbank-directory",
+      "url": "/trading-research/interbank-ledger",
+      "kind": "interaction",
+      "state": "自动归档、目录句柄复用、中断及重复批次恢复",
+      "evidence": [
+        {
+          "spec": "tests/visual/interbank.spec.mjs",
+          "test": "interbank directory archive writes renamed files beneath the trade date",
+          "projects": [
+            "desktop",
+            "mobile"
+          ]
+        },
+        {
+          "spec": "tests/visual/interbank.spec.mjs",
+          "test": "automatic archive reads current progress under the shared account lock",
+          "projects": [
+            "desktop",
+            "mobile"
+          ]
+        },
+        {
+          "spec": "tests/visual/interbank.spec.mjs",
+          "test": "archive collision prevents all funding requests",
+          "projects": [
+            "desktop",
+            "mobile"
+          ]
+        },
+        {
+          "spec": "tests/visual/interbank.spec.mjs",
+          "test": "unknown upload stops automatic retry on repeated ZIP selection",
+          "projects": [
+            "desktop",
+            "mobile"
+          ]
+        },
+        {
+          "spec": "tests/visual/interbank.spec.mjs",
+          "test": "directory permission recovery automatically resumes the selected archive",
+          "projects": [
+            "desktop",
+            "mobile"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "credit-bank-status",
+      "url": "/credit-workbench?tab=bank-credit",
+      "kind": "screenshot",
+      "state": "bank-natures/top-ten/report-date/navigation",
+      "evidence": [
+        {
+          "spec": "tests/visual/credit-bank-status.spec.mjs",
+          "test": "bank credit table follows report date and preserves overview navigation",
+          "projects": [
+            "desktop",
+            "mobile"
+          ],
+          "snapshots": [
+            "credit-bank-header.png",
+            "credit-bank-summary.png",
+            "credit-bank-top.png"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "scope": "synthetic contract fixture; not production data or service-side timing evidence",
+  "owner_repository": "https://github.com/fin-research/data",
+  "owner_revision": "f86f1dd870d3813c8e19e9f54af77dc761806938",
+  "owner_path": "tests/fixtures/issuance-observations-v1.json",
+  "sha256": "b2823083d168167c115e62b01b1d026b61abf55f2c111aa15eb7dd8705140725"
+}

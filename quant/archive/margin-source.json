@@ -1,0 +1,27 @@
+{
+  "sealed_on": "2026-10-03",
+  "source_commit": "5a52f5e",
+  "status": "sealed_by_user",
+  "files": {
+    "margin_flow/AGENTS.md": "f182d4bd8b3e13047cbcaeaa64c787caafb7757ab0774a3989905a71054268e4",
+    "margin_flow/README.md": "f5ffb8a4bd20eb14e21a2cd6e41908e0a6019e0575c4bfe381cba000fe63bb27",
+    "margin_flow/REPORT.md": "0ca27c5a2b912c5f31bc5d6718a346f0d323927f1e12fc1fa9e8482be0471be0",
+    "margin_flow/__init__.py": "29bee1607691db2bd2e55bc39bca56e202fa34afc5b8bde1c00e7ba1bb9aa785",
+    "margin_flow/archive/REPORT_2026-07-29_flow_ablation.md": "85dafddcf553ba4130ba6885ebc8f06ac85ac73bb6e036776350dce75a2a1b66",
+    "margin_flow/archive/REPORT_2026-08-03_margin_feature_engineering.md": "6d85d563e7aeda509054e06fc5921c20f9c2607fb1e365361c030057da6fde31",
+    "margin_flow/archive/REPORT_2026-08-03_state_direction_quantile.md": "786226ae01f27dd0aca947ed89eedf8c8dd51807420fcdaf365f713830e19bcb",
+    "margin_flow/contracts.py": "7dfc37e1aecac96178a44f947540ae515dcc37bbd7e58817c69a8e5a823b9398",
+    "margin_flow/cv.py": "0cfadeec9d18d041a9434192c2755f3ba9a8c8b3d8df82876892892dbc629eea",
+    "margin_flow/data.py": "5ddfe5e97c3053c32924bb465b3cddbfe759c7fdf6c2464ee4560542665527e1",
+    "margin_flow/evaluate.py": "cdb9bacd398c49e562232246eda81603a3cb7de09baea8cc29e147849c5c388f",
+    "margin_flow/flow_residual.py": "d774560612b0d638af1003408bbe2febbcdf6fcdf4570f6c09c472d0e197b1a9",
+    "margin_flow/flow_residual_experiment.py": "f3ce0215f6c17fc096225f14f43274fe37e96676170698f34d7240d8f44b5bbb",
+    "margin_flow/margin_feature_engineering_experiment.py": "61077960983d431c1b84c00f69077aa0c5d16ffd601e2236f3d3b19680aef01a",
+    "margin_flow/market_data.py": "09604b89f8efb35dd5eb77eb8e9d21dc1dc2b7f8d07fc462ffa26ed5401fdbf3",
+    "margin_flow/models.py": "0d8d9da7d61ff611d67170c1785d661e1e648e963f8822f2f0f1137fc93867a4",
+    "margin_flow/pipeline.py": "cc26a40da074a6fc16df77acc3b57862b1807913a701e44a8dcac4ef509c7d47",
+    "margin_flow/report_method_experiment.py": "c3e866ceec0c7276f56cd7bae63b4f71ff2c1bc4289d843b0392b8e7b9c5fd24",
+    "margin_flow/state_direction_quantile_experiment.py": "38aa5eb5c67ef668b350bcd45627c2fad06051d51a8dc4abe40985a1ae9e8db0",
+    "margin_flow/timesfm_engine.py": "eb2c34e466a54e724f0d7d940c2c3ecb502bc1f3a36288ca0d8375c1fd0e5c7c"
+  }
+}

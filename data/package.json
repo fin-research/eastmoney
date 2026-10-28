@@ -1,0 +1,51 @@
+{
+  "name": "eastmoney-data",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.2",
+  "scripts": {
+    "typegen": "wrangler types && node scripts/normalize-generated-types.mjs",
+    "typecheck": "tsc --noEmit",
+    "openapi:generate": "tsx scripts/generate-openapi.ts",
+    "test": "vitest run",
+    "check": "pnpm typegen && pnpm openapi:generate && pnpm typecheck && pnpm test",
+    "deploy:dry": "wrangler deploy --dry-run --outdir dist",
+    "check:startup": "wrangler deploy --dry-run --outfile dist/worker.bundle && wrangler check startup --worker dist/worker.bundle --outfile dist/worker-startup.cpuprofile",
+    "smoke:vpc": "wrangler dev --config wrangler.vpc-smoke.jsonc --port 8790",
+    "benchmark:cpu": "tsx scripts/cpu-budget.ts",
+    "graphql:snapshot": "tsx scripts/query-graphql-market-snapshot.ts",
+    "profile:workerd": "node scripts/profile-workerd.mjs",
+    "test:auth": "vitest run tests/access.test.ts",
+    "test:coverage": "vitest run --coverage",
+    "edb:db:migrate": "node --env-file-if-exists=.env.local scripts/apply-edb-migrations.mjs",
+    "edb:update": "node --env-file-if-exists=.env.local --experimental-strip-types scripts/update-economic-indicators.ts"
+  },
+  "dependencies": {
+    "@hono/mcp": "0.3.2",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "graphql": "16.11.0",
+    "hono": "4.13.5",
+    "hono-rate-limiter": "0.5.3",
+    "zod": "4.4.3",
+    "pg": "^8.23.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  },
+  "devDependencies": {
+    "@types/node": "26.4.0",
+    "@vitest/coverage-v8": "4.1.11",
+    "tsx": "^4.23.12",
+    "typescript": "7.0.2",
+    "vitest": "4.1.11",
+    "wrangler": "4.127.1",
+    "ws": "^8.21.3",
+    "@types/pg": "^8.23.1",
+    "@electric-sql/pglite": "^0.3.12"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "workerd"
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+node_modules/
+.credit-local/
+scripts/__pycache__/
+.dev.vars*
+!.dev.vars.example
+dist/
+.svelte-kit/
+.DS_Store
+*.local
+*.log
+
+.workbuddy/
+.wrangler/
+.env
+.env.*
+!.env.local.example
+
+.auth0-deploy/
+
+node_modules
+
+# Local test evidence
+/coverage/
+/playwright-report/
+/test-results/
+/.local-visual/
+/visual-dist/

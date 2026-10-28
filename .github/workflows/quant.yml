@@ -1,0 +1,81 @@
+name: Regression tests
+
+on:
+  workflow_call:
+permissions:
+  contents: read
+
+concurrency:
+  group: regression-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    defaults:
+      run:
+        working-directory: quant
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          version: '0.10.9'
+          python-version: '3.12'
+          enable-cache: true
+      - name: Install OpenMP runtime
+        run: |
+          if ! brew list --versions libomp >/dev/null; then
+            brew install libomp
+          fi
+      - name: Install locked active dependencies
+        run: uv sync --locked
+      - name: Verify supported architecture
+        run: uv run --locked python -c "import platform; assert platform.machine() == 'arm64'"
+      - name: Run Python behavior tests
+        run: uv run --locked python -m unittest discover -s tests -v
+      - name: Compile active and archived lightweight modules
+        run: uv run --locked python -m compileall -q main.py pipeline.py issue_timing.py issue_report.py backtest.py margin.py query_weekly_research.py application model data choice archive reports research_sources.py tests
+      - name: Check Python lint
+        run: uvx ruff@0.15.9 check .
+      - name: Check Python complexity
+        run: uvx ruff@0.15.9 check . --select C901,PLR0912,PLR0915
+      - name: Verify dependency lock
+        run: uv lock --check
+      - name: Verify repository data and report
+        run: python scripts/check_repository_data_safety.py && python scripts/build_report.py --check
+
+  node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: quant/online
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: '12.8.1'
+      - name: Install locked Worker dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run Node behavior tests
+        run: pnpm test
+      - name: Regenerate Worker bindings
+        run: pnpm typegen
+      - name: Verify generated bindings are current
+        run: git diff --exit-code -- worker-configuration.d.ts
+      - name: Check Worker types
+        run: pnpm typecheck
+      - name: Verify report asset and Worker build
+        run: pnpm deploy:dry

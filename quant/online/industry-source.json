@@ -1,0 +1,12 @@
+{
+  "curveCode": "5781a1ff7651967e0176978d957b7346",
+  "curveName": "中债证券公司债收益率曲线(AAA)",
+  "yieldType": "到期收益率",
+  "unit": "percent",
+  "firstPublicationDate": "2020-12-28",
+  "preLaunchObservations": "retrospective_simulation",
+  "historicalVintageVerified": false,
+  "pointAvailableAt": null,
+  "publicationEvidenceType": "publisher_article_repost",
+  "publicationEvidence": "https://www.sohu.com/a/439052386_221675"
+}

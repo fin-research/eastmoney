@@ -1,0 +1,27 @@
+{
+  "name": "quant-online-trial",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "typegen": "wrangler types && prettier --write worker-configuration.d.ts",
+    "typecheck": "tsc --noEmit",
+    "build:report": "node build-report.mjs",
+    "predeploy:dry": "pnpm build:report",
+    "predeploy": "pnpm build:report",
+    "deploy:dry": "wrangler deploy --dry-run",
+    "deploy": "wrangler deploy",
+    "publish:model": "node publish.mjs",
+    "verify": "node verify.mjs ../outputs/online"
+  },
+  "dependencies": {
+    "pg": "^8.20.0"
+  },
+  "devDependencies": {
+    "prettier": "3.8.1",
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.16.0",
+    "typescript": "^5.9.0",
+    "wrangler": "^4.121.0"
+  }
+}

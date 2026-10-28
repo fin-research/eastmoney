@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "eastmoney-data-vpc-smoke",
+  "main": "smoke/vpc.ts",
+  "compatibility_date": "2026-08-29",
+  "vpc_services": [
+    {
+      "binding": "DM",
+      "service_id": "01a04e23-e6ae-77b2-9634-8652d2afd57c",
+      "remote": true
+    },
+    {
+      "binding": "CHOICE_RPC",
+      "service_id": "01a04e4c-db9a-74e0-92f5-09c19c03adc4",
+      "remote": true
+    },
+    {
+      "binding": "CAMEL",
+      "service_id": "01a06116-3a02-77f3-9405-cea8b5c950c9",
+      "remote": true
+    }
+  ]
+}

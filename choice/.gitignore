@@ -1,0 +1,16 @@
+build/
+.env*
+!.env.example
+vendor/linux-x64/userInfo
+vendor/linux-x64/*.log
+vendor/linux-x64/loginactivator*
+vendor/linux-x64/image
+.DS_Store
+
+# Local test evidence
+/coverage/
+/build-coverage/
+
+# Licensed SDK is supplied only by the private image packaging workflow.
+/vendor/linux-x64/libEMQuantAPIx64.so
+/vendor/linux-x64/ServerList.json.e

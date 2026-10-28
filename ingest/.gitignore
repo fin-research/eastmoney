@@ -1,0 +1,11 @@
+.dev.vars
+.env
+.DS_Store
+.wrangler/
+node_modules/
+var/
+__pycache__/
+*.pyc
+
+# Local test evidence
+/coverage/

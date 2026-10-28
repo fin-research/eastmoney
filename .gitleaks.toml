@@ -1,0 +1,13 @@
+[extend]
+useDefault = true
+
+# These fields are public OAuth identifiers and checksums, not credentials.
+[[allowlists]]
+description = "Public Auth0 SPA client identifier"
+regexTarget = "match"
+regexes = ['''AUTH0_CLIENT_ID["']?\s*[:=]\s*["']16vMxoYpr5AdPRiW1PkwIiHuRWszii6m["']''']
+
+[[allowlists]]
+description = "Reviewed Quant content checksums"
+regexTarget = "match"
+regexes = ['''(?:training_keys_sha256|retained_34489_key_subset_sha256|data_api\.py|machine_token\.py)["']?\s*:\s*["'][a-f0-9]{64}["']''']

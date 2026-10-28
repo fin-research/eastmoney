@@ -1,0 +1,45 @@
+*.pdf
+*.xls*
+*.doc*
+*.parquet
+*.feather
+*.pkl
+*.pickle
+*.joblib
+*.pem
+*.key
+*.p12
+*.pfx
+__pycache__
+*.ipynb
+*.local.*
+.DS_Store
+.workbuddy
+.claude
+.env*
+!.env.example
+.Codex/
+outputs/
+report.md
+!archive/margin_flow/REPORT.md
+data/*业务数据*
+data/*资金计划*
+data/*主体利差*
+**/company_market_bridge.csv
+data/gdp_real_yoy.csv*
+data/company_report_gap.csv*
+data/issuance_pricing_metadata.csv*
+
+# Local test evidence
+/coverage/
+
+# Quant online trial
+node_modules/
+.wrangler/
+.dev.vars*
+online/dist/
+online/public/
+
+# Local mutable research inputs and evidence
+/data/*.csv
+/local/

@@ -1,0 +1,50 @@
+import {test,expect} from '@playwright/test';
+import {mockResources} from './fixtures.mjs';
+import {projectAudit,projectOptions} from './project-fixtures.mjs';
+
+test('desktop projects expose selected timeline views and consistent edit dialogs',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='desktop','Desktop UI audit');
+  await mockResources(page);
+  await page.route('**/financing/projects/options',route=>route.fulfill({json:projectOptions}));
+  await page.setViewportSize({width:1280,height:900});
+  await page.goto('/financing/projects');
+  await expect(page.getByRole('button',{name:'月',exact:true})).toHaveAttribute('aria-pressed','true');
+  await page.getByRole('button',{name:'季',exact:true}).click();
+  await expect(page.getByRole('button',{name:'季',exact:true})).toHaveAttribute('aria-pressed','true');
+  await page.getByRole('button',{name:`展开 ${projectAudit.name}`,exact:true}).click();
+  await expect(page.getByText('2026-09-01 至 2026-09-08',{exact:true})).toBeVisible();
+  await expect(page.locator('.tr-workspace')).toHaveScreenshot('projects-expanded-desktop.png');
+  const create=page.getByRole('button',{name:'新建项目',exact:true});
+  await create.click();
+  const newDialog=page.getByRole('dialog',{name:'新建融资项目',exact:true});
+  await newDialog.getByRole('textbox',{name:'项目名称',exact:true}).fill('视觉检查草稿');
+  await newDialog.getByRole('combobox',{name:'融资品种 / SOP',exact:true}).selectOption('sop-company');
+  await expect(newDialog).toHaveScreenshot('project-create-desktop.png');
+  const createWidth=(await newDialog.boundingBox()).width;
+  await page.keyboard.press('Escape');
+  await expect(create).toBeFocused();
+  await page.getByRole('button',{name:`编辑 ${projectAudit.name}`,exact:true}).click();
+  const edit=page.getByRole('dialog',{name:'修改融资项目',exact:true});
+  await expect(edit.getByRole('combobox',{name:'负责人',exact:true})).toBeVisible();
+  await expect(edit).toHaveScreenshot('project-edit-desktop.png');
+  expect(Math.abs((await edit.boundingBox()).width-createWidth)).toBeLessThanOrEqual(1);
+});
+
+test('desktop project detail displays period endpoints and unscheduled tasks',async({page},testInfo)=>{
+  test.skip(testInfo.project.name!=='desktop','Desktop UI audit');
+  await mockResources(page);
+  await page.setViewportSize({width:1280,height:900});
+  await page.goto('/financing/projects/project-1');
+  await expect(page.getByRole('textbox',{name:'发行材料准备与内部审核启动时点',exact:true})).toHaveValue('2026-09-01');
+  await expect(page.getByRole('textbox',{name:'存续期材料归档计划时点',exact:true})).toHaveValue('');
+  await expect(page.locator('.tr-workspace')).toHaveScreenshot('project-detail-desktop.png');
+  await page.getByRole('combobox',{name:'节点时间配置',exact:true}).selectOption('period');
+  await expect(page.getByRole('textbox',{name:'节点启动时点',exact:true})).toBeVisible();
+  await expect(page.getByRole('textbox',{name:'节点完成时点',exact:true})).toBeVisible();
+  await expect(page.locator('form[action="?/addTask"]')).toHaveScreenshot('project-add-period-desktop.png');
+  const members=page.locator('.member-list');
+  const rows=await members.locator('li').evaluateAll(items=>items.map(item=>{const r=item.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};}));
+  expect(rows[1].y).toBeGreaterThanOrEqual(rows[0].y+rows[0].height-1);
+  expect(Math.abs(rows[0].width-rows[1].width)).toBeLessThanOrEqual(1);
+  await expect(members).toHaveScreenshot('project-members-desktop.png');
+});

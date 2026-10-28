@@ -1,0 +1,18 @@
+{
+  "version": "verified-private-exclusions-v1",
+  "scope": "Exclude officially verified private offerings; unclassified bonds are not certified public",
+  "entries": [
+    {
+      "codes": ["114895.SZ"],
+      "reason": "non_public_offering",
+      "source_url": "https://disc.static.szse.cn/download/disc/disk03/finalpage/2023-03-18/e8ebdef2-a820-4253-b97c-02328567a11b.PDF",
+      "source_page": 56
+    },
+    {
+      "codes": ["133420.SZ", "133517.SZ", "133545.SZ", "133660.SZ", "133706.SZ"],
+      "reason": "non_public_offering",
+      "source_url": "https://disc.static.szse.cn/disc/disk03/finalpage/2024-03-14/ca23f105-048b-475e-9b26-4e0a10d7d137.PDF",
+      "source_page": 62
+    }
+  ]
+}
