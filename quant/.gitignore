@@ -25,6 +25,7 @@ report.md
 data/*业务数据*
 data/*资金计划*
 data/*主体利差*
+!data/*.py
 **/company_market_bridge.csv
 data/gdp_real_yoy.csv*
 data/company_report_gap.csv*

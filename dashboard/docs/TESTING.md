@@ -38,16 +38,16 @@ pnpm test:visual:report
 
 有意视觉变化在本地审阅、导入并提交，再推送入队。默认分支合并组在相同镜像中严格比较全部已提交的 `linux-ci` PNG。远端候选截图工作流已移除。
 
-禁止为消除差异提高容差、屏蔽业务区域或盲目更新。旧 macOS PNG 已清理。日常只维护 Linux ARM64 镜像的 `linux-ci` 基线。合并组和手动重跑 `tests.yml` 均永不更新截图，`Dashboard CI` 不接受跳过比较的输入。镜像、字体或浏览器升级时统一重建本地基线并在 CI 比较。CI 保存覆盖率、HTML 报告和失败 trace 等证据 14 天。
+禁止为消除差异提高容差、屏蔽业务区域或盲目更新。旧 macOS PNG 已清理。日常只维护 Linux ARM64 镜像的 `linux-ci` 基线。合并组和手动重跑 根 `ci.yml` 均永不更新截图，`Dashboard CI` 不接受跳过比较的输入。镜像、字体或浏览器升级时统一重建本地基线并在 CI 比较。CI 保存覆盖率、HTML 报告和失败 trace 等证据 14 天。
 
 ## CI 等待与收尾（2026-09-20）
 
-每个仓库、每次交付只由一个新子代理负责推送、CI/合并和部署核验，主代理不并行查询同一运行。派发时给出任务工作树、允许提交的文件、目标 SHA、PR 与所需验收阶段。CI 失败后返回具体失败证据，由主代理修改，再派新子代理。本地截图待审时先完成审阅和导入，不提前启动必然因缺失基线失败的普通验收。
+每次交付由一名代理负责CI等待和取证，其他代理不并行查询同一运行。按AGENTS判断是否需要新的交付子代理。派发时给出普通checkout、允许提交的文件、目标 SHA、PR 与所需验收阶段。CI 失败后返回具体失败证据，由主代理修改，再派新子代理。本地截图待审时先完成审阅和导入，不提前启动必然因缺失基线失败的普通验收。
 
 发现当前运行 ID 后，用仓库内命令等待一次。SHA 使用 GitHub 该运行的完整 head SHA，event 必须符合所需阶段：
 
 ```sh
-node scripts/wait-ci.mjs fin-research/dashboard <run-id> <full-run-head-sha> merge_group
+node scripts/wait-ci.mjs fin-research/eastmoney <run-id> <full-run-head-sha> merge_group
 ```
 
 命令先核对仓库、run ID、SHA、event。对进行中的运行只启动一个 `gh run watch --interval 30`，中间重复进度不进入代理上下文，结束后只读取一次终态证据。默认最多等待20分钟（可追加1–1800秒），两次元数据请求各限15秒。不启动或重跑CI。
