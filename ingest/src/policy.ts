@@ -7,6 +7,8 @@ import {
   type Fetcher,
 } from "./article";
 import {
+  AI_GATEWAY_MODEL,
+  AI_GATEWAY_REASONING_EFFORT_BY_TASK,
   generateAiGatewayObject,
   type AiGatewayCredentials,
 } from "./ai-gateway";
@@ -15,7 +17,7 @@ export const POLICY_PROMPT_VERSION = "policy-aggregation-v4";
 export const POLICY_BATCH_SIZE = 40;
 export const POLICY_DETAIL_CONCURRENCY = 5;
 export const POLICY_ASSOCIATION_CONCURRENCY = 5;
-export const POLICY_ASSOCIATION_PROMPT_VERSION = "article-association-v3";
+export const POLICY_ASSOCIATION_PROMPT_VERSION = "article-association-v4";
 const POLICY_CLAIM_STALE_MS = 2 * 60 * 60 * 1000;
 const POLICY_LOOKBACK_DAYS = 7;
 
@@ -215,6 +217,14 @@ interface PolicyArticleMatch {
   articleId: string;
 }
 
+interface AssociationPair extends PolicyArticleMatch {
+  inputHash: string;
+}
+
+interface AssociationDecision extends AssociationPair {
+  related: boolean;
+}
+
 interface PendingPolicyNewsRow {
   sentiment_id: string;
   news_id: string | null;
@@ -248,6 +258,8 @@ const AGGREGATION_INSTRUCTIONS = `你是面向专业投资者的中国政策研�
 必须覆盖全部待处理 newsIds，且每个 newsId 只能出现一次。严格按 JSON Schema 输出，不输出 Markdown、解释过程或额外字段。`;
 
 const ASSOCIATION_INSTRUCTIONS = `你是专业金融研究资料管理员。输入包含已经结构化的政策卡片和研报证据卡片。请逐一判断输入中的候选对象是否存在直接研究关系。
+输出 decisions 数组，每个候选恰好出现一次，包含 candidateId 和 related。一篇研报匹配多个政策时 candidateId 为政策 ID；一个政策匹配多篇研报时 candidateId 为研报 ID。
+每对政策与研报独立判断，不因同批其他候选的存在或排序改变结论。
 
 可以关联的情形：研报明确解读该政策文件、同一组配套措施、政策传导或对资产定价与融资的直接影响。仅仅同属房地产、财政、货币等宽泛主题，或只是背景中顺带提及，不得关联。拿不准时不关联。`;
 
@@ -368,8 +380,9 @@ export async function associateArticleWithPolicies(
     credentialsFromEnv(env),
     article,
     policies,
+    fetch,
+    repository,
   );
-  await repository.saveAutomaticMatches(matches, new Date().toISOString());
   return {
     evaluatedPolicies: policies.length,
     evaluatedArticles: 1,
@@ -397,9 +410,10 @@ export async function associatePoliciesWithArticles(
       credentialsFromEnv(env),
       policy,
       articles,
+      fetch,
+      repository,
     ),
   )).flat();
-  await repository.saveAutomaticMatches(matches, new Date().toISOString());
   return {
     evaluatedPolicies: policies.length,
     evaluatedArticles: articles.length,
@@ -773,25 +787,61 @@ export class D1PolicyAssociationRepository {
     return await this.attachKeywords(result.results);
   }
 
-  async saveAutomaticMatches(matches: PolicyArticleMatch[], savedAt: string): Promise<void> {
-    if (matches.length === 0) return;
-    const normalizedSavedAt = requireIsoDateTime(savedAt, "Policy association savedAt");
-    const statement = this.database.prepare(`
+  async loadDecisions(pairs: AssociationPair[]): Promise<Map<string, boolean>> {
+    const decisions = new Map<string, boolean>();
+    // Two bindings per pair; keep each query below D1's binding limit.
+    for (let start = 0; start < pairs.length; start += 40) {
+      const batch = pairs.slice(start, start + 40);
+      const rows = await this.database.prepare(`
+        WITH candidates(policy_id, article_id) AS (
+          VALUES ${batch.map(() => "(?, ?)").join(", ")}
+        )
+        SELECT c.policy_id, c.article_id, d.input_hash, d.related,
+               pa.association_method, pa.relation_status
+        FROM candidates c
+        LEFT JOIN policy_article_decision d
+          ON d.policy_id = c.policy_id AND d.article_id = c.article_id
+        LEFT JOIN policy_article pa
+          ON pa.policy_id = c.policy_id AND pa.article_id = c.article_id
+      `).bind(...batch.flatMap(pair => [pair.policyId, pair.articleId])).all<{
+        policy_id: string; article_id: string; input_hash: string | null;
+        related: number | null; association_method: string | null;
+        relation_status: string | null;
+      }>();
+      for (let index = 0; index < batch.length; index++) {
+        const pair = batch[index]!;
+        const row = rows.results.find(row => row.policy_id === pair.policyId && row.article_id === pair.articleId)!;
+        if (row.association_method === "manual") {
+          decisions.set(pair.inputHash, row.relation_status === "linked");
+        } else if (row.input_hash === pair.inputHash) {
+          decisions.set(pair.inputHash, row.related === 1);
+        }
+      }
+    }
+    return decisions;
+  }
+
+  async saveDecisions(decisions: AssociationDecision[], savedAt: string): Promise<void> {
+    if (decisions.length === 0) return;
+    const timestamp = requireIsoDateTime(savedAt, "Policy association savedAt");
+    const cache = this.database.prepare(`
+      INSERT INTO policy_article_decision (policy_id, article_id, input_hash, related, updated_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(policy_id, article_id) DO UPDATE SET
+        input_hash = excluded.input_hash, related = excluded.related, updated_at = excluded.updated_at
+    `);
+    const link = this.database.prepare(`
       INSERT INTO policy_article (
-        policy_id, article_id, relation_status, association_method,
-        created_at, updated_at
+        policy_id, article_id, relation_status, association_method, created_at, updated_at
       ) VALUES (?, ?, 'linked', 'ai', ?, ?)
       ON CONFLICT(policy_id, article_id) DO UPDATE SET
-        relation_status = 'linked',
-        updated_at = excluded.updated_at
+        relation_status = 'linked', updated_at = excluded.updated_at
       WHERE policy_article.association_method = 'ai'
     `);
-    await this.database.batch(matches.map((match) => statement.bind(
-      match.policyId,
-      match.articleId,
-      normalizedSavedAt,
-      normalizedSavedAt,
-    )));
+    await this.database.batch(decisions.flatMap(decision => [
+      cache.bind(decision.policyId, decision.articleId, decision.inputHash, Number(decision.related), timestamp),
+      ...(decision.related ? [link.bind(decision.policyId, decision.articleId, timestamp, timestamp)] : []),
+    ]));
   }
 
   private async queryPolicies(where: string, bindings: string[]): Promise<ExistingPolicy[]> {
@@ -987,34 +1037,55 @@ function policyAggregationSchema(
   });
 }
 
+function associationPolicy(policy: ExistingPolicy) {
+  // News titles contain document evidence; collection timestamps do not.
+  return {
+    id: policy.id, title: policy.title, summary: policy.summary,
+    category: policy.category, importance: policy.importance,
+    departments: [...policy.departments].sort(), policyDate: policy.policyDate,
+    newsTitles: [...policy.newsTitles].sort(),
+  };
+}
+
+function associationArticle(article: PolicyArticleEvidence): PolicyArticleEvidence {
+  return {
+    id: article.id, title: article.title, summary: article.summary,
+    author: article.author, publishedAt: article.publishedAt, keywords: article.keywords,
+  };
+}
+
+async function associationPair(policy: ExistingPolicy, article: PolicyArticleEvidence): Promise<AssociationPair> {
+  const input = JSON.stringify({
+    version: POLICY_ASSOCIATION_PROMPT_VERSION, model: AI_GATEWAY_MODEL,
+    effort: AI_GATEWAY_REASONING_EFFORT_BY_TASK.analysis,
+    policy: associationPolicy(policy), article: associationArticle(article),
+  });
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return {
+    policyId: policy.id, articleId: article.id,
+    inputHash: Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join(""),
+  };
+}
+
+function inAssociationWindow(policy: ExistingPolicy, article: PolicyArticleEvidence): boolean {
+  const articleDate = isoDatePart(article.publishedAt);
+  return articleDate >= offsetIsoDate(policy.policyDate, -1)
+    && articleDate <= offsetIsoDate(policy.policyDate, 14);
+}
+
 export async function generateArticlePolicyMatches(
   credentials: AiGatewayCredentials,
   article: PolicyArticleEvidence,
   policies: ExistingPolicy[],
   fetcher: typeof fetch = fetch,
+  repository?: D1PolicyAssociationRepository,
 ): Promise<PolicyArticleMatch[]> {
-  const articleDate = isoDatePart(article.publishedAt);
-  const candidatePolicies = policies.filter(
-    (policy) => articleDate >= offsetIsoDate(policy.policyDate, -1)
-      && articleDate <= offsetIsoDate(policy.policyDate, 14),
-  );
-  if (candidatePolicies.length === 0) return [];
-  const decisions = await generateAssociationBatch(
-    credentials,
-    candidatePolicies.map((policy) => policy.id),
-    { article, policies: candidatePolicies },
-    "article_policy_associations",
-    {
-      policy_count: candidatePolicies.length,
-      article_count: 1,
-      association_direction: "article-to-policies",
-      tags: "policy-tracking,article-association",
-    },
-    fetcher,
-  );
-  return candidatePolicies.flatMap((policy) => decisions[policy.id]?.related
-    ? [{ policyId: policy.id, articleId: article.id }]
-    : []);
+  const candidates = policies.filter(policy => inAssociationWindow(policy, article));
+  const pairs = await Promise.all(candidates.map(policy => associationPair(policy, article)));
+  return await evaluateAssociationPairs(credentials, pairs, "policyId", pending => ({
+    article: associationArticle(article),
+    policies: candidates.filter(policy => pending.some(pair => pair.policyId === policy.id)).map(associationPolicy),
+  }), "article-to-policies", fetcher, repository);
 }
 
 export async function generatePolicyArticleMatches(
@@ -1022,67 +1093,80 @@ export async function generatePolicyArticleMatches(
   policy: ExistingPolicy,
   articles: PolicyArticleEvidence[],
   fetcher: typeof fetch = fetch,
+  repository?: D1PolicyAssociationRepository,
 ): Promise<PolicyArticleMatch[]> {
-  const candidateArticles = articles.filter((article) => {
-    const articleDate = isoDatePart(article.publishedAt);
-    return articleDate >= offsetIsoDate(policy.policyDate, -1)
-      && articleDate <= offsetIsoDate(policy.policyDate, 14);
-  });
-  if (candidateArticles.length === 0) return [];
-  const decisions = await generateAssociationBatch(
-    credentials,
-    candidateArticles.map((article) => article.id),
-    { policy, articles: candidateArticles },
-    "policy_article_associations",
-    {
-      policy_count: 1,
-      article_count: candidateArticles.length,
-      association_direction: "policy-to-articles",
-      tags: "policy-tracking,article-association",
-    },
-    fetcher,
-  );
-  return candidateArticles.flatMap((article) => decisions[article.id]?.related
-    ? [{ policyId: policy.id, articleId: article.id }]
-    : []);
+  const candidates = articles.filter(article => inAssociationWindow(policy, article));
+  const pairs = await Promise.all(candidates.map(article => associationPair(policy, article)));
+  return await evaluateAssociationPairs(credentials, pairs, "articleId", pending => ({
+    policy: associationPolicy(policy),
+    articles: candidates.filter(article => pending.some(pair => pair.articleId === article.id)).map(associationArticle),
+  }), "policy-to-articles", fetcher, repository);
 }
 
-async function generateAssociationBatch(
+async function evaluateAssociationPairs(
   credentials: AiGatewayCredentials,
-  candidateIds: string[],
-  input: object,
-  schemaName: string,
-  metadata: Record<string, string | number | boolean>,
+  pairs: AssociationPair[],
+  candidateKey: "policyId" | "articleId",
+  input: (pending: AssociationPair[]) => object,
+  direction: "article-to-policies" | "policy-to-articles",
   fetcher: typeof fetch,
-): Promise<Record<string, { related: boolean }>> {
-  return await generateAiGatewayObject(
-    credentials,
-    [
-      { role: "system", content: ASSOCIATION_INSTRUCTIONS },
-      { role: "user", content: JSON.stringify(input) },
-    ],
-    associationBatchSchema(candidateIds),
-    schemaName,
-    {
-      promptCacheKey: `policy-tracking:${POLICY_ASSOCIATION_PROMPT_VERSION}`,
-      requestTimeoutMs: 300_000,
-      taskType: "analysis",
-      metadata,
-    },
-    fetcher,
-  );
+  repository?: D1PolicyAssociationRepository,
+): Promise<PolicyArticleMatch[]> {
+  if (pairs.length === 0) return [];
+  const cached = repository ? await repository.loadDecisions(pairs) : new Map<string, boolean>();
+  const pending = pairs.filter(pair => !cached.has(pair.inputHash));
+  if (pending.length > 0) {
+    const result = await generateAiGatewayObject(
+      credentials,
+      [
+        { role: "system", content: ASSOCIATION_INSTRUCTIONS },
+        { role: "user", content: JSON.stringify(input(pending)) },
+      ],
+      associationBatchSchema(pending.map(pair => pair[candidateKey])),
+      "policy_article_associations",
+      {
+        promptCacheKey: `policy-tracking:${POLICY_ASSOCIATION_PROMPT_VERSION}`,
+        requestTimeoutMs: 300_000,
+        taskType: "analysis",
+        metadata: {
+          policy_count: new Set(pending.map(pair => pair.policyId)).size,
+          article_count: new Set(pending.map(pair => pair.articleId)).size,
+          association_direction: direction,
+          prompt_version: POLICY_ASSOCIATION_PROMPT_VERSION,
+          cached_pair_count: pairs.length - pending.length,
+          tags: "policy-tracking,article-association",
+        },
+      },
+      fetcher,
+    );
+    const decisions = pending.map(pair => ({
+      ...pair, related: result.decisions.find(decision => decision.candidateId === pair[candidateKey])!.related,
+    }));
+    // Each successful policy batch is committed before a sibling batch can fail.
+    if (repository) await repository.saveDecisions(decisions, new Date().toISOString());
+    for (const decision of decisions) cached.set(decision.inputHash, decision.related);
+  }
+  return pairs.filter(pair => cached.get(pair.inputHash)).map(({ policyId, articleId }) => ({ policyId, articleId }));
 }
 
 function associationBatchSchema(candidateIds: string[]) {
-  if (candidateIds.length === 0) {
-    throw new Error("Policy association requires at least one candidate");
-  }
-  const decisionSchema = z.object({ related: z.boolean() }).strict();
-  const shape: Record<string, typeof decisionSchema> = {};
-  for (const candidateId of candidateIds) {
-    shape[candidateId] = decisionSchema;
-  }
-  return z.object(shape).strict();
+  const candidates = new Set(candidateIds);
+  return z.object({
+    decisions: z.array(z.object({
+      candidateId: z.string(), related: z.boolean(),
+    }).strict()),
+  }).strict().superRefine((value, context) => {
+    const seen = new Set<string>();
+    for (const [index, decision] of value.decisions.entries()) {
+      if (!candidates.has(decision.candidateId) || seen.has(decision.candidateId)) {
+        context.addIssue({ code: "custom", path: ["decisions", index, "candidateId"], message: "unknown or duplicate candidate" });
+      }
+      seen.add(decision.candidateId);
+    }
+    if (candidateIds.some(id => !seen.has(id))) {
+      context.addIssue({ code: "custom", path: ["decisions"], message: "every candidate must be evaluated" });
+    }
+  });
 }
 
 function credentialsFromEnv(

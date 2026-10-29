@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ArticleMetadata } from "../src/article";
 import {
   D1PolicyNewsRepository,
+  D1PolicyAssociationRepository,
   generateArticlePolicyMatches,
   generatePolicyAggregation,
   generatePolicyArticleMatches,
@@ -515,6 +516,21 @@ describe("policy package aggregation", () => {
   });
 });
 
+const associationRequestSchema = {
+  type: "object",
+  properties: {
+    decisions: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { candidateId: { type: "string" }, related: { type: "boolean" } },
+        required: ["candidateId", "related"], additionalProperties: false,
+      },
+    },
+  },
+  required: ["decisions"], additionalProperties: false,
+};
+
 describe("policy article association", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -526,8 +542,7 @@ describe("policy article association", () => {
     const fetcher: typeof fetch = async (_url, init) => {
       requests.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
       return responsesOutput({
-        "policy-1": { related: true },
-        "policy-2": { related: false },
+        decisions: [{ candidateId: "policy-1", related: true }, { candidateId: "policy-2", related: false }],
       });
     };
     const policies = [
@@ -565,25 +580,12 @@ describe("policy article association", () => {
       policies: [{ id: "policy-1" }, { id: "policy-2" }],
     });
     const format = (request.text as { format: { schema: Record<string, unknown> } }).format;
-    expect(format.schema).toMatchObject({
-      type: "object",
-      properties: {
-        "policy-1": {
-          type: "object",
-          properties: { related: { type: "boolean" } },
-          required: ["related"],
-          additionalProperties: false,
-        },
-        "policy-2": {
-          type: "object",
-          properties: { related: { type: "boolean" } },
-          required: ["related"],
-          additionalProperties: false,
-        },
-      },
-      required: ["policy-1", "policy-2"],
-      additionalProperties: false,
-    });
+    expect(format.schema).toEqual(associationRequestSchema);
+    const evidence = JSON.parse(input[0]!.content);
+    expect(evidence.policies[0]).not.toHaveProperty("firstNewsAt");
+    expect(evidence.policies[0]).not.toHaveProperty("lastNewsAt");
+    expect(evidence.policies[0]).not.toHaveProperty("mergeProtected");
+    expect(evidence.policies[0].newsTitles).toEqual(policies[0]!.newsTitles);
   });
 
   it("matches one policy against all candidate articles in one structured call", async () => {
@@ -592,8 +594,7 @@ describe("policy article association", () => {
     const fetcher: typeof fetch = async (_url, init) => {
       requests.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
       return responsesOutput({
-        "article-1": { related: true },
-        "article-2": { related: false },
+        decisions: [{ candidateId: "article-1", related: true }, { candidateId: "article-2", related: false }],
       });
     };
     const articles: PolicyArticleEvidence[] = [
@@ -631,25 +632,7 @@ describe("policy article association", () => {
       articles: [{ id: "article-1" }, { id: "article-2" }],
     });
     const format = (request.text as { format: { schema: Record<string, unknown> } }).format;
-    expect(format.schema).toMatchObject({
-      type: "object",
-      properties: {
-        "article-1": {
-          type: "object",
-          properties: { related: { type: "boolean" } },
-          required: ["related"],
-          additionalProperties: false,
-        },
-        "article-2": {
-          type: "object",
-          properties: { related: { type: "boolean" } },
-          required: ["related"],
-          additionalProperties: false,
-        },
-      },
-      required: ["article-1", "article-2"],
-      additionalProperties: false,
-    });
+    expect(format.schema).toEqual(associationRequestSchema);
   });
 });
 
