@@ -18,11 +18,12 @@
 
 ## 读取与页面
 
-- `GET /api/market-report?date=YYYY-MM-DD` 只读取并校验指定日期的 R2 定稿，512 KiB 上限不变。缺失返回 404 `REPORT_NOT_FINALIZED`，损坏返回 503。
-- 不带 date 时，所有年度统一按周一至周五选日，不再依赖 Choice、DATA 或按年度维护的休市日历。上海时间 17:00 前选严格早于当天的最近工作日。17:00 起工作日选当天，周末仍选周五。法定节假日若落在周一至周五也按工作日处理。所选日期缺少定稿返回 404，不改读更早报告。
+- `GET /api/market-report?date=YYYY-MM-DD` 只从 R2 bucket `market-briefing` 读取并校验指定日期的定稿，512 KiB 上限不变。缺失返回 404 `REPORT_NOT_FINALIZED`，损坏返回 503。人工 PUT、主动生成复用行情和 Workflow 归档都使用同一 bucket。
+- Dashboard 的无 date API 优先向 DATA 交易日服务查询上海时间 17:00 规则对应的日期，失败时使用本地 `knownMarketClosure`；所选日期缺少定稿返回 404，不改读更早报告。静态站无法调用该服务，使用同一休市表做本地日期回退，线上交易日服务若返回不同日期时，两个入口可能暂时不同。
 - 前端打开、换日期和刷新只 GET 定稿，绝不请求原始行情、不触发 AI、不回退现场生成。数据不存在显示整页错误和重试操作。文字版与视觉版消费同一已归档规范数据，今日聚焦支持有写权限用户直接编辑，无编辑或保存控件。文字版同步展示当前聚焦。AI 仅由用户点击统一星标生成按钮触发，失败保留原稿。
 - 日期、视图切换、刷新、导出图片和复制保留。header 导出冻结当前日期、报告及聚焦，并发下载 3 倍像素 PNG 与 PUT 报告 JSON 到原 R2 定稿 key。只读用户仅下载。两个结果独立反馈，任何一项失败不取消另一项。导出、生成期间暂停日期和标签切换、刷新及编辑。控件具有可辨识的主次、选中、hover、active、键盘 focus 与 disabled 状态，继续使用既有报告尺寸与品牌令牌。
 - `PUT /api/market-report` 与 `POST /api/market-briefing` 分别服务人工导出归档及主动重新生成，沿用原写权限。主动生成由统一 AI 客户端携带 `Accept: text/event-stream`，接收纯文本 `progress` summary 与完整 JSON `result`，进度只显示在全局 AI 面板。旧 `/api/market-resources/*` 继续仅为已有客户端的公开只读兼容通道。
+- prototype-lab 静态版复用同一市场点评视觉和文字组件，打包为 SPA，固定入口 `https://aiwork.dfcfs.cn/prototype-lab/market-briefing--i2a0/`，日期页为 `/{YYYY-MM-DD}`。首页按上海时间 17:00 和本地已知休市日计算默认日期；它使用 `knownMarketClosure`，与服务器优先查询 DATA 实时交易日历的结果可能不同。报告正文由浏览器以 `credentials: omit`、`cache: no-store` 直接读取 `https://market-briefing-data.hasbai.xyz/market-briefing/{YYYY-MM-DD}.json`，不经过 Gateway 或 Dashboard 报告 API。该站只读。
 
 ## 业务规则
 

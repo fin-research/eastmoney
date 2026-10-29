@@ -152,8 +152,8 @@ export async function generateMarketBriefing(
 }
 
 async function readBriefingReport(env: Env, reportDate: string) {
-  if (!env.EASTMONEY) return undefined;
-  try { return await readMarketReport(env.EASTMONEY, reportDate); }
+  if (!env.MARKET_BRIEFING_R2) return undefined;
+  try { return await readMarketReport(env.MARKET_BRIEFING_R2, reportDate); }
   catch (error) {
     if (error instanceof MarketReportStoreError && error.code === "REPORT_NOT_FINALIZED") return undefined;
     throw error;

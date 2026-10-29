@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { fetchReport, saveMarketReport } from '../src/api.ts';
+import { fetchReport, fetchStaticReport, saveMarketReport } from '../src/api.ts';
 import { snapshot } from './fixtures/market-resources.mjs';
 
 for (const [date, now] of [['2026-08-25', '2026-08-25'], ['2026-08-25', '2026-09-16'], ['', '2026-09-16']]) {
@@ -13,6 +13,15 @@ for (const [date, now] of [['2026-08-25', '2026-08-25'], ['2026-08-25', '2026-09
     assert.equal(globalThis.fetch.mock.calls[0].arguments[1].method, 'GET');
   });
 }
+test('prototype-lab 静态报告直读公开 R2 对象且不发送凭证、不缓存', async t => {
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ ...snapshot(), focus_text: '公开定稿', finalized_at: '2026-08-25T09:00:00Z' }));
+  const { report } = await fetchStaticReport('2026-08-25');
+  const [url, init] = globalThis.fetch.mock.calls[0].arguments;
+  assert.equal(url, 'https://market-briefing-data.hasbai.xyz/market-briefing/2026-08-25.json');
+  assert.equal(init.credentials, 'omit');
+  assert.equal(init.cache, 'no-store');
+  assert.equal(report.focus_text, '公开定稿');
+});
 for (const status of [404, 503]) {
   test(`缺失或损坏报告${status}明确失败，不回退Data`, async t => {
     t.mock.method(globalThis, 'fetch', async () => Response.json({ detail: '尚无市场点评定稿', error: {code:'REPORT_NOT_FINALIZED'} }, { status }));

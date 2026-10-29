@@ -1,4 +1,5 @@
 const SHANGHAI_TIME_ZONE = "Asia/Shanghai";
+import { knownMarketClosure } from "./market-calendar.ts";
 
 export function currentReportDate(now = new Date()): string {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -25,6 +26,13 @@ export function isBeforeReportCutoff(now = new Date()): boolean {
   return Number(new Intl.DateTimeFormat("en-US", {
     timeZone: SHANGHAI_TIME_ZONE, hour: "2-digit", hourCycle: "h23",
   }).format(now)) < 17;
+}
+
+export function defaultWeekdayReportDate(now = new Date()): string {
+  const cursor = new Date(`${currentReportDate(now)}T00:00:00Z`);
+  if (isBeforeReportCutoff(now)) cursor.setUTCDate(cursor.getUTCDate() - 1);
+  while (knownMarketClosure(cursor.toISOString().slice(0, 10)) === true) cursor.setUTCDate(cursor.getUTCDate() - 1);
+  return cursor.toISOString().slice(0, 10);
 }
 
 export function previousReportTradingDate(tradingDates: string[], today: string): string {

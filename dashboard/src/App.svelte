@@ -5,7 +5,7 @@
   import PageHeader from '$lib/workbench/PageHeader.svelte';
   import { onDestroy, onMount, tick } from "svelte";
 
-  import { fetchReport, generateMarketBriefing, saveMarketReport } from "./api";
+  import { fetchReport, fetchStaticReport, generateMarketBriefing, saveMarketReport } from "./api";
   import { permissionVisibility } from "$lib/permission-visibility";
   import FocusEditor from "./components/FocusEditor.svelte";
   import ChartHost from "./components/ChartHost.svelte";
@@ -20,6 +20,8 @@
   import TextReport from "./components/TextReport.svelte";
   import { exportReportImage } from "./export";
   import { chineseDateParts } from "./formatters";
+  import { defaultWeekdayReportDate } from "./report-date";
+  import { PROTOTYPE_LAB_ROOT } from "./prototype-lab/constants";
   import { globalMessages } from "./lib/global-messages";
   import { isAiRequestCancelled, useAiClient } from "./lib/ai-client.svelte";
   import { deriveReport, type ReportDerived } from "./report-view";
@@ -42,6 +44,7 @@
     primarySummaryItems,
   } from "./view-model";
 
+  let { staticMode = false }: { staticMode?: boolean } = $props();
   type ChartRenderers = typeof import("./charts");
   const EMPTY_DERIVED: ReportDerived = {
     omoHistory: [],
@@ -93,7 +96,9 @@
   onMount(async () => {
     activeView = reportViewFromPathname(window.location.pathname);
     try {
-      selectedDate = new URLSearchParams(window.location.search).get("date") ?? "";
+      const pathDate = staticMode ? window.location.pathname.match(/\/(\d{4}-\d{2}-\d{2})\/?$/)?.[1] : undefined;
+      selectedDate = pathDate ?? new URLSearchParams(window.location.search).get("date") ?? (staticMode ? defaultWeekdayReportDate() : "");
+      if (staticMode) activeView = new URLSearchParams(window.location.search).get("view") === "text" ? "text" : "visual";
       await loadReport(false);
     } catch (error) {
       showError(error);
@@ -118,13 +123,18 @@
     resourceIssues = [];
     try {
       const [loaded, chartModule] = await Promise.all([
-        fetchReport(requestedDate, refresh, request.signal),
+        staticMode
+          ? fetchStaticReport(requestedDate, request.signal)
+          : fetchReport(requestedDate, refresh, request.signal),
         import("./charts"),
       ]);
       if (request.signal.aborted || selectedDate !== requestedDate) return;
       const report = loaded.report;
       data = report;
       selectedDate = report.report_date;
+      if (staticMode && !window.location.pathname.endsWith(`/${report.report_date}`)) {
+        window.history.replaceState(null, "", `${PROTOTYPE_LAB_ROOT}${report.report_date}${window.location.search}`);
+      }
       resourceIssues = loaded.resourceIssues;
       focusText = report.focus_text;
       charts = chartModule;
@@ -217,14 +227,32 @@
 
   function selectView(view: ReportView): void {
     activeView = view;
+    if (staticMode) {
+      const query = new URLSearchParams(window.location.search);
+      query.set("view", view);
+      window.history.pushState(null, "", `${window.location.pathname}?${query}`);
+      return;
+    }
     const pathname = pathnameForReportView(view);
     if (window.location.pathname !== pathname) {
       window.history.pushState(null, "", `${pathname}${selectedDate ? `?date=${selectedDate}` : ""}`);
     }
   }
 
+  function staticDateHref(date: string): string {
+    return `${PROTOTYPE_LAB_ROOT}${date}${activeView === "text" ? "?view=text" : ""}`;
+  }
+
   function handlePopState(): void {
-    activeView = reportViewFromPathname(window.location.pathname);
+    activeView = staticMode
+      ? new URLSearchParams(window.location.search).get("view") === "text" ? "text" : "visual"
+      : reportViewFromPathname(window.location.pathname);
+    const pathDate = staticMode ? window.location.pathname.match(/\/(\d{4}-\d{2}-\d{2})\/?$/)?.[1] : undefined;
+    const nextDate = staticMode ? pathDate ?? defaultWeekdayReportDate() : pathDate;
+    if (nextDate && nextDate !== selectedDate) {
+      selectedDate = nextDate;
+      void loadReport(false);
+    }
   }
 </script>
 
@@ -236,7 +264,28 @@
 
 <div class="page-shell">
   <main bind:this={reportSurface} id="report-surface">
-    <PageHeader section={{ label: '市场点评', href: '/market-briefing' }}
+  {#if staticMode}
+    <PageHeader section={{ label: '市场点评', href: PROTOTYPE_LAB_ROOT }} brandHref={PROTOTYPE_LAB_ROOT}
+      tabs={[
+        { id: 'visual', label: '可视化', href: `${PROTOTYPE_LAB_ROOT}${selectedDate}?view=visual` },
+        { id: 'text', label: '文字版', href: `${PROTOTYPE_LAB_ROOT}${selectedDate}?view=text` },
+      ]} activeTabId={activeView} tabsDisabled={exporting || generating}
+      onTabNavigate={(tab) => selectView(tab.id as ReportView)}>
+      {#snippet actions()}
+        <label class="static-report-date">
+          <span class="sr-only">选择报告日期</span>
+          <Input type="date" aria-label="选择报告日期" bind:value={selectedDate}
+            onchange={() => {
+              if (selectedDate) window.history.pushState(null, "", staticDateHref(selectedDate));
+              loadReport(false);
+            }} />
+          <time datetime={data?.report_date ?? ""}>{dateParts.date} {dateParts.weekday}</time>
+        </label>
+      {/snippet}
+      {#snippet account()}{/snippet}
+    </PageHeader>
+  {:else}
+  <PageHeader section={{ label: '市场点评', href: '/market-briefing' }}
       tabs={[
         { id: 'visual', label: '可视化', href: `/market-briefing${selectedDate ? `?date=${selectedDate}` : ''}` },
         { id: 'text', label: '文字版', href: `/market-briefing/text${selectedDate ? `?date=${selectedDate}` : ''}` },
@@ -244,7 +293,7 @@
       {#snippet actions()}
         <div class="masthead-controls" aria-label="报告控制">
           <div class="titlebar-actions">
-          <Button data-ui-owner="App-svelte" variant="outline"
+          {#if !staticMode}<Button data-ui-owner="App-svelte" variant="outline"
 
             class={["ui-button refresh-button", loading && "is-loading"]}
             type="button"
@@ -270,7 +319,7 @@
               <path d="M4 14.5v2h12v-2" />
             </svg>
             <span>{exportLabel}</span>
-          </Button>
+          </Button>{/if}
         </div>
         <label class="hero-date">
           <span class="sr-only">选择报告日期</span>
@@ -296,6 +345,7 @@
       </div>
       {/snippet}
     </PageHeader>
+  {/if}
     <div class="report-export-heading"><strong>资金管理部 · 市场点评</strong><time datetime={data?.report_date}>{dateParts.date} {dateParts.weekday}</time></div>
 
     {#if loading}
@@ -334,7 +384,7 @@
           <header class="panel-heading">
             <span class="panel-index">01</span>
             <h2 id="focus-title">今日聚焦</h2>
-            <Button permission="research.market_report:generate" variant="default" size="icon"
+            {#if !staticMode}<Button permission="research.market_report:generate" variant="default" size="icon"
               class={["focus-generate-button ai-generate-button", generating && "is-loading"]}
               aria-label={generating ? "AI 生成中" : "重新生成今日聚焦"} aria-busy={generating}
               disabled={generating || exporting} onclick={generateFocus}>
@@ -342,9 +392,9 @@
                 <path d="m10 2 1.1 4.2L15 8l-3.9 1.8L10 14l-1.1-4.2L5 8l3.9-1.8L10 2Z" />
                 <path d="m16 13 .6 2.1 1.9.9-1.9.9L16 19l-.6-2.1-1.9-.9 1.9-.9L16 13Z" />
               </svg>
-            </Button>
+            </Button>{/if}
           </header>
-          {#if $allowed("research.market_report:update") || $allowed("research.market_report:generate")}
+          {#if !staticMode && ($allowed("research.market_report:update") || $allowed("research.market_report:generate"))}
             <FocusEditor reportDate={data.report_date} initialText={focusText}
               finalizedAt={data.finalized_at ?? data.generated_at} {generating} {generatedBriefing}
               disabled={exporting || !$allowed("research.market_report:update")}
@@ -544,6 +594,7 @@
 <style>
   #report-surface { grid-template-rows: auto minmax(0, 1fr); }
   .report-export-heading { display: none; }
+  .static-report-date { display: flex; align-items: center; gap: 8px; color: var(--text-2); font-variant-numeric: tabular-nums; font-weight: bold; }
   :global(.is-export-capture) .report-export-heading { display: flex; align-items: center; justify-content: space-between; min-height: 44px; font-size: 1.5rem; }
   .page-shell :global(.page-header__meta .titlebar-actions) { display: flex; width: auto; }
   .page-shell :global(.page-header) { padding-inline: 2px; flex: 0 0 auto; }

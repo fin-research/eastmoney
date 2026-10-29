@@ -25,3 +25,4 @@ node_modules
 /test-results/
 /.local-visual/
 /visual-dist/
+/prototype-lab-dist/

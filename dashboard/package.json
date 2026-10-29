@@ -47,7 +47,8 @@
     "check:visual-coverage": "node scripts/check-visual-coverage.mjs",
     "visual:baseline:import": "node scripts/visual-baselines.mjs import",
     "test:ci-tools": "node --test scripts/tests/*.test.mjs",
-    "build:visual": "vite build --config vite.visual.config.mjs && node scripts/prepare-visual-build.mjs"
+    "build:visual": "vite build --config vite.visual.config.mjs && node scripts/prepare-visual-build.mjs",
+    "build:prototype-lab": "vite build --config vite.prototype-lab.config.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "catalog:",

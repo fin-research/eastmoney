@@ -34,13 +34,15 @@ async function getJson<T>(
   signal?: AbortSignal,
   method = "GET",
   body?: unknown,
+  options: { credentials?: RequestCredentials; cache?: RequestCache } = {},
 ): Promise<T> {
   let response: Response;
   try {
     response = await fetch(url, {
       method,
       signal,
-      credentials: "same-origin",
+      credentials: options.credentials ?? "same-origin",
+      cache: options.cache,
       headers: {
         Accept: "application/json",
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
@@ -116,6 +118,16 @@ export async function fetchReport(
   const report = await getJson(`/api/market-report${query}`, marketReportSnapshotSchema, signal);
   if (reportDate && report.report_date !== reportDate) throw new Error("报告日期与请求日期不一致");
   if (!report.finalized_at) throw new Error(`${report.report_date} 市场点评尚未生成，请稍后刷新`);
+  return { report, resourceIssues: [] };
+}
+
+export async function fetchStaticReport(reportDate: string, signal?: AbortSignal): Promise<MarketReportLoadResult> {
+  const date = reportDataSchema.shape.report_date.parse(reportDate);
+  const url = new URL(`market-briefing/${date}.json`, import.meta.env?.VITE_MARKET_REPORT_PUBLIC_BASE || "https://market-briefing-data.hasbai.xyz/");
+  const report = await getJson(url.toString(), marketReportSnapshotSchema, signal, "GET", undefined, { credentials: "omit", cache: "no-store" });
+  if (report.report_date !== date || !report.finalized_at) {
+    throw new Error(`${date} 市场点评定稿无效`);
+  }
   return { report, resourceIssues: [] };
 }
 

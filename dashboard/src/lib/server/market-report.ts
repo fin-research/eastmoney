@@ -17,7 +17,7 @@ export class MarketReportStoreError extends Error {
     message: string,
     code: string,
     stage: string,
-    source = "Dashboard R2",
+    source = "Market briefing R2",
   ) {
     super(message);
     this.name = "MarketReportStoreError";
@@ -28,11 +28,11 @@ export class MarketReportStoreError extends Error {
   }
 }
 
-type EastmoneyBucket = Env["EASTMONEY"];
+type MarketBriefingBucket = Env["MARKET_BRIEFING_R2"];
 const MAX_MARKET_REPORT_BYTES = 512 * 1024;
 
 export async function readMarketReport(
-  bucket: EastmoneyBucket | undefined,
+  bucket: MarketBriefingBucket | undefined,
   reportDate: string,
 ): Promise<MarketReportSnapshotContract> {
   const storage = requireBucket(bucket);
@@ -77,7 +77,7 @@ export async function readMarketReport(
 }
 
 export async function saveMarketReport(
-  bucket: EastmoneyBucket | undefined,
+  bucket: MarketBriefingBucket | undefined,
   reportDate: string,
   report: unknown,
   focusText: unknown,
@@ -125,7 +125,7 @@ export async function saveMarketReport(
 }
 
 async function writeSnapshot(
-  bucket: EastmoneyBucket,
+  bucket: MarketBriefingBucket,
   key: string,
   snapshot: MarketReportSnapshotContract,
 ): Promise<void> {
@@ -141,7 +141,7 @@ async function writeSnapshot(
   const object = await bucket.put(key, body, {
     httpMetadata: {
       contentType: "application/json; charset=utf-8",
-      cacheControl: "private, no-store",
+      cacheControl: "no-store",
     },
     customMetadata: {
       reportDate: snapshot.report_date,
@@ -159,7 +159,7 @@ async function writeSnapshot(
   }
 }
 
-function requireBucket(bucket: EastmoneyBucket | undefined): EastmoneyBucket {
+function requireBucket(bucket: MarketBriefingBucket | undefined): MarketBriefingBucket {
   if (!bucket) {
     throw new MarketReportStoreError(
       503,

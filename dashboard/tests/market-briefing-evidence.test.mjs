@@ -62,7 +62,7 @@ test("人工重新生成读取R2行情，模型不会看到旧点评", async t =
   });
   const env = {
     CLOUDFLARE_ACCOUNT_ID: "test", AI_GATEWAY_ID: "default", CF_AIG_TOKEN: "test",
-    EASTMONEY: { get: async key => {
+    MARKET_BRIEFING_R2: { get: async key => {
       assert.equal(key, "market-briefing/2026-08-25.json");
       return { size: 1000, json: async () => report };
     } },

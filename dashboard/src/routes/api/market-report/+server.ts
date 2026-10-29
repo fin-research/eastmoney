@@ -10,7 +10,7 @@ import type { RequestHandler } from "./$types";
 export const GET: RequestHandler = async ({ platform, url }) => {
   try {
     const reportDate = url.searchParams.has("date") ? requiredDate(url) : await resolveDefaultReportDate(platform?.env);
-    const snapshot = await readMarketReport(platform?.env.EASTMONEY, reportDate);
+    const snapshot = await readMarketReport(platform?.env.MARKET_BRIEFING_R2, reportDate);
     return Response.json(snapshot, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return errorResponse(error, url, "read");
@@ -23,7 +23,7 @@ export const PUT: RequestHandler = async ({ request, platform, url }) => {
     const reportDate = requiredDate(url);
     const payload = (await request.json()) as { report?: unknown; focusText?: unknown };
     const snapshot = await saveMarketReport(
-      platform?.env.EASTMONEY,
+      platform?.env.MARKET_BRIEFING_R2,
       reportDate,
       payload.report,
       payload.focusText,
