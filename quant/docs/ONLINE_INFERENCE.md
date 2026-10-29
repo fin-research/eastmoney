@@ -69,11 +69,18 @@ uv run python main.py --online infer --bundle-dir outputs/online
 node online/cli.mjs outputs/online outputs/online/inputs.json
 ```
 
-上述训练示例当前须在保留的 `/Users/yueshi/src/eastmoney/worktrees/quant-prospective-ledger-20261003` 根执行。主checkout的同名忽略目录仅作只读备份，来源协议仍绑定任务工作树。其他位置只有在源码闭包、运行环境与协议完全匹配时才能指定绝对路径。绝对selection路径本身不能消除来源不匹配。
+上述示例属于历史票面流程，不是当前三档模型入口。
+本地研究统一在 `/Users/yueshi/src/eastmoney/eastmoney/quant` 执行。
+旧工作树已删除；源码、产物和路径映射保存于[本地恢复归档](../../docs/operations/monorepo-cleanup-2026-10-28.md)。
+冻结协议中的旧绝对路径保持原样。
+历史选择仍须匹配原源码、环境和协议，不能直接用于当前训练。
 
-当前132文件来源完整复现位于 `outputs/prospective-reproduction-20261003/`。前次127文件来源的完整复现位于原 `quant-observation-slices-20261003` 工作树的 `outputs/observation-slices-20261003/`。前次c400614的124文件复现仍保留在原 `quant-maintenance-report-20261003` 工作树，仅适用于该来源。更早 `public-coupon-20261002` 也不作为当前训练入口。
+132文件来源的复现产物保留在本地 `outputs/prospective-reproduction-20261003/`。
+127文件来源及c400614的124文件来源保存在对应旧checkout的恢复归档中。
+这些冻结产物仅适用于各自来源。
+更早 `public-coupon-20261002` 也不作为当前训练入口。
 
-新来源严格拒绝三批旧发布证据。完整源码、运行版本、原设计来源链和工作树引用均须保留。观察读取模块仍未构造训练面板或供生产消费，完整复现不等于激活新模型。
+新来源严格拒绝三批旧发布证据。完整源码、运行版本、原设计来源链和历史路径引用均须保留。观察读取模块仍未构造训练面板或供生产消费，完整复现不等于激活新模型。
 
 `--coupon-selection`读取冻结公募选择和历史评价，按原始receipt重建、校验，不重新调用默认24配置搜索。Huber发布来自原schema5完整19配置的派生协议，旧均值选择/指纹保留，发布适配差异独立记录哈希。普通预测入口也可使用。线上infer从既有manifest读取输入组和范围。
 
@@ -183,13 +190,13 @@ pnpm exec wrangler deploy --config ../outputs/research-report-20261003/wrangler.
 node --env-file=../../.env prepare-report-patch.mjs --verify ../outputs/research-report-20261003
 ```
 
-独立 worktree 使用项目组根 `.env` 的实际路径。每次使用新目录，拒绝覆盖旧包装。部署前核对 dry-run 的所有模块 SHA 与 baseline 完全相同，然后发布该已核验配置。发布后下载并逐模块核对原模型、wrapper、报告服务及资产哈希。
+从 `quant/online` 执行时，凭据使用 monorepo 根 `../../.env`。每次使用新目录，拒绝覆盖旧包装。部署前核对 dry-run 的所有模块 SHA 与 baseline 完全相同，然后发布该已核验配置。发布后下载并逐模块核对原模型、wrapper、报告服务及资产哈希。
 
 先部署 Quant 的命名报告入口，再部署 Gateway 绑定，程序化检查匿名/测试账号 GET、HEAD、未知路径、方法、MIME 及私有绕过。布局、报告服务或绑定变化会拒绝准备，须先审查再登记。不自动嵌套 wrapper。
 
 既有冻结选择在当前研究源码上若被来源校验拒绝，不绕过校验。新训练导出必须先登记与当前实现一致的派生评价。报告整理旧证据与当前实现审阅分别保存，不把工程回放称为新模型发布或新增前向验证。
 
-第四轮schema9在独立来源`6d09bb6`完成目标期限动态与行业曲线形状研究，两候选均未通过上涨保护。新曲线组由实际候选/market layer显式开启，旧模型默认关闭。真实输入数值一致性不代表完整业务发布通过。未产生新release、manifest或模型激活，原来源的训练入口仅适用于其保留工作树。
+第四轮schema9在独立来源`6d09bb6`完成目标期限动态与行业曲线形状研究，两候选均未通过上涨保护。新曲线组由实际候选/market layer显式开启，旧模型默认关闭。真实输入数值一致性不代表完整业务发布通过。未产生新release、manifest或模型激活，原来源的训练入口仅适用于归档中的原源码和协议。
 
 ## Messenger 集中调度发布
 
