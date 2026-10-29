@@ -9,7 +9,7 @@
   "routes": [],
   "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true, "html_handling": "none", "not_found_handling": "none" },
   "services": [{ "binding": "DATA", "service": "eastmoney-data", "entrypoint": "InternalData" }],
-  "observability": { "enabled": true, "head_sampling_rate": 1 },
+  "observability": { "enabled": true, "logs": { "enabled": true, "head_sampling_rate": 1, "invocation_logs": true }, "traces": { "enabled": true, "head_sampling_rate": 1, "persist": true } },
   "r2_buckets": [{ "binding": "ARTIFACTS", "bucket_name": "eastmoney" }],
   "hyperdrive": [
     { "binding": "HYPERDRIVE", "id": "26b76413a03a4328836d95f3ca320a1e" },
