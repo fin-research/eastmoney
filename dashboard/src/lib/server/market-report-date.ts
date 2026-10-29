@@ -1,6 +1,6 @@
 import { currentReportDate, isBeforeReportCutoff } from "../../report-date.ts";
 import { tradingDaySchema } from "../../data-contracts.ts";
-import { knownMarketClosure } from "./market-calendar.ts";
+import { knownMarketClosure } from "../../market-calendar.ts";
 
 /** Local fallback when the dedicated exchange calendar is unavailable. */
 export function defaultReportDate(now = new Date()): string {

@@ -22,7 +22,7 @@ function harness(override) {
     if (url.pathname === '/data/news') return Response.json([newsItem(1)]);
     if (url.pathname.startsWith('/data/news/')) return Response.json(newsItem(1));
     return directResponse(req.url);
-  } }, EASTMONEY: { put: async (key, body) => { objects.set(key, JSON.parse(body)); return { etag: 'saved' }; } } };
+  } }, MARKET_BRIEFING_R2: { put: async (key, body) => { objects.set(key, JSON.parse(body)); return { etag: 'saved' }; } } };
   // Successful step values survive replay. The harness does not implement the platform's retry engine.
   const step = { do: async (name, config, fn) => {
     if (checkpoints.has(name)) return structuredClone(checkpoints.get(name));

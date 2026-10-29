@@ -57,6 +57,7 @@ function memoryBucket() {
     },
     async put(key, value, options) {
       objects.set(key, String(value));
+      this.lastPutOptions = options;
       return { key, etag: "etag", options };
     },
   };
@@ -82,6 +83,7 @@ test("定稿写入裁剪后的 R2 快照", async () => {
   );
   assert.equal(saved.focus_text, "定稿判断");
   assert.ok(saved.finalized_at);
+  assert.equal(bucket.lastPutOptions.httpMetadata.cacheControl, "no-store");
 
   const raw = JSON.parse(bucket.objects.get("market-briefing/2026-08-25.json"));
   assert.equal(raw.focus_text, "定稿判断");
@@ -154,7 +156,7 @@ test('默认 GET 在 Choice 不可达、返回503或日历异常时仍读取准�
   ];
   for (const fetch of fetches) {
     const dataFetch = context.mock.fn(fetch);
-    const response = await GET({ url: new URL('https://example.test/api/market-report'), platform: { env: { EASTMONEY: bucket, DATA: { fetch: dataFetch } } } });
+    const response = await GET({ url: new URL('https://example.test/api/market-report'), platform: { env: { MARKET_BRIEFING_R2: bucket, DATA: { fetch: dataFetch } } } });
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('Cache-Control'), 'no-store');
     const snapshot = await response.json();
@@ -169,7 +171,7 @@ test('默认 GET 只读所选日期：上一交易日报告缺失及17点后当�
   const bucket = memoryBucket();
   await saveMarketReport(bucket, '2026-09-15', { ...reportData(), report_date: '2026-09-15' }, '更早定稿');
   const reads = context.mock.method(bucket, 'get');
-  const event = { url: new URL('https://example.test/api/market-report'), platform: { env: { EASTMONEY: bucket } } };
+  const event = { url: new URL('https://example.test/api/market-report'), platform: { env: { MARKET_BRIEFING_R2: bucket } } };
   let response = await GET(event);
   assert.equal(response.status, 404);
   assert.equal((await response.json()).error.code, 'REPORT_NOT_FINALIZED');
@@ -195,7 +197,7 @@ test('未来年度默认 GET 在交易日接口不可达时仍读取上一工作
   const dataFetch = context.mock.fn(async () => new Response('destination_unavailable', { status: 503 }));
   const response = await GET({
     url: new URL('https://example.test/api/market-report'),
-    platform: { env: { EASTMONEY: bucket, DATA: { fetch: dataFetch } } },
+    platform: { env: { MARKET_BRIEFING_R2: bucket, DATA: { fetch: dataFetch } } },
   });
   assert.equal(response.status, 200);
   assert.equal((await response.json()).report_date, '2027-01-04');
@@ -209,7 +211,7 @@ test('节假日默认 GET 使用独立交易日接口选择上一交易日报告
   await saveMarketReport(bucket, '2026-09-30', { ...reportData(), report_date: '2026-09-30' }, '更早定稿');
   const reads = context.mock.method(bucket, 'get');
   const dataFetch = context.mock.fn(async () => Response.json({ date: '2026-10-07', isTradingDay: false, previousTradingDate: '2026-09-30' }));
-  const response = await GET({ url: new URL('https://example.test/api/market-report'), platform: { env: { EASTMONEY: bucket, DATA: { fetch: dataFetch } } } });
+  const response = await GET({ url: new URL('https://example.test/api/market-report'), platform: { env: { MARKET_BRIEFING_R2: bucket, DATA: { fetch: dataFetch } } } });
   assert.equal(response.status, 200);
   assert.equal((await response.json()).report_date, '2026-09-30');
   assert.deepEqual(reads.mock.calls.map(call => call.arguments[0]), ['market-briefing/2026-09-30.json']);

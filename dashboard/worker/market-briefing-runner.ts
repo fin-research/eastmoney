@@ -66,7 +66,7 @@ export async function runMarketBriefing(
     }, () => dependencies.generateMarketBriefingFromNews(env, reportDate, news, { retry: false, report }));
 
     const saved = await step.do("archive-report", DATA_STEP_OPTIONS, async () => {
-      const snapshot = await dependencies.saveMarketReport(env.EASTMONEY, reportDate,
+      const snapshot = await dependencies.saveMarketReport(env.MARKET_BRIEFING_R2, reportDate,
         report, `1、${focus.stock}\n2、${focus.bond}`);
       return { finalizedAt: snapshot.finalized_at, focus: snapshot.focus_text };
     });

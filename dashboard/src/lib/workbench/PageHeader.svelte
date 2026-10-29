@@ -3,9 +3,9 @@
   import AuthMenu from '$lib/AuthMenu.svelte';
   import type { PageLink, PageTab } from './navigation';
 
-  let { section, current, tabs = [], activeTabId = '', leading, actions, account,
+  let { section, current, brandHref = '/', tabs = [], activeTabId = '', leading, actions, account,
     actionsId, class: className = '', onheight, onTabNavigate, tabsDisabled = false }: {
-    section: PageLink; current?: PageLink; tabs?: readonly PageTab[]; activeTabId?: string;
+    section: PageLink; current?: PageLink; brandHref?: string; tabs?: readonly PageTab[]; activeTabId?: string;
     leading?: Snippet; actions?: Snippet; account?: Snippet; actionsId?: string;
     class?: string; onheight?: (height: number) => void;
     onTabNavigate?: (tab: PageTab) => void; tabsDisabled?: boolean;
@@ -31,7 +31,7 @@
   <div class="page-header__identity">
     {#if leading}<div class="page-header__leading">{@render leading()}</div>{/if}
     <div class="page-header__heading">
-      <a class="page-header__brand" href="/" aria-label="返回市场研究门户">东方财富证券 · 资金管理部</a>
+      <a class="page-header__brand" href={brandHref} aria-label="返回市场研究门户">东方财富证券 · 资金管理部</a>
       <nav class="page-header__breadcrumb tr-breadcrumb" aria-label="当前位置">
         <ol>
           {#if current}
