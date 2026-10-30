@@ -13,6 +13,9 @@
 !/vendor/xlsx-LICENSE.txt
 !/vendor/README.md
 !/docs/
+!/skills/
+/skills/*
+!/skills/bond-investor/
 !/.github/
 !/scripts/
 !/gateway/

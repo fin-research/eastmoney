@@ -8,6 +8,7 @@ import { importBondInvestors } from '../../scripts/financing/lib/bond-investor-i
 import { parseBondInvestorWorkbook } from '../../scripts/financing/lib/bond-investor-workbook.mjs';
 import { loadBondInvestors } from '../../src/lib/server/financing/bond-investors.ts';
 import { investorShare, validInvestorDate } from '../../src/lib/financing/bond-investors.ts';
+import { createBondInvestor, updateBondInvestor } from '../../src/lib/server/financing/bond-investor-records.ts';
 
 async function database(t) {
   const db = new PGlite(); t.after(() => db.close());
@@ -45,6 +46,20 @@ test('investor imports preserve split allocations, unknowns, rollback and repeat
   await db.exec('BEGIN'); await assert.rejects(importBondInvestors(db, { rows: [row({ account: '改变账户' })] }), /拒绝覆盖/); await db.exec('ROLLBACK');
   assert.equal((await db.query('SELECT sum(amount)::text AS amount FROM financing.bond_investors')).rows[0].amount, '300.00');
 });
+
+test('MCP single-record create/update use numeric totals and optimistic old-value checks',async t=>{
+ const db=await database(t);await bond(db,'债CRUD',100);await db.query("INSERT INTO public.client(name,type) VALUES('甲基金','基金')");
+ await db.query('BEGIN');const a=await createBondInvestor(db,{bondName:'债CRUD',investorName:'甲基金',channel:null,account:'产品A',amount:.1});const b=await createBondInvestor(db,{bondName:'债CRUD',investorName:'甲基金',channel:null,account:'产品B',amount:.2});await db.query('COMMIT');assert.equal(a.amount,'0.10');assert.equal(b.amount,'0.20');
+ await db.query('BEGIN');await assert.rejects(createBondInvestor(db,{bondName:'债CRUD',investorName:'甲基金',channel:null,account:'超额',amount:100}),/超过债券本金/);await db.query('ROLLBACK');
+ await db.query('BEGIN');await assert.rejects(updateBondInvestor(db,{id:a.id,oldBondName:'债CRUD',oldInvestorName:'甲基金',oldChannel:null,oldAccount:'产品A',oldAmount:9,investorName:'甲基金',channel:null,account:'产品A',amount:1}),/已变化/);await db.query('ROLLBACK');
+ await db.query('BEGIN');const corrected=await updateBondInvestor(db,{id:a.id,oldBondName:'债CRUD',oldInvestorName:'甲基金',oldChannel:null,oldAccount:'产品A',oldAmount:.1,investorName:'甲基金',channel:'通道',account:'产品A',amount:.3});await db.query('COMMIT');assert.equal(corrected.amount,'0.30');
+});
+test('numeric sum of 0.1 and 0.2 exactly fits a 0.30 principal',async t=>{
+ const db=await database(t);await bond(db,'债精度',.3);await db.query("INSERT INTO public.client(name,type) VALUES('甲基金','基金')");
+ await db.query('BEGIN');await createBondInvestor(db,{bondName:'债精度',investorName:'甲基金',channel:null,account:'甲',amount:.1});await createBondInvestor(db,{bondName:'债精度',investorName:'甲基金',channel:null,account:'乙',amount:.2});await db.query('COMMIT');
+ assert.equal((await db.query("SELECT sum(i.amount)::text AS total FROM financing.bond_investors i JOIN financing.bond b ON b.id=i.bond_id WHERE b.name='债精度'")).rows[0].total,'0.30');
+});
+
 
 test('investor table enforces actual bond/client foreign keys, nullable uniqueness, amounts and read-only RLS', async t => {
   const db = await database(t); const id = await bond(db);
