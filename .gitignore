@@ -16,6 +16,7 @@
 !/skills/
 /skills/*
 !/skills/bond-investor/
+!/skills/secondary-pool-weekly/
 !/.github/
 !/scripts/
 !/gateway/
