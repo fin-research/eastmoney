@@ -15,6 +15,20 @@ test('typed long entries enforce the composite key, one value, metric type and m
   await assert.rejects(db.query("DELETE FROM credit.entry"),/cannot be deleted/);
 });
 
+test('historical deletion requires correction mode and preserves inherited terms',async t=>{
+  const db=await creditDatabase(t);await seedCredit(db,'2026-08-21','甲银行',{effective_date:'2025-01-01',expiry_date:'2026-08-30'});
+  await db.query("SELECT credit.append_entry('2026-08-22','甲银行','{\"effective_date\":\"2027-01-01\",\"expiry_date\":\"2027-08-30\"}',NULL)");
+  const id=(await db.query("SELECT institution_id FROM credit.entry WHERE report_date='2026-08-22' AND field_id='expiry_date'")).rows[0].institution_id;
+  await assert.rejects(db.query("DELETE FROM credit.entry WHERE institution_id=$1 AND report_date='2026-08-22' AND field_id='expiry_date'",[id]),/cannot be deleted/);
+  await db.exec("BEGIN; SET LOCAL credit.correct_history='on'; DELETE FROM credit.entry WHERE institution_id="+id+" AND report_date='2026-08-22' AND field_id='expiry_date'; ROLLBACK");
+  assert.equal((await db.query("SELECT expiry_date::text FROM credit.entry_as_of('2026-08-23',ARRAY['甲银行'])")).rows[0].expiry_date,'2027-08-30');
+  await assert.rejects(db.exec("BEGIN; SET LOCAL credit.correct_history='on'; DELETE FROM credit.entry WHERE institution_id="+id+" AND report_date='2026-08-22' AND field_id='expiry_date'; COMMIT"),/invalid term/);
+  assert.equal((await db.query("SELECT expiry_date::text FROM credit.entry_as_of('2026-08-23',ARRAY['甲银行'])")).rows[0].expiry_date,'2027-08-30');
+  await db.exec("BEGIN; SET LOCAL credit.correct_history='on'; DELETE FROM credit.entry WHERE institution_id="+id+" AND report_date='2026-08-22' AND field_id IN ('effective_date','expiry_date'); COMMIT");
+  assert.equal((await db.query("SELECT expiry_date::text FROM credit.entry_as_of('2026-08-23',ARRAY['甲银行'])")).rows[0].expiry_date,'2026-08-30');
+  await assert.rejects(db.exec("BEGIN; SET LOCAL credit.correct_history='on'; UPDATE credit.entry SET report_date='2026-08-20' WHERE institution_id="+id+" AND field_id='effective_date'; ROLLBACK"),/identity and creation fields are immutable/);
+});
+
 test('metadata is a single state across dates and renaming preserves institution and client identity',async t=>{
   const db=await creditDatabase(t);await seedCredit(db,'2026-08-21','甲银行',{handler:'原经办人'});
   const before=(await db.query('SELECT id FROM credit.institution')).rows[0].id;

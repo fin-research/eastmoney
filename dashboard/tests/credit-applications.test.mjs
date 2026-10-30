@@ -107,6 +107,32 @@ test('申请按操作校验，同日续期和扩额形成一条可追溯事件',
   assert.equal(report.calendarEvents.some(row=>row.date==='2026-09-21'&&row.kind==='expiry'),false);
 });
 
+test('到期后的手工延期记录为续作，同日维护保留续作事件，申请续作也可正常办理',async t=>{
+  const db=await creditDatabase(t);
+  await seedCredit(db,'2026-08-21','手工续作银行',{effective_date:'2025-10-21',expiry_date:'2026-08-30'});
+  await saveCreditInstitution(db,{operation:'maintenance',reportDate:'2026-09-24',institutionName:'手工续作银行',
+    changes:{institution:{expiryDate:'2027-08-30'}}},'auth0|test');
+  assert.deepEqual((await db.query("SELECT DISTINCT event FROM credit.entry WHERE institution_id=(SELECT id FROM credit.institution WHERE name='手工续作银行') AND report_date='2026-09-24'")).rows,
+    [{event:'renewal'}]);
+  await saveCreditInstitution(db,{operation:'maintenance',reportDate:'2026-09-24',institutionName:'手工续作银行',
+    changes:{institution:{handler:'同日维护'}}},'auth0|test');
+  assert.deepEqual((await db.query("SELECT DISTINCT event FROM credit.entry WHERE institution_id=(SELECT id FROM credit.institution WHERE name='手工续作银行') AND report_date='2026-09-24'")).rows,
+    [{event:'renewal'}]);
+
+  await seedCredit(db,'2026-08-21','提前手工续作银行',{effective_date:'2025-10-21',expiry_date:'2027-08-30'});
+  await saveCreditInstitution(db,{operation:'maintenance',reportDate:'2026-09-24',institutionName:'提前手工续作银行',
+    changes:{institution:{expiryDate:'2028-08-30'}}},'auth0|test');
+  assert.deepEqual((await db.query("SELECT DISTINCT event FROM credit.entry WHERE institution_id=(SELECT id FROM credit.institution WHERE name='提前手工续作银行') AND report_date='2026-09-24'")).rows,
+    [{event:'renewal'}]);
+
+  await seedCredit(db,'2026-08-21','申请续作银行',{effective_date:'2025-10-21',expiry_date:'2026-08-30'});
+  await saveCreditInstitution(db,{operation:'renewal',reportDate:'2026-09-24',institutionName:'申请续作银行',
+    changes:{institution:{effectiveDate:'2026-09-20',expiryDate:'2027-09-20'}}},'auth0|test');
+  assert.deepEqual((await db.query("SELECT DISTINCT event FROM credit.entry WHERE institution_id=(SELECT id FROM credit.institution WHERE name='申请续作银行') AND report_date='2026-09-24'")).rows,
+    [{event:'renewal'}]);
+  assert.equal((await loadCreditReport(db,'2026-09-24')).weeklyNews.some(row=>row.institutionName==='申请续作银行'&&row.eventType==='renewal'),true);
+});
+
 test('首个业务日的显式新增进入日历和周报，申请中转获批生成新增事件',async t=>{
   const db=await creditDatabase(t);
   await saveCreditInstitution(db,{operation:'new',reportDate:'2026-09-24',institutionName:'首家银行',
