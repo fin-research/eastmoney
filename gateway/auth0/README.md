@@ -2,17 +2,29 @@
 
 Auth0 的本站应用 `eastmoney` 使用自定义登录域 `auth.hasbai.xyz`。管理 API 使用原租户域 `hasbai.eu.auth0.com`。Dashboard 客户端拥有 `/auth/login`、`/auth/callback` 和退出页面，Auth0 SPA SDK 执行 PKCE，Gateway 只验签及授权，Auth0 API audience 为 `https://eastmoney.hasbai.xyz/`。API 不接受 ID token 或 Cloudflare Access JWT。
 
-当前 `login claims` 源码为 `actions/login-claims.cjs`。post-login 绑定为注册资料 Action 和 `login claims`（`35884b07-e1f4-4ab8-b66c-0325d5a055e4`）。后者添加顶层 `username`、`email`、`role` 字符串、`_roles` 角色名称数组，以及本站组织可选的 `department`、`picture`。拒绝封禁账号和未验证邮箱。`role` 供数据库使用，不用于 Gateway 业务授权。`_roles` 在 Gateway 按组织权限缓存解析为角色 ID。Gateway 接收 `Authorization: Bearer` 中的 Auth0 原始签名 token，`sub` 使用 Auth0 原生主键。
+当前 post-login 只绑定 `eastmoney signup profile`（`91736f7a-024c-406d-905b-7d2daa20ec8f`），显示名为 `login claims and profile`。合并源码为 `actions/login-claims.cjs`。该 Action 收集缺失的姓名和部门，并添加顶层 `username`、`email`、`role` 字符串、`_roles` 角色名称数组，以及本站组织可选的 `department`、`picture`。拒绝封禁账号和未验证邮箱。`role` 供数据库使用，不用于 Gateway 业务授权。`_roles` 在 Gateway 按组织权限缓存解析为角色 ID。
 
-`actions/eastmoney-login.cjs` 和 `scripts/publish-login-claims.mjs` 保留旧 nested `user` 协议的历史实现。不要重新发布或恢复旧绑定。网站拒绝旧 nested `user` 和旧 URL namespace token。官方 ChatGPT/Codex MCP 客户端仅在 `/api/mcp` 使用签名 `https://eastmoney.hasbai.xyz/identity`，无顶层字段回退；精确 CIMD 配置见 [MCP](../docs/MCP.md)。基础角色由 Auth0 成员关系管理，当前 Action 不自动分配。
+Gateway 接收 `Authorization: Bearer` 中的 Auth0 原始签名 token，`sub` 使用 Auth0 原生主键。
 
-其余注册 Action、中文主题、Hosted Form 与提示文案保留原业务流程。`eastmoney-signup-profile` 仍只处理新账号 pending 标记。姓名和部门不会授予权限或自动关联业务负责人。
+`actions/eastmoney-login.cjs` 和 `scripts/publish-login-claims.mjs` 保留旧 nested `user` 协议的历史实现。不要重新发布或恢复旧绑定。网站拒绝旧 nested `user` 和旧 URL namespace token。官方 ChatGPT/Codex MCP 客户端仅在 `/mcp` 使用签名 `https://eastmoney.hasbai.xyz/identity`，无顶层字段回退；精确 CIMD 配置见 [MCP](../docs/MCP.md)。基础角色由 Auth0 成员关系管理，当前 Action 不自动分配。
+
+本组织使用 email 连接的账号缺少姓名或部门时，合并 Action 显示现有 Form。保存成功后，以返回的新资料签发声明；未验证邮箱仍拒绝登录。姓名和部门不授予权限，也不关联业务负责人。注册前的 `18.cn` Action、主题与 Form 保持原配置。
+
+`actions/eastmoney-registration.cjs`、`actions/eastmoney-signup-profile.cjs` 保留历史实现，不代表当前线上代码。不要重新发布其中的 pending 标记逻辑。
 
 本地租户管理按[共享 AUTH](../../docs/AUTH.md#auth0-本地租户管理) 使用 Auth0 skill 和 `auth0` CLI，先复用已有授权、读取目标当前配置，再执行精确变更并回读。常规 Action 发布只变更目标 code，保留当前 Secret、依赖和 post-login 绑定。禁止覆盖其他会话的未发布草稿。不能以本地 Action 文件推断线上状态。
 
 Quant 旧机器应用 `eastmoney quant gateway` 已退役。Gateway 的机器客户端白名单为空。若将来恢复机器 Choice 调用，须重新建立精确的应用、scope 和白名单，并验证 Quant 调用链。Secret 不进入 Git、文档、浏览器或日志。
 
 具体发布与回退见 [DEVELOPMENT](../docs/DEVELOPMENT.md)。
+
+## Actions 与 Forms 额度
+
+免费套餐当前包含 5 项 Actions + Forms，额度按订阅共享。只统计已绑定并部署的 Action；已创建 Form 即使未展示也计额。[Auth0 额度说明](https://support.auth0.com/center/s/article/managing-auth0-actions-and-forms-quota-exceedance-notifications)。
+
+2026-10-30 本租户优化前为 3 个已绑定 Action 和 1 个 Form，共 4 项。优化后为注册校验、合并登录两个 Action，以及 1 个 Form，共 3 项。该盘点不证明通知时点或同订阅其他租户的用量。
+
+旧 `login claims`（`35884b07-e1f4-4ab8-b66c-0325d5a055e4`）保留且未绑定，不占当前计额。合并复用原资料 Action 的 Secret；没有读取或重建 Secret。回退时部署原资料 Action 版本，再按原顺序绑定资料 Action 和旧 `login claims`。
 
 ## SPA 登录与 token
 
