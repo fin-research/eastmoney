@@ -18,7 +18,7 @@ const { identityService } = await import(gateway+'/src/identity-service.ts');
 const { Server } = await import(dashboard+'/.svelte-kit/output/server/index.js');
 const { manifest } = await import(dashboard+'/.svelte-kit/output/server/manifest.js');
 const cleanup=[];const f=await fixture({after:fn=>cleanup.push(fn)});
-const appEnv={IDENTITY:{fetch:r=>identityService(r,f.env)},HYPERDRIVE:{connectionString:'postgresql://fixture:fixture@127.0.0.1:1/fixture'},DB:{prepare(sql){assert.match(sql,/^UPDATE financing_reminder_checkpoint/);return {async run(){return {success:true}}}}}};
+const appEnv={IDENTITY:{fetch:r=>identityService(r,f.env)},HYPERDRIVE:{connectionString:'postgresql://127.0.0.1:1/fixture'},DB:{prepare(sql){assert.match(sql,/^UPDATE financing_reminder_checkpoint/);return {async run(){return {success:true}}}}}};
 const server=new Server(manifest);await server.init({env:appEnv});
 f.env.DASHBOARD={fetch(request){const context=JSON.parse(Buffer.from(request.headers.get('X-Eastmoney-Gateway-Context'),'base64url'));const headers=new Headers(request.headers);headers.delete('X-Eastmoney-Gateway-Context');headers.set('Host','eastmoney.hasbai.xyz');return server.respond(new Request(request,{headers}),{getClientAddress:()=> '127.0.0.1',platform:{env:{...appEnv,GATEWAY_CONTEXT:context},context:{waitUntil(){}}}})}};
 f.env.DATA={fetch:request=>handleGatewayRequest(request,{CHOICE_RPC:{fetch:async()=>Response.json({function:'CSS',fields:['RATE'],rows:[{RATE:1.5}]},{headers:{'X-Choice-Rpc-Version':'choice.rpc.v1'}})},CHOICE_RPC_TOKEN:'fixture',CHOICE_FAST_LIMIT:{limit:async()=>({success:true})},CHOICE_OTHER_LIMIT:{limit:async()=>({success:true})}})};
