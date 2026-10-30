@@ -8,6 +8,7 @@ import { createCommentarySchema, updateCommentarySchema, commentaryTypeSchema, d
 import { saveSchema } from '../trading-workflow/model.ts';
 import { projectCreateSchema } from '../financing/project-form.ts';
 import { DATA_ENTITIES } from '../financing/data-admin.ts';
+import { createBondInvestorSchema, updateBondInvestorSchema } from './bond-investor-record-schema.ts';
 
 const empty = z.object({}).strict();
 // Keep Unicode validation at runtime: JSON Schema patterns cannot carry the required /u flag.
@@ -100,6 +101,9 @@ export const mcpOperations: McpOperation[] = [
   page('financing_clients', '查询融资客户', '/financing/clients', query({ q: z.string().max(200).optional(), page: z.number().int().min(1).max(100000).optional() })),
   ...([['create', 'create_client', '创建融资客户'], ['update', 'update_client', '修改融资客户']] as const).map(([action, name, title]) => form(name, title, '/financing/clients', action, 'id（修改）,version（修改）,name,fullname,type,subtype,aliases（换行分隔）')),
   page('bond_investors', '查询债券投资人', '/financing/bond-investors', query({ date: dateSchema.optional() })),
+  api('bond_investor_reference', '读取债券投资分配与机构目录', '/api/bond-investors/records', 'GET', query({ bondName: z.array(z.string().min(1).max(160)).min(1).max(30) }), { description: '只读债券本金、既有投资分配及机构目录。' }),
+  api('create_bond_investor', '新增债券投资分配', '/api/bond-investors/records', 'POST', body(createBondInvestorSchema)),
+  api('update_bond_investor', '修改债券投资分配', '/api/bond-investors/records', 'PATCH', body(updateBondInvestorSchema)),
   page('liability_report', '读取负债周报快照', '/financing/liability-report', query({ date: dateSchema.optional() })),
   api('liability_report_data', '读取负债周报计算数据', '/financing/data/api/rpc/liability_weekly_report_data', 'POST', body(z.object({ p_report_date: dateSchema })), { description: '只读计算，不保存快照。' }),
   ...(['GET', 'POST', 'PATCH', 'DELETE'] as const).map((method, i) => api(['financing_data', 'create_financing_data', 'update_financing_data', 'delete_financing_data'][i]!, ['查询融资台账记录', '新增融资台账记录', '修改融资台账记录', '删除融资台账记录'][i]!, '/financing/data/api/[id]', method, z.object({ id: z.enum([...new Set(DATA_ENTITIES.map(item => item.tableName))] as [string, ...string[]]), query: queryValues.optional(), ...(['POST', 'PATCH'].includes(method) ? { body: z.union([z.record(z.string(), z.unknown()), z.array(z.record(z.string(), z.unknown())).max(500)]) } : {}) }).strict(), { description: '与网站数据后台共用表/字段白名单、主键和 RLS。query 支持 select/order/limit/offset，筛选值 eq.值；更新或删除须包含完整主键和原值条件。' })),

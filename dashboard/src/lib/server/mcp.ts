@@ -12,7 +12,7 @@ import { mcpOperations, operationPath, type McpOperation } from './mcp-catalog.t
 const publishedNames = new Set([
   'credit_report', 'market_report', 'save_market_report', 'hotspots', 'policies', 'research_search', 'policy_articles',
   'update_policy_articles', 'article', 'news', 'commentaries', 'commentary', 'commentary_revisions',
-  'create_commentary', 'update_commentary', 'economic_indicators', 'bond_ledger', 'file_upload_request', 'bond_ledger_import',
+  'create_commentary', 'update_commentary', 'economic_indicators', 'bond_ledger', 'file_upload_request', 'bond_ledger_import', 'bond_investor_reference', 'create_bond_investor', 'update_bond_investor', 'financing_clients', 'create_client', 'update_client',
 ]);
 const publishedOperations = mcpOperations.filter(operation => publishedNames.has(operation.name));
 // bond_ledger_import carries parsed rows only; the xlsx bytes go straight to R2

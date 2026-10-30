@@ -25,7 +25,9 @@ Gateway 只在 `/mcp` 接受两个已登记的官方 CIMD 客户端。MCP token 
 
 客户端配置参考 [OpenAI MCP](https://learn.chatgpt.com/docs/extend/mcp#configure-with-configtoml)。
 
-Gateway 将 Dashboard 的19个工具与 Data 的22个只读市场查询合并，当前共41项候选工具。Data 资讯列表为 `news_list`，归档新闻详情仍为 `news`，无前缀或别名。旧公网 `/api/mcp` 与 `/data/mcp` 返回410；应用内部路径保留给命名 Service Binding。
+Gateway 将 Dashboard 的25个工具与 Data 的22个只读市场查询合并，当前共47项候选工具。Data 资讯列表为 `news_list`，归档新闻详情仍为 `news`，无前缀或别名。旧公网 `/api/mcp` 与 `/data/mcp` 返回410；应用内部路径保留给命名 Service Binding。
+
+债券投资人提供 `bond_investor_reference` 查询目标债券、既有分配和机构目录；`create_bond_investor`、`update_bond_investor` 分别新增或修改单条分配。维护机构使用 `financing_clients` 读取机构及别名/version，再用 `create_client`、`update_client`。工具按各自的 `financing.data:read/create/update` 权限分发。分配金额单位元；修改须带当前记录 ID 与预期金额，避免覆盖并发修改。
 
 ## 发布范围
 
@@ -35,7 +37,7 @@ Gateway 将 Dashboard 的19个工具与 Data 的22个只读市场查询合并，
 {"name":"credit_report","arguments":{"query":{"date":"2026-10-26"}}}
 ```
 
-市场研究已发布：`market_report`、`save_market_report`、`hotspots`、`policies`、`research_search`、`policy_articles`、`update_policy_articles`、`article`、`news`、`commentaries`、`commentary`、`commentary_revisions`、`create_commentary`、`update_commentary`、`economic_indicators`。加上 `credit_report`、`bond_ledger`、`file_upload_request`、`bond_ledger_import` ，实际目录由当前用户权限筛选。
+市场研究已发布：`market_report`、`save_market_report`、`hotspots`、`policies`、`research_search`、`policy_articles`、`update_policy_articles`、`article`、`news`、`commentaries`、`commentary`、`commentary_revisions`、`create_commentary`、`update_commentary`、`economic_indicators`。加上 `credit_report`、`bond_ledger` 共 25 个候选工具，实际目录由当前用户权限筛选。
 
 `bond_ledger` 只读现行二级池运营周报，受 `/api/bond-ledger` 的真实读取权限约束。
 
@@ -68,8 +70,8 @@ Gateway 将 Dashboard 的19个工具与 Data 的22个只读市场查询合并，
 ## 验证
 
 - `node --test tests/mcp.test.mjs tests/credit-masked.test.mjs`：实际 SDK 发现/调用、精确发布白名单、所有未发布工具拒绝、输入校验、脱敏 SQL/接口与字段白名单。ID 的 Unicode 校验在服务端执行，不导出需要 JavaScript Unicode 标志的 JSON Schema `pattern`；仍保留长度与路径限制。
-- 构建后 `GATEWAY_CHECKOUT=<gateway-worktree> node scripts/verify-mcp-integration.mjs`：真实 Gateway → 构建 SvelteKit → 私有授权桥接，配合 `DATA_CHECKOUT=<data-worktree>` 检查41项统一目录、Data真实处理器、未发布工具拒绝、参数校验与权限撤销；外部服务使用内存夹具。
-- 生产只读验收使用 Gateway 既有程序化正常登录，携带 API Bearer 直连本端点，核对当前权限下的41项统一候选目录并执行查询，旧名称及生成工具须拒绝。禁止浏览器权限验收。
+- 构建后 `GATEWAY_CHECKOUT=<gateway-worktree> node scripts/verify-mcp-integration.mjs`：真实 Gateway → 构建 SvelteKit → 私有授权桥接，配合 `DATA_CHECKOUT=<data-worktree>` 检查47项统一目录、Data真实处理器、未发布工具拒绝、参数校验与权限撤销；外部服务使用内存夹具。
+- 生产只读验收使用 Gateway 既有程序化正常登录，携带 API Bearer 直连本端点，核对当前权限下的47项统一候选目录并执行查询，旧名称及生成工具须拒绝。禁止浏览器权限验收。
 
 ## AI Search 研究检索
 

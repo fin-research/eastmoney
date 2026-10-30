@@ -6,7 +6,7 @@ const { handleDashboardMcp, executeOperation, decodeBusinessResponse, boundedTex
 const { mcpOperations, operationPath } = await import('../src/lib/server/mcp-catalog.ts');
 const { clientRequestPermission } = await import('../src/lib/route-permissions.ts');
 const { stringify } = await import('devalue');
-const publishedNames = ['market_report','save_market_report','hotspots','policies','research_search','policy_articles','update_policy_articles','article','news','commentaries','commentary','commentary_revisions','create_commentary','update_commentary','economic_indicators','credit_report','bond_ledger','file_upload_request','bond_ledger_import'];
+const publishedNames = ['market_report','save_market_report','hotspots','policies','research_search','policy_articles','update_policy_articles','article','news','commentaries','commentary','commentary_revisions','create_commentary','update_commentary','economic_indicators','credit_report','bond_ledger','file_upload_request','bond_ledger_import','financing_clients','create_client','update_client','bond_investor_reference','create_bond_investor','update_bond_investor'];
 const user = { id:'auth0|test',auth0Id:'auth0|test',email:'test@18.cn',issuedAt:1,expiresAt:9999999999,authorization:{name:'测试',picture:'',roles:[],permissions:[],mode:'enforce'} };
 function fixture(allow = () => true, response = () => Response.json({ saved:true })) {
   const calls = [];

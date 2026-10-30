@@ -1,6 +1,6 @@
 # 债券投资人
 
-入口 `/financing/bond-investors`，沿用 `financing.data:read`。页面只读，不提供 Excel 上传、导入接口或账户明细 API。Gateway 登记准入，Dashboard 同步菜单权限契约。
+入口 `/financing/bond-investors`，页面只读。MCP 专用工具按 `financing.data:read` 读取债券、既有分配和机构目录；逐条新增、修改按 `financing.data:create/update` 授权。机构维护复用客户新增和修改操作。工具不开放通用表写入。
 
 ## 数据与口径
 
