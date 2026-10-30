@@ -5,7 +5,7 @@ Eastmoney 在共享租户 `hasbai.eu.auth0.com` 内使用组织 `org_6yvoRRCkzk3
 ## 用户应用
 
 - 网站 `eastmoney` 使用授权码 + PKCE。ChatGPT、Codex、OpenCode 的 MCP 客户端使用官方 CIMD，精确 ID 见 [MCP](MCP.md)。两类登录都在 Eastmoney 组织内进行，Gateway 校验签名 `org_id`，CIMD token 只准入 `/mcp`。
-- 当前 `login claims` Action 的行为见 [Auth0 配置](../auth0/README.md#登录-action)。
+- 当前合并登录 Action（`login-claims.cjs`）的行为见 [Auth0 配置](../auth0/README.md#登录-action)。
 - `eastmoney-email` 是 domain connection，用于严格的第三方登录。本组织允许 third-party user flow，每个 CIMD 客户端有独立的 API user grant，未开放全体第三方默认授权。其他连接不变。
 - `eastmoney gateway management` 机器应用供 Gateway 身份服务和注册资料保存使用，见[管理应用](../auth0/README.md#管理应用)。角色准入使用 JWT 声明和授权缓存。
 

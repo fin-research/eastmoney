@@ -8,7 +8,7 @@ async function run(clientId,changes={}){
   const event={client:{client_id:clientId},organization:{id:'org_6yvoRRCkzk3eGkBS'},connection:{name:'eastmoney-email'},
     user:{email:'test@18.cn',email_verified:true,name:'测试',user_metadata:{department:'研究'}},authorization:{roles:['authenticated']},...changes};
   const context={exports:{}};vm.runInNewContext(code,context);
-  const claims={},denials=[];await context.exports.onExecutePostLogin(event,{accessToken:{setCustomClaim:(name,value)=>{claims[name]=value;}},access:{deny:message=>denials.push(message)}});
+  const claims={},denials=[];await context.exports.onExecutePostLogin(event,{redirect:{canRedirect:()=>false},accessToken:{setCustomClaim:(name,value)=>{claims[name]=value;}},access:{deny:message=>denials.push(message)}});
   return {claims,denials};
 }
 test('CIMD Action issues identity only from verified organization accounts, including refresh logins',async()=>{

@@ -6,11 +6,12 @@
 
 ## 登录 Action
 
-post-login 绑定两个 Action：注册资料 Action 和 `login claims`（`35884b07-e1f4-4ab8-b66c-0325d5a055e4`）。线上状态用 Auth0 CLI 读取，不从本地文件推断。
+post-login 只绑定 `eastmoney signup profile`（`91736f7a-024c-406d-905b-7d2daa20ec8f`），显示名为 `login claims and profile`，源码为 `actions/login-claims.cjs`。线上状态用 Auth0 CLI 读取，不从本地文件推断。
 
-- [login-claims.cjs](actions/login-claims.cjs)：写入顶层 `username`、`email`、`role`、`_roles`，本站组织另有可选 `department`、`picture`。拒绝封禁账号和未验证邮箱。`tpc_` 第三方 MCP 客户端改写签名 claim `https://eastmoney.hasbai.xyz/identity`，见 [MCP](../docs/MCP.md)。
+- [login-claims.cjs](actions/login-claims.cjs)：本组织 email 连接账号缺少姓名或部门时显示注册资料 Form，保存成功后以返回的新资料签发声明。写入顶层 `username`、`email`、`role`、`_roles`，本站组织另有可选 `department`、`picture`。拒绝封禁账号和未验证邮箱。`tpc_` 第三方 MCP 客户端改写签名 claim `https://eastmoney.hasbai.xyz/identity`，见 [MCP](../docs/MCP.md)。
 - `role` 供数据库使用，不用于业务授权。`_roles` 由 Gateway 按组织权限缓存解析为角色 ID。
-- `eastmoney-signup-profile` 只处理新账号的 pending 标记。姓名和部门不授予权限，也不自动关联业务负责人。
+- 姓名和部门不授予权限，也不自动关联业务负责人。
+- 旧 `login claims`（`35884b07-e1f4-4ab8-b66c-0325d5a055e4`）保留但未绑定。回退时部署原资料 Action 版本，再按原顺序绑定资料 Action 和旧 `login claims`。
 - 基础角色来自 Auth0 组织成员关系，Action 不自动分配。
 
 发布 Action 只修改目标 code，保留 Secret、依赖和 post-login 绑定，并避免覆盖其他会话未发布的草稿。
@@ -47,9 +48,12 @@ post-login 绑定两个 Action：注册资料 Action 和 `login claims`（`35884
 
 - 姓名用作显示名，允许同名。邮箱是登录标识，不增加要求唯一的 `username`。姓名和部门不授予角色，也不关联业务人员。
 - `branding/signup-profile-form.json` 是原生 Auth0 Form，标签与按钮为中文，继承主题。两个字段必填，结束节点恢复原登录事务。
-- `actions/eastmoney-registration.cjs` 保留 `18.cn` 限制，并给新用户设置 `app_metadata.eastmoney_signup_profile_pending`。
-- `actions/eastmoney-signup-profile.cjs` 在邮箱验证 Action 之前运行。新用户须完成 Form，恢复时再校验 Form ID、姓名和部门，只更新当前 Auth0 ID 的白名单字段。保存成功后清除 pending，失败保留以便重试。已有账号无 pending 标记，走原登录流程。
-- 资料 Action 与邮箱验证 Action 分开，因为 Auth0 不允许同一个 Action 既渲染 Form 又重定向。
+- `actions/login-claims.cjs` 渲染 Form，恢复时再校验 Form ID、组织、连接、姓名和部门，只更新当前 Auth0 ID 的白名单字段。保存失败拒绝登录，不签发声明。
+- `actions/eastmoney-registration.cjs`、`actions/eastmoney-signup-profile.cjs` 是历史实现，不代表线上代码，不要重新发布其 pending 标记逻辑。
+
+## Actions 与 Forms 额度
+
+免费套餐含 5 项 Actions + Forms，额度按订阅共享，只统计已绑定并部署的 Action 与已创建的 Form。[Auth0 额度说明](https://support.auth0.com/center/s/article/managing-auth0-actions-and-forms-quota-exceedance-notifications)。2026-10-30 本租户合并前为 3 个 Action 和 1 个 Form，共 4 项；合并后为 2 个 Action 和 1 个 Form，共 3 项。该盘点不证明同订阅其他租户的用量。
 - 凭据见 [管理应用](#管理应用)，不写入 Action 代码。
 
 ## 参考
