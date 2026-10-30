@@ -106,7 +106,7 @@ async function rpc(token, method, params = {}) {
     ? raw.split('\n').filter(line => line.startsWith('data: ')).map(line => JSON.parse(line.slice(6))).find(value => value.id === 1) : JSON.parse(raw);
   assert.ok(!value.error); return value.result;
 }
-const tools = await rpc(tokens.access_token, 'tools/list'); assert.equal(tools.tools.length, 39);
+const tools = await rpc(tokens.access_token, 'tools/list'); assert.equal(tools.tools.length, 40);
 assert.equal((await rpc(tokens.access_token, 'tools/call', { name: 'choice_css', arguments: {} })).isError, true);
 for (const path of ['/api/profile', '/data/choice/css']) {
   const response = await fetch(site + path, { headers: { Authorization: 'Bearer ' + tokens.access_token } });
@@ -117,7 +117,7 @@ for (const path of ['/api/mcp', '/data/mcp']) {
 }
 const refreshed = await exchange({ grant_type: 'refresh_token', client_id: clientId, resource: metadata.resource, refresh_token: tokens.refresh_token });
 assert.ok(refreshed.refresh_token); assert.notEqual(refreshed.refresh_token, tokens.refresh_token);
-await checkIdentity(refreshed.access_token); assert.equal((await rpc(refreshed.access_token, 'tools/list')).tools.length, 39);
+await checkIdentity(refreshed.access_token); assert.equal((await rpc(refreshed.access_token, 'tools/list')).tools.length, 40);
 console.log({ clientId, pkce: true, signedIdentity: true, refreshRotation: true, tools: tools.tools.length, ordinaryRestAndDataRejected: true, invalidChoiceRejected: true, retiredEndpoints: true });
 for (const name of ['commentaries', 'credit_report', 'chinamoney_shibor', 'cfets', 'trading_days']) {
   const result = await rpc(tokens.access_token, 'tools/call', { name, arguments: {} });
