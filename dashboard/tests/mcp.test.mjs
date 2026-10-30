@@ -6,7 +6,7 @@ const { handleDashboardMcp, executeOperation, decodeBusinessResponse, boundedTex
 const { mcpOperations, operationPath } = await import('../src/lib/server/mcp-catalog.ts');
 const { clientRequestPermission } = await import('../src/lib/route-permissions.ts');
 const { stringify } = await import('devalue');
-const publishedNames = ['market_report','save_market_report','hotspots','policies','research_search','policy_articles','update_policy_articles','article','news','commentaries','commentary','commentary_revisions','create_commentary','update_commentary','economic_indicators','credit_report','bond_ledger'];
+const publishedNames = ['market_report','save_market_report','hotspots','policies','research_search','policy_articles','update_policy_articles','article','news','commentaries','commentary','commentary_revisions','create_commentary','update_commentary','economic_indicators','credit_report','bond_ledger','bond_ledger_import'];
 const user = { id:'auth0|test',auth0Id:'auth0|test',email:'test@18.cn',issuedAt:1,expiresAt:9999999999,authorization:{name:'测试',picture:'',roles:[],permissions:[],mode:'enforce'} };
 function fixture(allow = () => true, response = () => Response.json({ saved:true })) {
   const calls = [];
@@ -197,6 +197,50 @@ test('bond ledger reports project nested business fields and preserve empty, fai
   }
   const denied=await rpc(fixture(operation=>operation.path!=='/api/bond-ledger'),'tools/list');
   assert.ok(!denied.payload.result.tools.some(tool=>tool.name==='bond_ledger'));
+});
+test('bond ledger import builds multipart upload, dispatches once and returns the import result', async () => {
+  const f = fixture(() => true, async request => {
+    assert.equal(new URL(request.url).searchParams.get('target'), '/api/bond-ledger');
+    assert.equal(request.method, 'POST');
+    const form = await request.formData();
+    assert.equal(form.get('file').name, '二级资金池台账20261026.xlsx');
+    assert.equal(form.get('file').type, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    assert.deepEqual(JSON.parse(form.get('parsed')), { date: '2026-10-26', performance: [], positions: [] });
+    assert.equal(form.get('expectedDate'), '2026-10-26');
+    return Response.json({ reportDate: '2026-10-26', statisticsCount: 1, positionCount: 2, transactionCount: 0 });
+  });
+  const { payload } = await rpc(f, 'tools/call', { name: 'bond_ledger_import', arguments: {
+    fileName: '二级资金池台账20261026.xlsx', expectedDate: '2026-10-26',
+    fileBase64: Buffer.from('xlsx-bytes').toString('base64'),
+    parsed: { date: '2026-10-26', performance: [], positions: [] },
+  } });
+  assert.equal(payload.result.isError, undefined);
+  assert.deepEqual(payload.result.structuredContent.data, { reportDate: '2026-10-26', statisticsCount: 1, positionCount: 2, transactionCount: 0 });
+  assert.equal(f.calls.filter(request => new URL(request.url).pathname === '/mcp/dispatch').length, 1);
+  const g = fixture(() => true, async request => {
+    const form = await request.formData();
+    assert.equal(form.has('expectedDate'), false);
+    return Response.json({ reportDate: '2026-10-26', statisticsCount: 1, positionCount: 0, transactionCount: 0 });
+  });
+  const noExpected = await rpc(g, 'tools/call', { name: 'bond_ledger_import', arguments: {
+    fileName: '台账.xlsx', fileBase64: 'eA==', parsed: { date: '2026-10-26', performance: [], positions: [] },
+  } });
+  assert.equal(noExpected.payload.result.isError, undefined);
+});
+test('bond ledger import rejects invalid inputs without dispatching', async () => {
+  const f = fixture();
+  for (const args of [
+    {},
+    { fileName: '', fileBase64: 'eA==', parsed: {} },
+    { fileName: 'a'.repeat(181), fileBase64: 'eA==', parsed: {} },
+    { fileName: '台账.xlsx', fileBase64: '', parsed: {} },
+    { fileName: '台账.xlsx', fileBase64: 'eA==', expectedDate: '2026-02-30', parsed: {} },
+    { fileName: '台账.xlsx', fileBase64: 'eA==', parsed: {}, extra: 1 },
+  ]) {
+    const { payload } = await rpc(f, 'tools/call', { name: 'bond_ledger_import', arguments: args });
+    assert.ok(payload.error || payload.result.isError, JSON.stringify(args));
+  }
+  assert.equal(f.calls.filter(request => new URL(request.url).pathname === '/mcp/dispatch').length, 0);
 });
 test('research search is discoverable read-only POST and preserves request and upstream result',async()=>{
  const found=(await rpc(fixture(),'tools/list')).payload.result.tools.find(tool=>tool.name==='research_search');

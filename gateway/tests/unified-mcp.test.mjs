@@ -80,7 +80,7 @@ test('old public endpoints are retired before Data routing and request bodies ar
   }
   assert.equal(f.calls.dashboard.length+f.calls.data.length,0);
   const token=await f.signed();
-  const tooLarge=await gatewayRequest(new Request(f.env.SITE_ORIGIN+'/mcp',{method:'POST',headers:{Host:new URL(f.env.SITE_ORIGIN).host,Authorization:'Bearer '+token,'Content-Type':'application/json'},body:' '.repeat(1024*1024+1)}),f.env);
+  const tooLarge=await gatewayRequest(new Request(f.env.SITE_ORIGIN+'/mcp',{method:'POST',headers:{Host:new URL(f.env.SITE_ORIGIN).host,Authorization:'Bearer '+token,'Content-Type':'application/json'},body:' '.repeat(8*1024*1024+1)}),f.env);
   assert.equal(tooLarge.status,413);
   for(const method of ['GET','DELETE']) assert.equal((await gatewayRequest(new Request(f.env.SITE_ORIGIN+'/mcp',{method,headers:{Authorization:'Bearer '+token}}),f.env)).status,405);
 });
