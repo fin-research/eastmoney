@@ -6,7 +6,7 @@ const { handleDashboardMcp, executeOperation, decodeBusinessResponse, boundedTex
 const { mcpOperations, operationPath } = await import('../src/lib/server/mcp-catalog.ts');
 const { clientRequestPermission } = await import('../src/lib/route-permissions.ts');
 const { stringify } = await import('devalue');
-const publishedNames = ['market_report','save_market_report','hotspots','policies','research_search','policy_articles','update_policy_articles','article','news','commentaries','commentary','commentary_revisions','create_commentary','update_commentary','economic_indicators','credit_report','bond_ledger','bond_ledger_import','financing_clients','create_client','update_client','bond_investor_reference','create_bond_investor','update_bond_investor'];
+const publishedNames = ['market_report','save_market_report','hotspots','policies','research_search','policy_articles','update_policy_articles','article','news','commentaries','commentary','commentary_revisions','create_commentary','update_commentary','economic_indicators','credit_report','bond_ledger','file_upload_request','bond_ledger_import','financing_clients','create_client','update_client','bond_investor_reference','create_bond_investor','update_bond_investor'];
 const user = { id:'auth0|test',auth0Id:'auth0|test',email:'test@18.cn',issuedAt:1,expiresAt:9999999999,authorization:{name:'测试',picture:'',roles:[],permissions:[],mode:'enforce'} };
 function fixture(allow = () => true, response = () => Response.json({ saved:true })) {
   const calls = [];
@@ -198,47 +198,81 @@ test('bond ledger reports project nested business fields and preserve empty, fai
   const denied=await rpc(fixture(operation=>operation.path!=='/api/bond-ledger'),'tools/list');
   assert.ok(!denied.payload.result.tools.some(tool=>tool.name==='bond_ledger'));
 });
-test('bond ledger import builds multipart upload, dispatches once and returns the import result', async () => {
+test('file upload request dispatches a scoped presign POST and returns the upload contract', async () => {
+  const f = fixture(() => true, async request => {
+    assert.equal(new URL(request.url).searchParams.get('target'), '/api/files/upload-request');
+    assert.equal(request.method, 'POST');
+    assert.deepEqual(await request.json(), {
+      purpose: 'bond-ledger', fileName: '二级资金池台账20261026.xlsx', size: 4096, contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    return Response.json({ version: 1, purpose: 'bond-ledger', uploadId: 'u-1', key: 'bond-ledger/imports/u-1.xlsx', uploadUrl: 'https://presigned.example/put', expiresAt: '2026-10-30T05:29:02.000Z', sizeLimit: 12582912, contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  });
+  const { payload } = await rpc(f, 'tools/call', { name: 'file_upload_request', arguments: {
+    body: { purpose: 'bond-ledger', fileName: '二级资金池台账20261026.xlsx', size: 4096, contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+  } });
+  assert.equal(payload.result.isError, undefined);
+  assert.equal(payload.result.structuredContent.data.uploadUrl, 'https://presigned.example/put');
+  assert.equal(f.calls.filter(request => new URL(request.url).pathname === '/mcp/dispatch').length, 1);
+});
+test('file upload request rejects unknown purposes, bad names, sizes and extra parameters without dispatching', async () => {
+  const f = fixture();
+  for (const body of [
+    { purpose: 'market-report', fileName: 'a.xlsx', size: 1 },
+    { purpose: 'bond-ledger', fileName: '', size: 1 },
+    { purpose: 'bond-ledger', fileName: 'a.xlsx', size: 0 },
+    { purpose: 'bond-ledger', fileName: 'a.xlsx', size: 12.5 },
+    { purpose: 'bond-ledger', fileName: 'a.xlsx', size: 1, extra: 1 },
+    {},
+  ]) {
+    const { payload } = await rpc(f, 'tools/call', { name: 'file_upload_request', arguments: { body } });
+    assert.ok(payload.error || payload.result.isError, JSON.stringify(body));
+  }
+  assert.equal(f.calls.filter(request => new URL(request.url).pathname === '/mcp/dispatch').length, 0);
+});
+test('bond ledger import dispatches an uploadId-based JSON import and returns the import result', async () => {
   const f = fixture(() => true, async request => {
     assert.equal(new URL(request.url).searchParams.get('target'), '/api/bond-ledger');
     assert.equal(request.method, 'POST');
-    const form = await request.formData();
-    assert.equal(form.get('file').name, '二级资金池台账20261026.xlsx');
-    assert.equal(form.get('file').type, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    assert.deepEqual(JSON.parse(form.get('parsed')), { date: '2026-10-26', performance: [], positions: [] });
-    assert.equal(form.get('expectedDate'), '2026-10-26');
+    assert.equal(request.headers.get('Content-Type'), 'application/json');
+    assert.deepEqual(await request.json(), {
+      uploadId: '123e4567-e89b-12d3-a456-426614174000',
+      fileName: '二级资金池台账20261026.xlsx',
+      expectedDate: '2026-10-26',
+      parsed: { date: '2026-10-26', performance: [], positions: [] },
+    });
     return Response.json({ reportDate: '2026-10-26', statisticsCount: 1, positionCount: 2, transactionCount: 0 });
   });
   const { payload } = await rpc(f, 'tools/call', { name: 'bond_ledger_import', arguments: {
-    fileName: '二级资金池台账20261026.xlsx', expectedDate: '2026-10-26',
-    fileBase64: Buffer.from('xlsx-bytes').toString('base64'),
-    parsed: { date: '2026-10-26', performance: [], positions: [] },
+    body: {
+      uploadId: '123e4567-e89b-12d3-a456-426614174000',
+      fileName: '二级资金池台账20261026.xlsx', expectedDate: '2026-10-26',
+      parsed: { date: '2026-10-26', performance: [], positions: [] },
+    },
   } });
   assert.equal(payload.result.isError, undefined);
   assert.deepEqual(payload.result.structuredContent.data, { reportDate: '2026-10-26', statisticsCount: 1, positionCount: 2, transactionCount: 0 });
   assert.equal(f.calls.filter(request => new URL(request.url).pathname === '/mcp/dispatch').length, 1);
   const g = fixture(() => true, async request => {
-    const form = await request.formData();
-    assert.equal(form.has('expectedDate'), false);
+    assert.equal((await request.json()).expectedDate, undefined);
     return Response.json({ reportDate: '2026-10-26', statisticsCount: 1, positionCount: 0, transactionCount: 0 });
   });
   const noExpected = await rpc(g, 'tools/call', { name: 'bond_ledger_import', arguments: {
-    fileName: '台账.xlsx', fileBase64: 'eA==', parsed: { date: '2026-10-26', performance: [], positions: [] },
+    body: { uploadId: '123e4567-e89b-12d3-a456-426614174000', fileName: '台账.xlsx', parsed: { date: '2026-10-26', performance: [], positions: [] } },
   } });
   assert.equal(noExpected.payload.result.isError, undefined);
 });
 test('bond ledger import rejects invalid inputs without dispatching', async () => {
   const f = fixture();
-  for (const args of [
+  for (const body of [
     {},
-    { fileName: '', fileBase64: 'eA==', parsed: {} },
-    { fileName: 'a'.repeat(181), fileBase64: 'eA==', parsed: {} },
-    { fileName: '台账.xlsx', fileBase64: '', parsed: {} },
-    { fileName: '台账.xlsx', fileBase64: 'eA==', expectedDate: '2026-02-30', parsed: {} },
-    { fileName: '台账.xlsx', fileBase64: 'eA==', parsed: {}, extra: 1 },
+    { uploadId: '', fileName: '台账.xlsx', parsed: {} },
+    { uploadId: '123e4567-e89b-12d3-a456-426614174000', fileName: '', parsed: {} },
+    { uploadId: '123e4567-e89b-12d3-a456-426614174000', fileName: 'a'.repeat(181), parsed: {} },
+    { uploadId: '123e4567-e89b-12d3-a456-426614174000', fileName: '台账.xlsx', expectedDate: '2026-02-30', parsed: {} },
+    { uploadId: '123e4567-e89b-12d3-a456-426614174000', fileName: '台账.xlsx', parsed: {}, extra: 1 },
   ]) {
-    const { payload } = await rpc(f, 'tools/call', { name: 'bond_ledger_import', arguments: args });
-    assert.ok(payload.error || payload.result.isError, JSON.stringify(args));
+    const { payload } = await rpc(f, 'tools/call', { name: 'bond_ledger_import', arguments: { body } });
+    assert.ok(payload.error || payload.result.isError, JSON.stringify(body));
   }
   assert.equal(f.calls.filter(request => new URL(request.url).pathname === '/mcp/dispatch').length, 0);
 });

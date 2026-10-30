@@ -38,6 +38,7 @@ export const ROUTE_PERMISSIONS: Record<string, Methods> = {
   '/bond': { GET: 'bond.ledger:read' }, '/bond-ledger': { GET: 'bond.ledger:read' },
   '/secondary-bond-pool': { GET: 'bond.ledger:read' },
   '/api/bond-ledger': { GET: 'bond.ledger:read', POST: 'bond.ledger:import', DELETE: 'bond.ledger:delete' },
+  '/api/files/upload-request': { POST: 'bond.ledger:import' },
   '/api/bond-investors/records': { GET: 'financing.data:read', POST: 'financing.data:create', PATCH: 'financing.data:update' },
   '/fund-report': { GET: 'fund.report:read' }, '/fund-report/[date].html': { GET: 'fund.report:read' },
   '/api/fund-report': { POST: 'admin' },
