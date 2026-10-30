@@ -213,9 +213,13 @@ export async function saveCreditInstitution(client: DatabaseClient,input: Credit
     }
     const afterExpiry=fields.expiryDate??(before?.expiry_date ? databaseDate(before.expiry_date) : null);
     const afterStatus=creditEffectiveStatus({reportDate:input.reportDate,expiryDate:afterExpiry,status:fields.status??before?.status??'applying'});
+    const maintenanceRenewal = operation === 'maintenance' && fields.expiryDate != null &&
+      before?.expiry_date != null && databaseDate(before.expiry_date) !== '1970-01-01' &&
+      fields.expiryDate > databaseDate(before.expiry_date);
     const eventType = operation === 'renewal' && fields.totalLimit != null && Number(fields.totalLimit)>Number(before.total ?? 0)
-      ? 'increase' : operation === 'maintenance' && before?.status === 'applying' && afterStatus === 'approved'
-        ? 'new' : operation;
+      ? 'increase' : maintenanceRenewal ? 'renewal'
+        : operation === 'maintenance' && before?.status === 'applying' && afterStatus === 'approved'
+          ? 'new' : operation;
     if (eventType === 'maintenance') {
       await client.query('SELECT credit.append_entry($1::date,$2,$3::jsonb,$4) AS id',
         [input.reportDate,input.institutionName,JSON.stringify(patch),createdBy]);

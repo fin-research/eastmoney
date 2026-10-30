@@ -19,6 +19,19 @@ Worker 通过 `HYPERDRIVE` 访问 Neon `credit` schema，migration 只放 `credi
 
 跨业务日不删除或直接更新 entry。普通 UPDATE/DELETE 由触发器拒绝。受控历史纠错通过 `SET LOCAL credit.correct_history='on'` 按联合主键更新，主键、创建日期和创建人不可改。`updated_at` 不代替业务日期。已有 `retired_diff_fields` 保留历史证据。
 
+确需删除错误的历史行时，在数据库事务中使用同一授信写锁和精确联合主键；提交时会校验受影响机构后续截面的期限：
+
+```sql
+BEGIN;
+SELECT pg_advisory_xact_lock(hashtextextended('credit.excel_import',0));
+SET LOCAL credit.correct_history='on';
+DELETE FROM credit.entry
+WHERE report_date='YYYY-MM-DD' AND field_id='字段ID' AND institution_id=机构ID;
+COMMIT;
+```
+
+普通删除仍会失败。不要按机构或日期批量删除。
+
 `0018_credit_entries.sql` 逐字段迁移全部旧 diff 日期，机构资料取各字段最新值。只有原来明确撤销的记录转换为 `1970-01-01`，以后恢复获批的记录保留实际期限。迁移在同一事务核对全部历史业务字段和当前撤销名单，不一致则回滚。只有状态/元数据的旧行保留其业务日期和事件，用继承备注承载，未登记备注才初始化为空字符串。
 
 生产切换先执行默认 `pnpm credit:db:migrate`，仅应用增量阶段。旧 Worker 的 diff 写入继续镜像，新 Worker 此时可以读长表，写入暂返回 503，机构改名暂时拒绝。确认新 Worker 接管全部流量后执行 `pnpm credit:db:migrate -- --finalize` 应用 `0019`，同一写锁等待旧事务完成，再关闭旧函数、将 diff 改名为只读 `legacy_diff` 并开放 entry 写入。默认命令不会提前执行收尾。ledger 已完成 `0019` 后，默认命令继续执行后续 migration。`0020` 新增定稿字段，历史记录保持 false。旧资料不再参与运行时查询，不把旧 Worker 直接回滚到已收尾数据库。
@@ -57,6 +70,7 @@ Worker 通过 `HYPERDRIVE` 访问 Neon `credit` schema，migration 只放 `credi
   浏览器替换该机构的数据并响应式重算报表，保留筛选、排序、详情弹窗及日历月份，无额外 GET。历史起点或比较期变化时 `scope=context` 补齐事件及比较截面，当前日仍只返回目标机构。前端保留其他机构的当前截面，重算受影响部分。保存途中切换日期/月时，通过上下文和请求序号拒绝旧响应。
 
   维护操作不能变更总授信额度；后端在写锁内按业务日截面及数据库六位金额精度核对，拒绝增加、减少、清零或首次登记总额，同值与省略总额可提交，分项额度仍可维护。续期、扩额、撤销、字段白名单、期限约束、事务及审计继续由后端验证。前端派生值不作为写入依据。用户 ID 来自 `locals.user.auth0Id`。
+  维护中延长已有实际到期日按续作记事；申请中转获批且未延长期限仍按新增记事。撤销哨兵不视为原期限。
 - `POST /api/credit` 使用相同结构新增机构，至少包含机构性质、状态、保密协议状态。主体重复返回 409。成功后可继续维护全部详情。
 - `GET /api/credit?view=usage&date=YYYY-MM-DD&institution=主体&type=bond_investment|yield_certificate|interbank_lending&offset=0` 仅返回该主体、该日、该品种的存续融资条目及合计，沿用授信读取权限。每页100条，offset最大100000。未关联时合计缺失；有关联且无存续条目时为0。债券每行展示关联客户实际认购额，同一债券可有多个客户条目。非法view、日期、主体、品种或分页参数返回400。
 - 一级发行存续额、收益凭证、拆借原始用量由服务器提供。浏览器派生债券分项及总已用。债券 `secondaryUsedAmount` 可编辑。禁止通过 `usedAmount` 覆盖派生债券合计。
