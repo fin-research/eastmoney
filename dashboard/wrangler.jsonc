@@ -15,7 +15,9 @@
   },
   "secrets": {
     "required": [
-      "CF_AIG_TOKEN"
+      "CF_AIG_TOKEN",
+      "R2_ACCESS_KEY_ID",
+      "R2_SECRET_ACCESS_KEY"
     ]
   },
   "assets": {

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { parsedBondLedgerSchema } from "../bond-ledger/import-schema.ts";
 import type { PersistBondLedgerInput, PersistBondLedgerResult, FailedBondLedgerInput } from "./bond-ledger-repository.ts";
 import type { RemoteBondLedgerFile } from "./bond-ledger-repository.ts";
@@ -86,7 +87,64 @@ export async function archiveBondLedgerRequest(
   }
 }
 
-async function readUploadBody(request: Request): Promise<ArrayBuffer> {
+const uploadedBondLedgerSchema = z.object({
+  uploadId: z.string().uuid(),
+  fileName: z.string().trim().min(1).max(180).regex(/^[^\u0000-\u001f/\\]+\.xlsx$/i),
+  expectedDate: z.string().date().optional(),
+  parsed: z.record(z.string(), z.unknown()),
+}).strict();
+
+export async function readBondLedgerJson(request: Request, limit = MAX_PARSED_LEDGER_BYTES + 1024): Promise<unknown> {
+  const bytes = await readUploadBody(request, limit);
+  try { return JSON.parse(new TextDecoder().decode(bytes)); }
+  catch { throw new BondLedgerUploadError(400, "台账导入内容无效"); }
+}
+
+/** Import a ledger whose xlsx was already uploaded directly to R2 through a
+ * presigned PUT. Reuses the same archive key, validation and single-transaction
+ * persist as the browser multipart path; the file never transits the server. */
+export async function importBondLedgerUpload(
+  request: Request,
+  bucket: Env["EASTMONEY"] | undefined,
+  rawInput: unknown,
+  persist: (value: PersistBondLedgerInput) => Promise<PersistBondLedgerResult>,
+  recordFailure?: (value: FailedBondLedgerInput) => Promise<void>,
+): Promise<PersistBondLedgerResult> {
+  validateSameOrigin(request);
+  const storage = requireBucket(bucket);
+  const decoded = uploadedBondLedgerSchema.safeParse(rawInput);
+  if (!decoded.success) throw new BondLedgerUploadError(400, "台账导入内容无效");
+  const input = decoded.data;
+  if (new TextEncoder().encode(JSON.stringify(input.parsed)).byteLength > MAX_PARSED_LEDGER_BYTES) {
+    throw new BondLedgerUploadError(413, "台账解析数据不能超过 8 MiB");
+  }
+  const key = `${IMPORT_LEDGER_PREFIX}${input.uploadId}.xlsx`;
+  const fileName = input.fileName;
+  const object = await storage.head(key);
+  if (!object) throw new BondLedgerUploadError(400, "台账文件尚未上传或已过期，请重新申请上传地址");
+  if (object.size <= 0 || object.size > MAX_LEDGER_BYTES) {
+    throw new BondLedgerUploadError(400, "台账文件必须为非空且不超过 12 MB 的 .xlsx");
+  }
+  const validated = parsedBondLedgerSchema.safeParse(input.parsed);
+  if (!validated.success) throw new BondLedgerUploadError(400, "台账解析数据不符合导入要求");
+  const parsed = validated.data;
+  const expectedDate = input.expectedDate || null;
+  if (expectedDate) {
+    validateLedgerDate(expectedDate);
+    if (parsed.date !== expectedDate) throw new BondLedgerUploadError(400, `重新上传文件的报表日必须为 ${expectedDate}，实际为 ${parsed.date}`);
+  }
+  const uploadedAt = object.uploaded.toISOString();
+  const persistInput = { uploadId: input.uploadId, r2Key: key, r2Etag: object.etag || null,
+    originalName: fileName, fileSize: object.size, expectedDate, uploadedAt, parsed };
+  try { return await persist(persistInput); }
+  catch (error) {
+    try { await recordFailure?.({ ...persistInput, errorMessage: "直传导入失败，请核对数据库状态后重试" }); }
+    catch { console.error(JSON.stringify({ event: "bond_ledger_failure_record_failed", uploadId: input.uploadId, key })); }
+    throw error;
+  }
+}
+
+async function readUploadBody(request: Request, limit = MAX_IMPORT_REQUEST_BYTES): Promise<ArrayBuffer> {
   if (!request.body) throw new BondLedgerUploadError(400, "台账上传内容为空");
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -96,9 +154,9 @@ async function readUploadBody(request: Request): Promise<ArrayBuffer> {
       const { value, done } = await reader.read();
       if (done) break;
       size += value.byteLength;
-      if (size > MAX_IMPORT_REQUEST_BYTES) {
+      if (size > limit) {
         await reader.cancel();
-        throw new BondLedgerUploadError(413, "台账上传内容不能超过 21 MB");
+        throw new BondLedgerUploadError(413, "台账上传内容超过大小限制");
       }
       chunks.push(value);
     }

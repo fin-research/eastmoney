@@ -17,7 +17,7 @@ const queryValues = z.record(z.string().max(100), z.union([z.string().max(4000),
 const formValues = queryValues.describe('与网站表单相同的字段；多值字段使用字符串数组。缺失字段不会自动补齐，更新前先读取当前记录。');
 export interface McpOperation {
   name: string; title: string; path: string; method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-  input: z.ZodObject; format?: 'page' | 'form' | 'html' | 'upload'; action?: string; description?: string; readOnly?: boolean;
+  input: z.ZodObject; format?: 'page' | 'form' | 'html'; action?: string; description?: string; readOnly?: boolean;
 }
 function api(name: string, title: string, path: string, method: McpOperation['method'] = 'GET', input: z.ZodObject = empty, extra: Partial<McpOperation> = {}): McpOperation {
   return { name, title, path, method, input, ...extra };
@@ -28,10 +28,16 @@ const bondLedgerInput = z.object({ query: z.object({ start: dateSchema.optional(
   .refine(value => (value.start === undefined) === (value.end === undefined), '统计范围必须同时包含起止日期')
   .refine(value => !value.start || !value.end || value.start <= value.end, '统计起始日期不能晚于结束日期').optional() }).strict();
 const bondLedgerImportInput = z.object({
+  uploadId: z.string().min(1).max(64).describe('file_upload_request 返回的直传编号'),
   fileName: z.string().min(1).max(180).describe('原始台账文件名，须以 .xlsx 结尾'),
   expectedDate: dateSchema.optional().describe('期望报表日（YYYY-MM-DD）；与本地解析出的报表日不一致时服务端拒绝'),
-  fileBase64: z.string().min(1).describe('xlsx 原始文件字节的 base64 编码'),
   parsed: z.record(z.string(), z.unknown()).describe('本地解析后的结构化台账 {date, performance[], positions[]}'),
+}).strict();
+const fileUploadRequestInput = z.object({
+  purpose: z.enum(['bond-ledger']).describe('上传用途，决定目标桶、前缀、大小上限与所需权限'),
+  fileName: z.string().min(1).max(180).describe('原始文件名，须匹配用途允许的扩展名'),
+  size: z.number().int().min(1).max(64 * 1024 * 1024).describe('文件字节数；服务端按用途上限校验'),
+  contentType: z.string().max(120).optional().describe('可选 MIME；缺省按用途默认值，直传时必须原样发送'),
 }).strict();
 const query = (shape: z.ZodRawShape) => z.object({ query: z.object(shape).strict().optional() }).strict();
 function page(name: string, title: string, path: string, input: z.ZodObject = empty) { return api(name, title, path, 'GET', input, { format: 'page' }); }
@@ -57,9 +63,11 @@ export const mcpOperations: McpOperation[] = [
   api('economic_indicators', '读取经济指标与趋势', '/api/economic-indicators'),
   api('credit_report', '读取脱敏授信一览表', '/api/credit?view=masked', 'GET', query(creditMaskedQuerySchema.omit({view:true}).shape)),
   api('bond_ledger', '读取二级池台账与周报', '/api/bond-ledger', 'GET', bondLedgerInput, { description: '不传日期返回可用台账日清单；query.start 与 query.end 必须同时提供，读取现行二级池运营周报数据。金额为元；年化收益和风险指标为小数，flatStatic、reportYield、weightedYield 为原报表百分数；不下载原始文件。' }),
-  api('bond_ledger_import', '上传并导入二级池台账', '/api/bond-ledger', 'POST', bondLedgerImportInput, {
-    format: 'upload',
-    description: '增量上传二级池台账：fileName 为原始文件名，fileBase64 为 xlsx 原件 base64，parsed 为本地解析后的 {date, performance[], positions[]}。服务端不解析 Excel，校验解析数据、归档原件并单事务入库；同一报表日重复上传会替换原成功记录。',
+  api('file_upload_request', '申请文件直传上传地址', '/api/files/upload-request', 'POST', body(fileUploadRequestInput), {
+    description: '为指定用途生成 R2 预签名直传地址：返回 uploadUrl/uploadId/key/expiresAt/sizeLimit/contentType/requiredHeaders。客户端必须用原始字节 PUT 到 uploadUrl（返回的 requiredHeaders 全部原样发送，含 If-None-Match: *，禁止覆盖已有原件），随后用返回的 uploadId 调用对应业务导入工具。地址约 15 分钟有效。',
+  }),
+  api('bond_ledger_import', '导入已直传的二级池台账', '/api/bond-ledger', 'POST', body(bondLedgerImportInput), {
+    description: '导入已通过 file_upload_request 直传 R2 的二级池台账：uploadId 为直传编号，fileName 为原始文件名，parsed 为本地解析后的 {date, performance[], positions[]}。服务端不解析 Excel，校验解析数据、以直传原件归档并单事务入库；同一报表日重复上传会替换原成功记录。',
   }),
   api('delete_bond_ledger', '删除指定日期二级池台账', '/api/bond-ledger', 'DELETE', z.object({ query: z.object({ date: dateSchema }) }).strict()),
   api('financing_model', '读取融资择时模型报告', '/api/financing-model', 'GET', query({ run: z.string().uuid().optional() })),

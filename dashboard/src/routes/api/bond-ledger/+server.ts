@@ -2,6 +2,8 @@ import {
   archiveBondLedgerRequest,
   BondLedgerUploadError,
   getBondLedgerFile,
+  importBondLedgerUpload,
+  readBondLedgerJson,
   ledgerDownloadHeaders,
   validateLedgerDate,
   validateSameOrigin,
@@ -68,14 +70,22 @@ export const GET: RequestHandler = async ({ platform, url }) => {
 
 export const POST: RequestHandler = async ({ request, platform, url }) => {
   try {
-    const result = await archiveBondLedgerRequest(
-      request,
-      platform?.env.EASTMONEY,
-      (input) => withPostgres(platform?.env.HYPERDRIVE?.connectionString, "eastmoney-bond-import",
-        (client) => persistParsedBondLedger(client, input)),
-      (input) => withPostgres(platform?.env.HYPERDRIVE?.connectionString, "eastmoney-bond-import-failure",
-        (client) => recordFailedBondLedgerImport(client, input)),
-    );
+    const contentType = request.headers.get("Content-Type") ?? "";
+    // MCP direct uploads skip the server entirely: the xlsx was PUT to R2
+    // through a presigned URL, and only the uploadId plus parsed rows arrive here.
+    const persist = (input: Parameters<typeof persistParsedBondLedger>[1]) =>
+      withPostgres(platform?.env.HYPERDRIVE?.connectionString, "eastmoney-bond-import",
+        (client) => persistParsedBondLedger(client, input));
+    const recordFailure = (input: Parameters<typeof recordFailedBondLedgerImport>[1]) =>
+      withPostgres(platform?.env.HYPERDRIVE?.connectionString, "eastmoney-bond-import-failure",
+        (client) => recordFailedBondLedgerImport(client, input));
+    let result;
+    if (contentType.startsWith("application/json")) {
+      const body = await readBondLedgerJson(request);
+      result = await importBondLedgerUpload(request, platform?.env.EASTMONEY, body, persist, recordFailure);
+    } else {
+      result = await archiveBondLedgerRequest(request, platform?.env.EASTMONEY, persist, recordFailure);
+    }
     return Response.json(result, {
       status: 200,
       headers: { "Cache-Control": "no-store" },
