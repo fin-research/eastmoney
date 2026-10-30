@@ -12,10 +12,12 @@ import { mcpOperations, operationPath, type McpOperation } from './mcp-catalog.t
 const publishedNames = new Set([
   'credit_report', 'market_report', 'save_market_report', 'hotspots', 'policies', 'research_search', 'policy_articles',
   'update_policy_articles', 'article', 'news', 'commentaries', 'commentary', 'commentary_revisions',
-  'create_commentary', 'update_commentary', 'economic_indicators', 'bond_ledger',
+  'create_commentary', 'update_commentary', 'economic_indicators', 'bond_ledger', 'bond_ledger_import',
 ]);
 const publishedOperations = mcpOperations.filter(operation => publishedNames.has(operation.name));
-const MAX_REQUEST = 1024 * 1024;
+// bond_ledger_import carries the base64 xlsx original plus parsed rows, so the
+// JSON-RPC envelope needs room for a single <1 MB ledger; business limits still apply.
+const MAX_REQUEST = 8 * 1024 * 1024;
 const MAX_RESPONSE = 8 * 1024 * 1024;
 const privateHeaders = { 'Cache-Control': 'no-store, private', Vary: 'Cookie, Authorization' };
 class McpBusinessError extends Error {
@@ -67,11 +69,24 @@ export async function decodeBusinessResponse(response: Response, operation: Pick
   }
   return value;
 }
+const XLSX_CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+function bondLedgerUploadForm(input: Record<string, unknown>): FormData {
+  const bytes = Buffer.from(String(input.fileBase64 ?? ''), 'base64');
+  const form = new FormData();
+  form.set('file', new Blob([bytes], { type: XLSX_CONTENT_TYPE }), String(input.fileName ?? ''));
+  form.set('parsed', JSON.stringify(input.parsed ?? {}));
+  if (input.expectedDate) form.set('expectedDate', String(input.expectedDate));
+  return form;
+}
 export async function executeOperation(operation: McpOperation, input: Record<string, unknown>, env: Pick<Env, 'IDENTITY'>, user: SiteIdentity, signal?: AbortSignal) {
   const path = operationPath(operation, input, true);
   const headers = contextHeaders(user);
-  let body: string | URLSearchParams | undefined;
-  if (operation.format === 'form') {
+  let body: string | URLSearchParams | FormData | undefined;
+  if (operation.format === 'upload') {
+    // FormData sets its own multipart Content-Type with boundary; IDENTITY keeps it while forwarding.
+    headers.set('Accept', 'application/json');
+    body = bondLedgerUploadForm(input);
+  } else if (operation.format === 'form') {
     headers.set('Content-Type', 'application/x-www-form-urlencoded'); headers.set('X-SvelteKit-Action', 'true');
     body = new URLSearchParams();
     for (const [key, value] of Object.entries(input.form as Record<string, unknown>)) {

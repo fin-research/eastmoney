@@ -6,12 +6,14 @@ import type { SiteIdentity } from './lib/identity.ts';
 
 const dashboardTools = new Set(['market_report', 'save_market_report', 'hotspots', 'policies', 'research_search', 'policy_articles',
   'update_policy_articles', 'article', 'news', 'commentaries', 'commentary', 'commentary_revisions',
-  'create_commentary', 'update_commentary', 'economic_indicators', 'credit_report', 'bond_ledger']);
+  'create_commentary', 'update_commentary', 'economic_indicators', 'credit_report', 'bond_ledger', 'bond_ledger_import']);
 const dataTools = new Set(['trading_days', 'chinamoney_shibor', 'omo', 'cfets', 'cfets_histories', 'bond_top_case',
   'futures_latest', 'margin', 'primary_issues', 'broker_bond_registrations', 'today_trades', 'favorite_quotes',
   'bond_infos', 'news_list', 'news_detail', 'wechat_articles', 'industry', 'choice_csd', 'choice_css', 'choice_ctr',
   'choice_edb', 'choice_data_statistics']);
-const MAX_REQUEST = 1024 * 1024, MAX_RESPONSE = 8 * 1024 * 1024;
+// bond_ledger_import carries the base64 xlsx original plus parsed rows; the Dashboard
+// business upload still caps files at 12 MB and the whole request at 21 MB.
+const MAX_REQUEST = 8 * 1024 * 1024, MAX_RESPONSE = 8 * 1024 * 1024;
 const toolList = z.object({ tools: z.array(z.object({ name: z.string(), inputSchema: z.object({ type: z.literal('object') }).passthrough() }).passthrough()).max(150), nextCursor: z.string().optional() });
 const callResult = z.object({ content: z.array(z.record(z.string(), z.unknown())), isError: z.boolean().optional() }).passthrough();
 
