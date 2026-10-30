@@ -22,7 +22,7 @@ Quant → Neon 只读数据；旧 Auth0 机器 Choice 入口已退役
    Gateway 不交换浏览器 code、不读取登录 Cookie。旧 `__Host-eastmoney_session` 等 Cookie 只清理，不作凭据。受保护真实 `+page` 使用客户端渲染，Gateway 仅按代码中的精确名单放行匿名 HTML 外壳，`/__data.json`、`.html__data.json`、API、actions 与报告/材料文件仍验签和授权。token 不写 localStorage、URL、SSR HTML、日志或后端转发请求。
 
    客户端展示直接读当前 JWT，并在 `/auth/permissions` 验证成功后发布登录状态。该接口只返回有效权限和缓存时间，`/auth/session` 已移除。
-3. 用户邮箱必须属于 `18.cn`。当前组织只启用 `eastmoney-email` 连接。已绑定的通用 `login claims` Action 在签发时拒绝封禁账号和未验证邮箱。Action 写入顶层 `username`、`email`、`role`、`_roles`，以及本站组织可选的 `department`、`picture`。`role` 是数据库角色字符串，不用于业务授权。`_roles` 是业务角色名称数组。
+3. 用户邮箱必须属于 `18.cn`。当前组织只启用 `eastmoney-email` 连接。已绑定的合并登录 Action 在签发时拒绝封禁账号和未验证邮箱。Action 写入顶层 `username`、`email`、`role`、`_roles`，以及本站组织可选的 `department`、`picture`。`role` 是数据库角色字符串，不用于业务授权。`_roles` 是业务角色名称数组。
 
    Gateway 验签并校验组织与应用，再把角色名称匹配到当前组织缓存的角色 ID。角色解析、admin/credit 检查与权限合并共用同一份快照。重复、未知、歧义或格式错误拒绝，缺角色声明要求重新登录。`username` 用作显示姓名，缺失时显示邮箱。不补造旧 connection/verified 标记。
 
@@ -112,9 +112,15 @@ Quant → Neon 只读数据；旧 Auth0 机器 Choice 入口已退役
 
 ## Auth0 本地租户管理
 
-本地配置与资源操作使用 Auth0 skill 的 CLI 工作流及 `auth0` 命令，目标租户为 `hasbai.eu.auth0.com`。开始前运行 `auth0 tenants list` 核对现有授权和活动租户。能读取目标资源时直接复用。查询或修改前先用 `auth0 commands` / 对应命令的 `--help` 核对参数，再读取目标资源和关联关系。对具体资源执行已授权的变更后，按 ID 回读核验。不要用全租户导入覆盖并行会话的改动。
+本地配置与资源操作使用 Auth0 skill 和 `auth0` CLI，目标租户为 `hasbai.eu.auth0.com`。先运行 `auth0 tenants list` 核对活动租户，再用只读请求确认授权。租户出现在列表中不代表 token 有效。
 
-多个 agent 会话共用本机 Auth0 CLI 授权状态。只有确认未授权，或目标命令明确因缺少所需 scope 失败时，才由一个会话执行一次 `auth0 login`（缺 scope 时明确请求所需 scope）。其他会话等待授权完成后重试原命令。不要把 `auth0 login` 当作每次任务的初始化步骤，也不要随任务结束执行 `auth0 logout`。
+远程会话优先使用专用 `development cli` 机器应用。本机凭据位于 `~/.config/auth0/codex-machine.json`，不输出 Secret 或 token。读取凭据后，在进程内调用 `auth0 login --domain … --client-id … --client-secret … --no-input`。机器应用现有权限为 `read:clients`、`update:clients`、`read:actions`、`update:actions`、`create:actions`、`read:forms`。`create:actions` 用于部署 Action 版本。没有客户端授权写权限，不扩展 Gateway 运行时凭据。
+
+CLI 用户会话过期时，先复用机器凭据，不直接要求人工登录。机器请求返回 403 时核对缺少的 scope，重复登录不会增加授权。只有机器权限不足且无法由现有管理员授权修复时，才发起一次用户设备授权。可用机器权限完成本次操作后，恢复机器 CLI 登录。
+
+能读取目标资源时直接复用。查询或修改前先用 `auth0 commands` / 对应命令的 `--help` 核对参数，再读取目标资源和关联关系。对具体资源执行已授权的变更后，按 ID 回读核验。不要用全租户导入覆盖并行会话的改动。
+
+多个 agent 会话共用本机 Auth0 CLI 授权状态。需要恢复授权时，只由一个会话登录，其他会话等待后重试。机器应用缺少 scope 时，须由管理员更新 client grant；`auth0 login --scopes` 不能扩展机器授权。不要把 `auth0 login` 当作每次任务的初始化步骤，也不要随任务结束执行 `auth0 logout`。
 
 多租户操作尽量给单条命令指定 `--tenant`，避免一个会话通过 `auth0 tenants use` 改动其他会话的默认租户。并发写入同一资源必须先协调所有权和顺序，写前重读、写后回读。临时导出各用独立目录，不共享默认输出路径。
 
