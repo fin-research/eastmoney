@@ -58,6 +58,9 @@ test('private MCP policies and dispatch enforce fresh real-route permission and 
   const forwarded=f.calls.dashboard.at(-1);assert.equal(forwarded.headers.get('Origin'),f.env.SITE_ORIGIN);
   const actual=JSON.parse(Buffer.from(forwarded.headers.get(CONTEXT_HEADER),'base64url'));assert.deepEqual(actual.user.authorization.permissions,['financing.project:create']);
   assert.equal((await call('/financing/projects?/deleteProject','POST','id=a')).status,403);
+  await f.updateGrants(['financing.data:create']);
+  assert.equal((await call('/financing/clients?/create','POST','name=新基金&type=基金&fullname=&subtype=&aliases=alias')).status,200);
+  const clientAction=f.calls.dashboard.at(-1);assert.equal(clientAction.headers.get('Origin'),f.env.SITE_ORIGIN);assert.equal(new URL(clientAction.url).searchParams.has('/create'),true);assert.match(await clientAction.text(),/name=新基金/);
   assert.equal((await call('/financing/projects?/createProject&/deleteProject','POST','{}')).status,403);
 });
 test('private dispatch refuses recursion, external destinations, credentials APIs and expired contexts',async t=>{

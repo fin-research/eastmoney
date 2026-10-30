@@ -6,7 +6,7 @@ import type { SiteIdentity } from './lib/identity.ts';
 
 const dashboardTools = new Set(['market_report', 'save_market_report', 'hotspots', 'policies', 'research_search', 'policy_articles',
   'update_policy_articles', 'article', 'news', 'commentaries', 'commentary', 'commentary_revisions',
-  'create_commentary', 'update_commentary', 'economic_indicators', 'credit_report', 'bond_ledger', 'bond_ledger_import']);
+  'create_commentary', 'update_commentary', 'economic_indicators', 'credit_report', 'bond_ledger', 'bond_ledger_import', 'bond_investor_reference', 'create_bond_investor', 'update_bond_investor', 'financing_clients', 'create_client', 'update_client']);
 const dataTools = new Set(['trading_days', 'chinamoney_shibor', 'omo', 'cfets', 'cfets_histories', 'bond_top_case',
   'futures_latest', 'margin', 'primary_issues', 'broker_bond_registrations', 'today_trades', 'favorite_quotes',
   'bond_infos', 'news_list', 'news_detail', 'wechat_articles', 'industry', 'choice_csd', 'choice_css', 'choice_ctr',
