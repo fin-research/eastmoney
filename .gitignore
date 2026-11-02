@@ -2,11 +2,13 @@
 /*
 !/.gitignore
 !/.gitleaks.toml
+!/.claude-plugin/
 !/AGENTS.md
 !/README.md
 !/package.json
 !/pnpm-workspace.yaml
 !/pnpm-lock.yaml
+!/plugins/
 !/vendor/
 /vendor/*
 !/vendor/xlsx-0.20.3.tgz
