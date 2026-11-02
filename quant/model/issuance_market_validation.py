@@ -238,10 +238,6 @@ def build_market_release(development, historical, output=None):
         or report["identity_sha256"] != selection["identity_sha256"]
     ):
         raise ValueError("no complete validated market release")
-    root = Path(__file__).resolve().parents[1]
-    for name, checksum in protocol["identity"]["code"].items():
-        if digest(root / name) != checksum:
-            raise ValueError("market release code differs from study")
     candidates = registered_candidates(protocol["spec"])
     candidate = next(c for c in candidates if asdict(c) == selection["selected"])
     spec = protocol["spec"]

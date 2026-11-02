@@ -3,10 +3,6 @@ import { publicSession, type ClientSessionData } from './identity.ts';
 import type { ClientSession } from './client-session';
 import type { BeforeNavigate } from '@sveltejs/kit';
 
-export class LoginRequiredError extends Error {
-  constructor() { super('请先登录'); }
-}
-
 type Interaction = {
   session: ClientSession;
   login: (returnTo: string) => Promise<boolean>;

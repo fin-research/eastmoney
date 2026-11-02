@@ -127,11 +127,6 @@ Quant没有Git自动触发器，本次未发布推理模型或研究报告。
 
 本迁移未执行数据库migration或回填，也未重建Cloudflare资源及既有Workflow。
 
-额外执行旧 `dashboard pnpm verify:routes` 时，旧融资脚本仍预期匿名页面303跳转。
-当前Gateway采用匿名页面壳，实际返回200，该旧脚本失败。
-现行Gateway真实处理器80项集成与统一MCP集成通过。
-此历史脚本差异不作为已通过项目记录，后续须按现行认证契约维护。
-
 发布后8项匿名HTTP检查通过：公开页面、Data health、保护API拒绝、旧MCP入口410及私有后端origin404。
 真实测试账号程序化登录后，92项HTTP探针均通过。
 MCP初始化、39项工具目录、只读市场查询及无效Choice参数拒绝均正常。

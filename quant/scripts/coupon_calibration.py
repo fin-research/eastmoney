@@ -13,12 +13,11 @@ if __name__ == "__main__":
     parser.add_argument("action", choices=("register", "run"))
     parser.add_argument("--output", required=True)
     parser.add_argument("--source")
-    parser.add_argument("--source-root")
     args = parser.parse_args()
     if args.action == "register":
-        if not args.source or not args.source_root:
-            parser.error("registration requires --source and --source-root")
-        register_study(args.source, args.source_root, args.output)
+        if not args.source:
+            parser.error("registration requires --source")
+        register_study(args.source, args.output)
         print("Registered immutable calibration protocol")
     else:
         result = run_study(args.output)

@@ -3,16 +3,9 @@ import assert from 'node:assert/strict';
 import { checkGate } from '../ci-gate.mjs';
 
 const success = { unit: { result: 'success' }, 'build-visual': { result: 'success' } };
-const queue = { type: 'merge_queue' };
-const required = { type: 'required_status_checks', parameters: {
-  required_status_checks: [{ context: 'Monorepo CI', integration_id: 15368 }],
-} };
-
-test('PR admission fails closed without queue protection and the required Actions check', () => {
-  for (const rules of [[], [queue], [required], [queue, {
-    ...required, parameters: { required_status_checks: [{ context: 'Monorepo CI', integration_id: 42 }] },
-  }]]) assert.throws(() => checkGate('pull_request', {}, rules), /requires an enforced merge queue/);
-  assert.match(checkGate('pull_request', {}, [queue, required]), /admitted/);
+test('pull requests are admitted without full acceptance and unaffected changes need none', () => {
+  assert.match(checkGate('pull_request', {}), /admitted/);
+  assert.match(checkGate('pull_request', {}, false), /No Dashboard changes/);
 });
 
 test('queue and manual acceptance reject any failed, skipped, cancelled or missing job', () => {

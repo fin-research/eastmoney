@@ -31,10 +31,6 @@ def _public_selection(path):
     eligible = [r for r in selection["ranking"] if r["estimand"] == "conditional_mean"]
     if selection["selected"] != _best_candidate(eligible)["candidate"]:
         raise ValueError("public selection differs from frozen best mean rule")
-    root = Path(__file__).resolve().parents[1]
-    for name, checksum in protocol["identity"]["code"].items():
-        if digest(root / name) != checksum:
-            raise ValueError("release code differs from frozen study")
     return path, selection, protocol_path
 
 

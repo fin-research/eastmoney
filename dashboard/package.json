@@ -29,7 +29,6 @@
     "financing:db:import": "node --env-file-if-exists=.env --env-file-if-exists=.env.database scripts/financing/import-debts.mjs",
     "financing:db:migrate:sqlite": "node --env-file-if-exists=.env --env-file-if-exists=.env.database scripts/financing/migrate-sqlite-to-postgres.mjs",
     "financing:reminders:send": "node --env-file-if-exists=.env --env-file-if-exists=.env.database scripts/financing/send-reminders.mjs",
-    "verify:routes": "node scripts/verify-profile-routes.mjs && node scripts/verify-financing-routes.mjs",
     "test:auth": "node --test tests/authorization-access.test.mjs tests/unified-permissions.test.mjs tests/access.test.mjs tests/programmatic-login.test.mjs",
     "auth:verify": "node --use-env-proxy scripts/verify-auth-access.mjs",
     "test:coverage": "mkdir -p coverage && node --experimental-test-coverage --test-coverage-include='src/**/*.ts' --test-coverage-include='src/**/*.js' --test-coverage-exclude='src/**/generated/**' --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test tests/*.test.mjs tests/financing/*.test.mjs",

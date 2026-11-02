@@ -8,7 +8,7 @@
     "typegen": "wrangler types && node scripts/normalize-generated-types.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.mjs",
-    "check": "pnpm typegen && pnpm typecheck && pnpm test",
+    "check": "pnpm typegen && pnpm typecheck && pnpm test && node scripts/sync-dashboard-contracts.mjs --check",
     "deploy:dry": "wrangler deploy --dry-run",
     "deploy": "wrangler deploy",
     "auth:verify": "node --use-env-proxy scripts/verify-auth-access.mjs",
@@ -20,12 +20,10 @@
     "graphql": "catalog:",
     "hono": "catalog:",
     "jose": "catalog:",
-    "pg": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "@types/pg": "catalog:",
     "typescript": "catalog:",
     "wrangler": "catalog:"
   }

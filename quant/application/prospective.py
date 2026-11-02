@@ -11,7 +11,8 @@ import subprocess
 
 from data.prospective_ledger import now
 from model import prospective_protocol as contract
-from research_sources import ROOT, runtime_identity, source_hashes
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _one(events, kind, digest=None):
@@ -25,16 +26,11 @@ def _one(events, kind, digest=None):
 
 
 def _protocol(ledger):
-    value = contract.validate_protocol(_one(ledger.events(), "protocol")["payload"])
-    contract.require(
-        value["sources"] == source_hashes() and value["runtime"] == runtime_identity(),
-        "Registry source or runtime changed; register a new study",
-    )
-    return value
+    return contract.validate_protocol(_one(ledger.events(), "protocol")["payload"])
 
 
 def initialize(ledger, study_id, candidate):
-    value = contract.protocol(study_id, candidate, source_hashes(), runtime_identity())
+    value = contract.protocol(study_id, candidate)
     return ledger.append("protocol", "protocol", value)
 
 

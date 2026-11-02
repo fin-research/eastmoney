@@ -551,15 +551,6 @@ export async function getCamelSession(
   return cached ?? loginCamel(env, resolved);
 }
 
-export async function refreshCamelSession(
-  env: CamelEnv,
-  dependencies: CamelDependencies = {},
-): Promise<CamelSession> {
-  const resolved = await dependenciesWithDefaults(dependencies);
-  await deleteCachedSession(resolved.cache);
-  return loginCamel(env, resolved);
-}
-
 function isSessionFailure(envelope: CamelEnvelope): boolean {
   const code = numericCode(envelope);
   if (code !== null && SESSION_FAILURE_CODES.has(code)) return true;

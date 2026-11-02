@@ -9,7 +9,7 @@ Gateway 是独立 Hono Worker。Auth0 管理用户、角色与成员关系，Gat
 - `src/app.ts`：Hono 路由、公开与保护分流、SvelteKit 数据请求错误协议。
 - `src/tokens.ts`、`session.ts`：Auth0 JWKS 与 JWT 校验、浏览器 Bearer、遗留 Cookie 清理。
 - `src/lib/server/authorization.ts`、`permission-cache.ts`：JWT 角色快照、权限检查、授权 JSON 缓存。缓存用命名 Cache API `eastmoney-permissions-v1`，TTL 3600 秒，不需要 KV、Durable Object 或数据库。
-- `src/lib/permissions.ts`、`route-permissions.ts`、`src/lib/server/permission-policy.ts`：权限目录与路由策略。前两份由 `node scripts/sync-dashboard-contracts.mjs` 同步到 Dashboard，`--check` 检测漂移。
+- `src/lib/permissions.ts`、`route-permissions.ts`、`src/lib/server/permission-policy.ts`：权限目录与路由策略。前两份由 `node scripts/sync-dashboard-contracts.mjs` 复制到 Dashboard，`--check` 比对内容，`pnpm check` 包含该检查。
 - `src/policy.ts`：页面与 API 的路径归一、匿名 CSR 外壳白名单 `CLIENT_PAGE_ROUTES`，以及 `/financing-model/research` 到 `/financing-model` 的权限映射。
 - `src/identity-service.ts`：私有 `IdentityService`，提供账号目录、MCP 授权桥接和角色配置。公网 `/api/management/people` 由 Gateway 直接处理，不经 Dashboard。
 - `src/data.ts`：Data 公开资源，以及 GraphQL 中 Choice 字段的判定。
@@ -20,7 +20,7 @@ Dashboard 只在 `GatewayDashboard` 解析上下文，Data 只在 `GatewayData` 
 ## 配置与本地验证
 
 ```sh
-pnpm check         # typegen、typecheck、test
+pnpm check         # typegen、typecheck、test、Dashboard 契约比对
 pnpm deploy:dry
 git diff --check
 ```
@@ -73,7 +73,3 @@ Auth0 Management API 的读取和管理 token 获取遇到 429 时，在当前�
 - 日志只记阶段、次数、等待时长和状态码。
 
 普通业务准入不调用 Management API。账号状态与角色成员在 Auth0 签发新 token 时检查。
-
-## 历史权限表
-
-`authorization-migrations/0001_permissions.sql` 与 `permission-repository.ts` 仅用于历史回溯。运行时不读写这些表，也不删除旧数据。

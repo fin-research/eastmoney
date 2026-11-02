@@ -4,7 +4,7 @@
 
 ## CI 命令
 
-合并队列在合并组提交上运行完整 `Dashboard CI`。普通分支 push 和 main 合并后不运行，PR 创建或更新只检查队列门禁。Python / Node 覆盖率与类型 / 构建 / 视觉两条任务并行，统一门禁要求两项均成功。类型检查在构建前执行，构建阶段只打包。推送、CI 等待与核验由子代理负责，流程见 [DEVELOPMENT](DEVELOPMENT.md#默认验证与合并)。
+合并队列在合并组提交上运行完整 `Dashboard CI`。普通分支 push 和 main 合并后不运行，PR 创建或更新只放行入队。Python / Node 覆盖率与类型 / 构建 / 视觉两条任务并行，统一门禁要求两项均成功。类型检查在构建前执行，构建阶段只打包。推送、CI 等待与核验由子代理负责，流程见 [DEVELOPMENT](DEVELOPMENT.md#默认验证与合并)。
 
 ```bash
 pnpm check:quick

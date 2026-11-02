@@ -3,7 +3,7 @@ import {beforeAll,beforeEach,it,expect,vi} from 'vitest';
 import webpush from 'web-push';
 import initial from '../migrations/0001_messages.sql?raw';
 import migration from '../migrations/0003_user_notifications.sql?raw';
-import {notify,processNotification,saveSettings,savePush,settings,migrateLegacyWorkflowSubscriber,scanNotifications} from '../src/notifications';
+import {notify,processNotification,saveSettings,savePush,settings,scanNotifications} from '../src/notifications';
 import {deliver} from '../src/providers';
 import type {Bindings} from '../src/contracts';
 const db=(env as unknown as Bindings).DB;
@@ -93,15 +93,4 @@ it.each([201,302,307])('handles push HTTP %i without following redirects or dele
   expect(outgoing).toHaveBeenCalledTimes(1);
   expect((await settings(bindings,'auth0|test')).devices).toHaveLength(1);
  }finally{outgoing.mockRestore();}
-});
-
-it('migrates the legacy operator channels once without overwriting user preferences',async()=>{
- await db.prepare('DELETE FROM notification_settings').run();
- const legacy={...bindings,LEGACY_WORKFLOW_USER_ID:'auth0|test',WORKFLOW_NOTIFICATION_EMAILS:'test@example.com',TELEGRAM_USER_ID:{get:async()=> '123'}};
- await migrateLegacyWorkflowSubscriber(legacy);
- expect((await settings(legacy,'auth0|test')).subscriptions.workflow).toEqual(['email','telegram']);
- await saveSettings(legacy,'auth0|test',configured);
- await migrateLegacyWorkflowSubscriber(legacy);
- expect((await settings(legacy,'auth0|test')).email).toBe('contact@example.com');
- expect((await settings(legacy,'auth0|test')).subscriptions.workflow).toEqual([]);
 });

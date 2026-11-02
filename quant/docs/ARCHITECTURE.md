@@ -27,8 +27,6 @@ Data 同步 → Neon edb + quant_input → data/online_inputs.py → 共享特�
 
 模型包和校准包版本不可变，行情与一级资料每日读取。更新通过重新导出、核验和激活完成。共享特征的唯一实现是注册表，JS 镜像必须通过真实历史对照。回测协议见 [ISSUANCE_BACKTEST](ISSUANCE_BACKTEST.md)。
 
-`research_sources.py` 登记全部 Python 应用、模型、数据与客户端、脚本、JS 镜像和依赖锁，作为研究源码身份。任何新增、删除或修改都改变身份，旧研究不补写新哈希。结构迁移后在新目录登记原来源并完整复现，不用适配器白名单接受训练语义漂移。
-
 ## 研究接入
 
 - 发行观察：`online/observation-contract.mjs`、`observation-store.mjs`、`observation-slice.mjs` 分别维护协议、有限只读存储和时点选择，依赖方向为切片指向协议与存储。未接入训练面板或生产 Workflow。见 [ISSUANCE_OBSERVATIONS](ISSUANCE_OBSERVATIONS.md)。
@@ -42,7 +40,7 @@ Data 拥有原始定价字段的采集与回填。Dashboard 拥有结构化结�
 
 `artifacts.py` 提供确定性 JSON 和模型树导出，不依赖数据、评分或历史报告。`model` 与 `data` 包只在请求公共属性时加载具体模块，现行模块导入不隐式加载历史回测所用的评分、训练和 OOD。
 
-`README.md` 是唯一的完整研究报告。`reports/` 保存安全聚合证据和源码审阅，检查程序核对证据、源码与正文，不生成第二份报告。`online/build-report.mjs` 只把 README 复制到静态目录。维护规则见 [RESEARCH_REPORT](RESEARCH_REPORT.md)。
+`README.md` 是唯一的完整研究报告。`reports/` 保存安全聚合证据，不生成第二份报告。`online/build-report.mjs` 只把 README 复制到静态目录。维护规则见 [RESEARCH_REPORT](RESEARCH_REPORT.md)。
 
 ## 封存研究
 

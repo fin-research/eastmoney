@@ -39,7 +39,7 @@ uv run python main.py --issuance-backtest --study-protocol <协议JSON> --input-
 
 - `smoke` 只运行第一个有评价事件的完整月份。`development` 检查全部分母和门槛，无人合格则 selected 为空。
 - `historical-report` 另需 `development_directory` 与 `selection_sha256`，只接受同一身份下通过开发门槛的冻结选择，不重选。
-- 协议和月度 receipt 绑定输入、代码、候选及预测/训练诊断的哈希。不匹配时拒绝续跑，不自动重训或更新日期。新数据版本须显式登记，原协议与产物不覆写。
+- 协议和月度 receipt 绑定输入、候选及预测/训练诊断的哈希。不匹配时拒绝续跑，不自动重训或更新日期。新数据版本须显式登记，原协议与产物不覆写。
 - 每个新研究轮次在查看上一轮结果后设计。历史区间只作描述，不消除跨轮搜索偏差。
 
 | schema | 内容 |
@@ -98,14 +98,14 @@ schema 2/3/4 每月另存 `.timing.csv`，哈希进入同一 receipt。预测起
 
 ## 成熟样本外残差的票面校准
 
-这是独立的校准变换研究，复用 schema 9 原 Huber 的 32 个月、923 行已验证预测。新协议另冻结校准源码、依赖和来源清单：
+这是独立的校准变换研究，复用 schema 9 原 Huber 的 32 个月、923 行已验证预测。新协议另冻结来源清单：
 
 ```bash
-uv run python scripts/coupon_calibration.py register --source <原development目录> --source-root <保留原科学源码的工作树> --output <新研究目录>
+uv run python scripts/coupon_calibration.py register --source <原development目录> --output <新研究目录>
 uv run python scripts/coupon_calibration.py run --output <新研究目录>
 ```
 
-须先提交科学源码。输出只有忽略目录中的协议、逐笔修正、池审计和聚合结果，不导出生产包。
+输出只有忽略目录中的协议、逐笔修正、池审计和聚合结果，不导出生产包。
 
 - 候选 A：全提前期按事件等权的中位数统一平移。候选 B：各提前期独立中位数。残差 = 实际票面 − 原始未校准 Huber 预测，不递归使用修正后的误差。
 - 每月初冻结。池内 origin 和存储成熟日期严格早于月初，成熟日期在前 365 自然日内。A 的每只债总权重为 1，同债已有 k 个提前期则各 1/k。B 的同债同提前期只取一行。累计权重恰为一半时取相邻残差中点。至少 30 个不同债券才启用，否则修正为 0。
@@ -120,18 +120,8 @@ uv run python scripts/coupon_calibration.py run --output <新研究目录>
 
 CLI 在单进程、单线程、低优先级下运行，外部监督整个子进程树的 RSS，超过 2GiB 即停止并保留检查点。每完成 4 个月新拟合，用同一 PID 替换进程以释放原生内存，固定输入后读取已验证的检查点继续。不自动降低样本或配置。
 
-代码、数据或配置变化默认拒绝续跑，应建新实验目录。纯资源修复若需复用旧缓存，须单独保留差异审计和重算等价证据，不能改哈希。
+数据或配置变化默认拒绝续跑，应建新实验目录。纯资源修复若需复用旧缓存，须单独保留差异审计和重算等价证据。
 
-## 当前源码复现旧研究
+## 既有复现目录
 
-结构拆分或训练实现漂移后，旧来源校验失败关闭。用以下命令登记只读旧来源、Git 源码版本、实际依赖、完整当前源码和输入/节点哈希：
-
-```bash
-uv run python scripts/register_reproduction.py --original-request <原development.json> --original-point <原point目录> --snapshot <原输入> --output <新目录>
-```
-
-源码须先提交。输出保存不可变的 `migration-inventory.json`、`smoke.json` 和 `development.json`。先用 smoke 协议验证单月，再在新目录完整执行原 19 候选及原时间边界。
-
-- 不把旧检查点复制成新成绩，不以必须选回原模型为条件。逐月比较事件键、标签、成熟时点、预测、核心误差、训练诊断和择时路径，并明确新增的指标与诊断列。
-- 之后 point 历史评价、严格加载、训练导出和完整 Python/JS 一致性都通过，当前 CLI 才可使用新证据。新来源拒绝旧发布证据，冻结选择被来源校验拒绝时不绕过。生产切换另走原门槛和发布核验。
-- 重跑期间不得修改已绑定的源码、依赖、旧来源或输入，任何变化都拒绝续跑，须重新登记。报告证据、模板和文档更新不改研究身份。
+已登记的复现目录仍可加载，其原始证据哈希继续核对。

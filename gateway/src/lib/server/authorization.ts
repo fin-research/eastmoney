@@ -48,7 +48,7 @@ function tokenRefreshRequired() {
 }
 
 /** Every protected request checks the Auth0 role grants in the Gateway cache. */
-export async function authorizeRequest(request: Request, env: Env, routeId: string | null, fetcher: typeof fetch = fetch) {
+export async function authorizeRequest(request: Request, env: Env, routeId: string | null) {
   let snapshotRequest: Promise<PermissionSnapshot> | undefined;
   const loadSnapshot = () => snapshotRequest ??= permissionCache(env).snapshot();
   let policy;
@@ -61,17 +61,17 @@ export async function authorizeRequest(request: Request, env: Env, routeId: stri
   }
   if (policy.public && routeId !== '/') {
     requireSameOrigin(request);
-    return { user: null, permissions: [] as string[], directory: undefined, permissionUpdatedAt: undefined };
+    return { user: null, permissions: [] as string[], permissionUpdatedAt: undefined };
   }
   if (routeId === '/') requireSameOrigin(request);
   let user: SiteIdentity | null;
   try { user = await userIdentity(request, env, policy.public, loadSnapshot); }
   catch (error) {
     if (routeId === '/' || policy.public && error instanceof AccessError && error.status === 401)
-      return { user: null, permissions: [] as string[], directory: undefined, permissionUpdatedAt: undefined };
+      return { user: null, permissions: [] as string[], permissionUpdatedAt: undefined };
     throw error;
   }
-  if (!user) return { user: null, permissions: [] as string[], directory: undefined, permissionUpdatedAt: undefined };
+  if (!user) return { user: null, permissions: [] as string[], permissionUpdatedAt: undefined };
   const originOptionalMcp = routeId === '/mcp' && request.headers.has('Authorization') && !request.headers.has('Origin');
   if (routeId !== '/api/ai/responses' && !originOptionalMcp) requireSameOrigin(request);
   try {
@@ -83,17 +83,17 @@ export async function authorizeRequest(request: Request, env: Env, routeId: stri
     if (policy.admin && !isAdmin) throw new AccessError(403, '仅管理员可执行该操作');
     user.authorization = { ...profile, permissions, mode };
     if (policy.permission && !hasPermission(permissions, policy.permission)) throw new AccessError(403, '当前角色无权执行该操作');
-    return { user, permissions, directory: undefined, permissionUpdatedAt: snapshot.updatedAt };
+    return { user, permissions, permissionUpdatedAt: snapshot.updatedAt };
   } catch (error) {
     // The portal remains public when a signed session cannot be enriched with
     // current grants; never forward a partial authorization to its SSR tree.
-    if (routeId === '/') return { user: null, permissions: [] as string[], directory: undefined, permissionUpdatedAt: undefined };
+    if (routeId === '/') return { user: null, permissions: [] as string[], permissionUpdatedAt: undefined };
     throw error;
   }
 }
 
 /** Data retains its login-only boundary; machine tokens have a separate quota scope. */
-export async function authorizeData(request: Request, env: Env, fetcher: typeof fetch = fetch): Promise<void> {
+export async function authorizeData(request: Request, env: Env): Promise<void> {
   const token = await accessToken(request);
   const payload = await verifyToken(token ?? '', env);
   if (payload.gty === 'client-credentials') {

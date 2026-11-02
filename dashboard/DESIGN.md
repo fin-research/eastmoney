@@ -154,4 +154,4 @@
 - `--border` 是 shadcn 边框色，`--muted` 是次级表面。业务文本用 `--text-muted`，业务线条用 `--border-color` / `--line`。图表线条读 `--chart-line-color` / `--chart-grid-color`，不用控件令牌。
 - 弹窗用 `src/lib/components/Modal.svelte` 封装的 Bits Dialog，保留取消拦截、内部滚动和关闭后焦点恢复。浮层、多选和页内选项卡用 Bits Popover / Checkbox / Tabs。Sonner 沿用消息去重与悬停暂停。
 - 简单表单用 SvelteKit named actions / enhance，复杂表单用 Superforms 与共享 Zod schema。数据维护用 TanStack Table，图表用 ECharts / `ChartHost`。服务端加载与增量失效由 SvelteKit 负责，不引入平行状态缓存。
-- `tests/shadcn-contract.test.mjs` 检查技术栈与品牌色边界。DOM 与浏览器回归检查草稿、多选、弹窗和消息行为。
+- DOM 与浏览器回归检查草稿、多选、弹窗和消息行为。

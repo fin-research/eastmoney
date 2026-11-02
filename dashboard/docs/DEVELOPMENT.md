@@ -26,7 +26,7 @@ pnpm dev
 合并流程：
 
 1. 在普通 checkout 串行开发，提交任务文件并推送分支。有意的视觉变化先在固定 Linux 镜像中审阅、导入基线并提交。
-2. 根 [Eastmoney CI](../../.github/workflows/ci.yml) 按影响范围运行项目检查，必需门禁为 `Monorepo CI`。PR 上的 Dashboard 检查只核对线上队列规则，绿色仅表示可入队。
+2. 根 [Eastmoney CI](../../.github/workflows/ci.yml) 按影响范围运行项目检查，必需门禁为 `Monorepo CI`。PR 上的 Dashboard 检查直接放行，绿色仅表示可入队。
 3. 用 `gh pr merge <number> --repo fin-research/eastmoney --auto` 入队。队列基于最新 `main` 生成集成提交，运行受影响项目与跨服务检查。代码变更不用 `--admin` 绕过队列。管理员对文档类改动的例外见[项目组 AGENTS](../../AGENTS.md#集成与发布)。
 4. 子工作流 [dashboard.yml](../../.github/workflows/dashboard.yml) 并行运行 Python / Node 覆盖率与类型 / 构建 / 完整视觉套件。组件门禁 `Dashboard CI` 要求两项均成功，失败、取消、缺失或非预期跳过都拒绝合并。
 5. 规则集配置源是根 [main-ruleset.json](../../.github/main-ruleset.json)，应用后须回读。
@@ -73,7 +73,7 @@ pnpm dev
 - 补发需要目标 `main` SHA 上成功的 `Monorepo CI`。队列 SHA 不同且 GitHub 未关联检查时，先对当前 `main` 手动触发根 `Eastmoney CI`（`workflow_dispatch`）并等待成功。
 - 不因等待短或标识不同而重复发布，先修复失败原因并重试自动构建。发布沿用用户授权，不覆盖其他任务的改动。
 - JWT、Auth0、会话和角色配置及其 Secret 由 Gateway 维护。Dashboard 只需 `IDENTITY` binding，新建或变更绑定须先部署提供对应 entrypoint 的 Gateway。发布顺序见 [Gateway DEVELOPMENT](../../gateway/docs/DEVELOPMENT.md)。
-- 程序化联调在 Gateway 运行 `node scripts/verify-integration.mjs`。`pnpm verify:routes` 通过 Gateway 集成脚本校验路由，再用构建应用和 PGlite 做融资业务回归，Gateway 路径用 `GATEWAY_CHECKOUT` 指定。
+- 程序化联调：Gateway 运行 `node scripts/verify-integration.mjs`，Dashboard 运行 `node scripts/verify-mcp-integration.mjs`，见 [MCP](MCP.md)。
 - 发布前核对 `wrangler.jsonc` 中的绑定、migration 顺序和数据服务路径。Secret 不写进配置。
 
 ## 运行追踪

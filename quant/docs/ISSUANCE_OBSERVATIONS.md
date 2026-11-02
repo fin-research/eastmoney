@@ -24,7 +24,7 @@
 
 本地 workerd / R2 验收只用合成对象，须标明 local synthetic。真实日常实例另验内容、时间、manifest 和抓取清单。离线包若无可追溯的服务端元数据，不能凭自填 `uploaded` 时间证明历史可得性。R2 `uploaded` 的含义见[官方参考](https://developers.cloudflare.com/r2/api/workers/workers-api-reference/)。
 
-新增模块进入 `research_sources.py` 的科学来源闭包，不设豁免。代码冻结后须登记新复现，完整重跑原候选与历史对照。严格加载和 Python/JS 导出一致性通过后，当前源码才恢复严格研究导出。传输错误、读取预算拒绝和无法获取真实 R2 元数据都作为未知证据保存，不转为空目录。
+传输错误、读取预算拒绝和无法获取真实 R2 元数据都作为未知证据保存，不转为空目录。
 
 ## 研究接入设计
 

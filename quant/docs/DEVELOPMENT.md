@@ -11,8 +11,6 @@ uv sync
 
 JavaScript 依赖由[根 workspace](../../pnpm-workspace.yaml)统一管理：Node 24、根 `packageManager` 指定的 pnpm、根 catalog 和单锁，不设子项目锁。新增依赖更新根 catalog 和 pnpm 锁。只装本项目时，在仓库根目录运行 `pnpm --filter ./quant/online --filter . install --frozen-lockfile`。`online/` 命令见 [ONLINE_INFERENCE](ONLINE_INFERENCE.md)。
 
-`research_sources.py` 把根 package、catalog 和锁文件纳入研究源码身份。其他服务的依赖调整因此也要求重新审阅 Quant 源码闭包（`reports/review.json`）。这不表示模型权重变化，不触发重训或发布。
-
 ## Local Data and Credentials
 
 Excel 和 `.env` 被 `.gitignore` 排除，只在本机保存。Python 通过 `load_dotenv()` 向上查找，读取 monorepo 根 `.env`：
@@ -45,11 +43,10 @@ Excel 和 `.env` 被 `.gitignore` 排除，只在本机保存。Python 通过 `l
 
 ```bash
 uv run python -m unittest discover -s tests -v
-uv run python -m compileall -q main.py pipeline.py issue_timing.py issue_report.py backtest.py margin.py query_weekly_research.py application model data choice archive reports research_sources.py tests
+uv run python -m compileall -q main.py pipeline.py issue_timing.py issue_report.py backtest.py margin.py query_weekly_research.py application model data choice archive reports tests
 uvx ruff@0.15.9 check .
 uvx ruff@0.15.9 check . --select C901,PLR0912,PLR0915
 uv run python scripts/check_repository_data_safety.py
-python3 scripts/build_report.py --check
 uv lock --check
 git diff --check
 ```

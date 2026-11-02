@@ -18,7 +18,7 @@ uv run coverage html
 
 [根 CI](../../.github/workflows/ci.yml) 在 Quant 或 `dashboard/financing-model-migrations/` 受影响时调用 [quant.yml](../../.github/workflows/quant.yml)。两个 job 都不配置业务凭据，不训练真实模型、不调用付费 Choice、不部署 Worker。
 
-- `python`：macOS 15 ARM64、Python 3.12、`uv sync --locked`（不装两融可选依赖）。运行全部单元测试、compileall、`uvx ruff@0.15.9` 的 lint 与复杂度检查、`uv lock --check`、`scripts/check_repository_data_safety.py` 和 `scripts/build_report.py --check`。
+- `python`：macOS 15 ARM64、Python 3.12、`uv sync --locked`（不装两融可选依赖）。运行全部单元测试、compileall、`uvx ruff@0.15.9` 的 lint 与复杂度检查、`uv lock --check`和 `scripts/check_repository_data_safety.py`。
 - `node`：Ubuntu、Node 24、根 pnpm 锁。运行 `online/` 的 `pnpm test`、`typegen`（并核对 `worker-configuration.d.ts` 无差异）、`typecheck` 和 `deploy:dry`（含静态报告构建）。
 
 CI 通过不能替代真实研究、模型激活或生产验收。

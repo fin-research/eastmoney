@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import {
 	SHORT_DEBT_MAX_ORIGINAL_TERM_DAYS,
@@ -113,7 +112,7 @@ test('dashboard type selection filters cumulative borrowing snapshots', async (t
 	assert.equal(await cumulativeFor('ARRAY[]::text[]'), 110);
 });
 
-test('project KPI follows dashboard types while the project table remains complete', async () => {
+test('project KPI follows dashboard types while the project table remains complete', () => {
 	const projects = [
 		{ debtType: '小公募', amountYi: 10 },
 		{ debtType: '短期融资券', amountYi: 20 },
@@ -121,30 +120,4 @@ test('project KPI follows dashboard types while the project table remains comple
 	];
 	assert.equal(projectAmountYiForTypes(projects), 30);
 	assert.equal(projectAmountYiForTypes(projects, ['小公募']), 10);
-
-	const [queries, page] = await Promise.all([
-		readFile(new URL('../../src/lib/server/financing/queries.js', import.meta.url), 'utf8'),
-		readFile(new URL('../../src/routes/financing/+page.svelte', import.meta.url), 'utf8')
-	]);
-	const activeProjects = queries.slice(queries.indexOf('), active_projects AS ('), queries.indexOf('), issue_months AS ('));
-	assert.doesNotMatch(activeProjects, /selected_types|CROSS JOIN args/);
-	assert.match(activeProjects, /NULLIF\(BTRIM\(p\.tenor_description\), ''\)/);
-	assert.doesNotMatch(activeProjects, /COALESCE\(p\.notes,/);
-	assert.match(activeProjects, /p\.funding_cost_rate/);
-	assert.match(queries, /'cost', cost/);
-	assert.match(page, /projectTableAmountYi = \$derived\(dashboard\.projects\.reduce/);
-	assert.match(page, /\{projectTableAmountYi\.toFixed\(2\)\}/);
-});
-
-test('dashboard metric cards keep an isolated two-row, three-column layout with equal rows', async () => {
-	const [page, styles] = await Promise.all([
-		readFile(new URL('../../src/routes/financing/+page.svelte', import.meta.url), 'utf8'),
-		readFile(new URL('../../src/routes/financing/dashboard.css', import.meta.url), 'utf8')
-	]);
-
-	assert.match(page, /<section class="financing-metric-grid" aria-label="融资指标">/);
-	assert.match(page, /<MetricCard label=\{metric\.label\}/);
-	assert.doesNotMatch(page, /financing-metric-card/);
-	assert.match(styles, /\.financing-metric-grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\);[\s\S]*?grid-auto-rows:\s*minmax\(10rem,\s*1fr\);/);
-	assert.doesNotMatch(page, /class="metric-grid"|class={`metric-card/);
 });

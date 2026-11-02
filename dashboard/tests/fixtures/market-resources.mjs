@@ -74,15 +74,13 @@ export function directResponse(target) {
     });
   }
   if (url.pathname === "/data/omo") {
-    return Response.json({
-      data: [{
-        operationDate: "2026-08-25",
-        operationName: "逆回购",
-        duration: "7D",
-        interestRate: "--",
-        operationAmount: "1000",
-      }],
-    });
+    return Response.json([{
+      operationDate: "2026-08-25",
+      operationName: "逆回购",
+      duration: "7D",
+      interestRate: "--",
+      operationAmount: "1000",
+    }]);
   }
   if (url.pathname === "/data/cfets") {
     return Response.json(

@@ -43,7 +43,7 @@ Dashboard 维护业务 Neon schema 的 migration。Data 维护 `public.edb` 与 
 | 授信 | `credit` | [credit-migrations](../dashboard/credit-migrations) | Dashboard 本地导入、报表和自动保存。[授信](../dashboard/docs/modules/credit-workbench.md) |
 | 融资业务 | `financing` | [financing-migrations](../dashboard/financing-migrations) | Dashboard 融资 adapter。[融资数据](../dashboard/docs/modules/financing-data.md) |
 | 融资模型 | `financing_model` | [financing-model-migrations](../dashboard/financing-model-migrations) | Quant Workflow 原子发布。Dashboard 管理人工结论和研究快照，见[下节](#融资模型跨仓库写入) |
-| 历史应用权限 | `authorization.permission` / `role_permission` | [gateway](../gateway/authorization-migrations)、[dashboard](../dashboard/authorization-migrations)（内容相同） | 运行时不读写，不删表、不重放。financing 0032 已在生产应用，其应用脚本已退役。权限来源为 Auth0。[Gateway 开发](../gateway/docs/DEVELOPMENT.md) |
+| 历史应用权限 | `authorization.permission` / `role_permission` | [dashboard](../dashboard/authorization-migrations) | 运行时不读写，不删表、不重放。financing 0032 已在生产应用，其应用脚本已退役。权限来源为 Auth0。[AUTH](AUTH.md) |
 | 客户主数据 | `public.client` / `client_alias` | financing migration。credit migration 维护领域关联 | [客户与授信关联](../dashboard/docs/modules/clients.md) |
 | 经济观测 | `public.edb` | [edb-migrations](../data/edb-migrations) | Data 回填与增量 Workflow 写入。Dashboard 研究和负债周报只读。[同步](../data/docs/modules/economic-indicator-sync.md) |
 | 债券模型非债券级输入 | `public.quant_input` | [edb-migrations](../data/edb-migrations) | Data 按字段和观察日维护行情与公司输入。同日 LCR/NSFR 以资金日报覆盖工作簿。[Quant 输入](../data/docs/modules/quant-inputs.md) |

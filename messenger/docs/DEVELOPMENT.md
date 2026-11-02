@@ -20,7 +20,7 @@ Worker Secret 为 `RESEND_API_KEY`、`VAPID_PRIVATE_KEY`。Secrets Store 保存 
 
 ## Workflow 订阅
 
-平台事件映射以 [workflow-events.ts](../src/workflow-events.ts) 和 [wrangler.jsonc](../wrangler.jsonc) 为准。Data 内部的 `dm-funding-sync` 子流程由主 `economic-indicator-sync` 汇总并通知，订阅脚本排除它。
+平台事件映射以 [workflow-events.ts](../src/workflow-events.ts) 和 [wrangler.jsonc](../wrangler.jsonc) 为准。订阅脚本只处理 `wrangler.jsonc` 中列出的 Workflow。Data 内部的 `dm-funding-sync` 子流程由主 `economic-indicator-sync` 汇总并通知，不在其中。
 
 新增 Workflow 的顺序：
 
@@ -30,7 +30,7 @@ Worker Secret 为 `RESEND_API_KEY`、`VAPID_PRIVATE_KEY`。Secrets Store 保存 
 4. 运行 `node scripts/sync-workflow-subscriptions.mjs` 查看只读计划。
 5. 核对后加 `--apply` 同步。
 
-脚本不覆盖来源不同的已有订阅，缺少 binding 时失败。死信先核实原因，再原样重投事件 Queue。未知 schema 不得当成功丢弃。
+脚本按名称创建或更新 `messenger-<workflow>` 订阅的启用状态、目标 Queue 和事件，不修改已有订阅的来源。死信先核实原因，再原样重投事件 Queue。未知 schema 不得当成功丢弃。
 
 ## 恢复
 

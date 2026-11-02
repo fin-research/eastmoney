@@ -9,17 +9,9 @@
 
 ## 证据与检查
 
-- `reports/research.json`、`reports/short-coupon.json`、`reports/timing-advice.json`：审阅后的安全聚合指标和来源哈希。
+- `reports/research.json`、`reports/short-coupon.json`、`reports/timing-advice.json`：审阅后的安全聚合指标。
 - 原始输入、逐笔预测、模型和 receipt 留在忽略目录或受控 R2，不提交。
-- `reports/review.json`：记录当前实现审阅、证据哈希和 README 指纹。
-- `reports/build.py` 检查聚合证据、源码闭包与 README 哈希，不生成报告，不改写研究结果。
-
-```bash
-python3 scripts/build_report.py --check
-python3 scripts/build_report.py --review-note '说明模型、数据、研究结果及限制的核对内容'
-```
-
-源码闭包（见 [ARCHITECTURE](ARCHITECTURE.md)）或 README 变化后，`--check` 会失败；核对报告后用 `--review-note` 更新审阅记录。审阅记录不能代替真实评价。
+- 单元测试核对聚合证据的分母。
 
 ## 发布
 

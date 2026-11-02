@@ -16,8 +16,8 @@ D1 保存 messages、attempts 与审计，Queue 只携带 ID。状态为 `queued
 
 平台 Event Subscriptions 把 Workflow 事件送到 `messenger-workflow-events`。Messenger 按实例 ID 读取状态和错误，先存 `workflow_events` inbox 并冻结通知快照，再展开到消息 outbox。
 
-- 全部 Workflow 订阅失败与终止。
-- omo、market-briefing 还订阅完成。economic-indicator-sync 的完成事件只用于识别业务 partial/failed。
+- [wrangler.jsonc](../wrangler.jsonc) 中的 6 个 Workflow 订阅失败与终止。
+- omo、market-briefing、economic-indicator-sync 还订阅完成。omo、market-briefing 的完成事件通知成功。economic-indicator-sync 的完成事件只用于识别业务 partial/failed。
 - 经济同步 completed 结果若只含明确的 `kind=data_gap` 缺口，仍通知用户，标题为“Workflow 数据缺口”。正文按业务组汇总原因、数量和样例，完整清单留在实例中。混合执行错误和平台 error/terminated 按失败或终止通知。
 
 Workflow 内不重复发送终态通知。写入 inbox 前失败由 Queue 重试，耗尽进入死信队列。写入后的查询或入队失败由 Cron 恢复。新增 Workflow 按[开发运维](DEVELOPMENT.md#workflow-订阅)执行。

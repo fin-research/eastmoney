@@ -42,7 +42,7 @@ test('CIMD identities require exact clients and their signed namespace, with no 
     }
     assert.equal((await status(request(await f.signed({azp,[mcpIdentityClaim]:f.flatClaims,org_id:'org_Other'})),f.env)),401);
   }
-  for(const azp of ['M1a5PF3UJaFIZv1k4HO4IV06Z5fXQBHV','https://chatgpt.com/oauth/unknown/client.json','https://chatgpt.com.evil.test/oauth/client.json'])
+  for(const azp of ['unregistered-client','https://chatgpt.com/oauth/unknown/client.json','https://chatgpt.com.evil.test/oauth/client.json'])
     assert.equal((await status(request(await f.signed({azp,[mcpIdentityClaim]:f.flatClaims})),f.env)),403);
 });
 test('private MCP policies and dispatch enforce fresh real-route permission and named action',async t=>{

@@ -30,13 +30,3 @@ test('every application route and named mutation is registered in the one permis
   assert.equal(new Set(PERMISSION_CODES).size, PERMISSION_CODES.length);
   assert.ok(PERMISSION_CODES.every(code => /^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*:[a-z][a-z0-9_]*$/.test(code)));
 });
-
-test('client permission files retain the Gateway-generated contract fingerprint', async () => {
-  const { createHash } = await import('node:crypto');
-  const manifest = JSON.parse(await readFile(new URL('../src/lib/gateway-contracts.json', import.meta.url), 'utf8'));
-  assert.equal(manifest.owner, 'eastmoney-gateway');
-  for (const [file, hash] of Object.entries(manifest.files)) {
-    const source = await readFile(new URL('../src/lib/' + file, import.meta.url), 'utf8');
-    assert.equal(createHash('sha256').update(source).digest('hex'), hash, 'Sync the Gateway contract instead of editing ' + file);
-  }
-});
