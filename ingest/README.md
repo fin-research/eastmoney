@@ -1,34 +1,22 @@
 # 研报文章增量采集
 
-`ingest` 是一个 Cloudflare Worker，定时读取 `市场解读` 研报，只处理新增文章，并把可检索内容和结构化特征送入研究数据链路。
+`ingest` 是 Cloudflare Worker，定时读取 `市场解读` 研报，只处理新增文章，并把可检索内容和结构化特征送入研究数据链路。
 
 ## 处理流程
 
 1. 工作日北京时间 08:00–18:00 每 5 分钟读取文章列表并批量去重。
 2. Workflow 获取正文。微信公众号优先直连下载，失败时回退 DM 正文。
-3. 通过 AI Gateway Responses API 抽取作者、摘要、重要性和权益/利率债关键词。统一使用 `custom-codex`，可重试失败时仅重试同一 Provider 一次。
-4. 把元数据和关键词写入 D1，把 Markdown 正文归档到 R2。
-5. AI Search 通过 R2 数据源自动同步文章。Workflow 在 R2 归档完成后结束，索引状态独立检查。
+3. 经 AI Gateway 抽取作者、摘要、重要性和权益/利率债关键词。
+4. 元数据和关键词写入 D1，Markdown 正文归档到 R2。
+5. AI Search 通过 R2 数据源独立同步。Workflow 在 R2 归档完成后结束。
 
-正文归档、检索元数据和索引完成边界见 [共享存储](../docs/DATABASE.md#研究归档协议)。按 [AGENTS 模块分流](AGENTS.md#context-routing) 分别查看研报、政策与央行通知。
+归档与索引边界见[共享存储](../docs/DATABASE.md#研究归档协议)。政策与央行通知见 [AGENTS 模块分流](AGENTS.md#context-routing)。
 
-## 本地验证
-
-```bash
-pnpm install
-pnpm types
-pnpm db:migrate:local
-pnpm check
-pnpm test
-pnpm deploy:dry
-```
-
-日常发布由 Cloudflare Git 自动完成：验证后通过monorepo PR和合并队列进入 `main`，不手动部署 Worker。
+验证命令与发布流程见 [DEVELOPMENT](docs/DEVELOPMENT.md)。
 
 ## 文档
 
 - [AI Agent 入口](AGENTS.md)
-- [模块分流](AGENTS.md#context-routing)
 - [项目组共享规则](../AGENTS.md)
 - [系统架构](docs/ARCHITECTURE.md)
 - [D1 数据规则](docs/DATABASE.md)
