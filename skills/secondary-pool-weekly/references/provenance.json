@@ -1,0 +1,28 @@
+{
+  "snapshot_date": "2026-10-27",
+  "source_project": "Dashboard",
+  "source_commit": "2b7780900cd23dcbe9b83c28b95f5432fbfc6cef",
+  "hashes": {
+    "src/charts/bond-ledger.ts": "3c15762f1ccda32c90b2cf3951cdf1b3e728453dbe3edd0c04c202c448be703a",
+    "src/charts/common.ts": "fab50a6ef90927f8a5b5fa508723abf1b3652f180d1ab5afb0f99efbd4ac04b5",
+    "src/charts/charting.ts": "7de29f1229d863a3fade6a6ac4e5ff5781251875b869d06b1acb646753f37912",
+    "src/label-placement.ts": "be3c198e9d2ef313c7b3ee7614b24188a713bb8037553a3de75dd78620aaa054",
+    "src/lib/bond-ledger/analytics.ts": "b6da3a25255d4641745a1416c1c6154fa7817029c55b648266771e8e73df199c",
+    "src/lib/bond-ledger/weekly-report.ts": "1a067bdea62cc13463020051648aecd2008fb6a0a241bb395a243fead5cc5a88",
+    "src/lib/bond-ledger/format.ts": "839aa04709b84080209c0d64baafceb69e6edf42f4bb26f8a45dc3d594880e6c",
+    "src/lib/bond-ledger/types.ts": "12076e268ece5950e459b52b0c1f22619bb39f1f428adb54298e63e8e5ca37d9",
+    "src/lib/pages/SecondaryBondPoolWeeklyPage.svelte": "18a57ab5471750ecd5b588101ac233794c6486c10054424dd1004bb029701956",
+    "docs/modules/secondary-bond-pool.md": "a7994770f36d13d9ece14823d2fe995f8ff325be0113ee65be26f141a2d69fda"
+  },
+  "runtime": "Node.js >=20; no npm install; bundled ECharts SVG SSR",
+  "adaptations": [
+    "Existing business charts and isoWeek/year-to-latest range bundled without runtime checkout imports.",
+    "DOM chart host replaced with offline SVG SSR; label-placement line obstacles retain source behavior.",
+    "Finance calculations remain in MCP BondLedgerReport; CLI only validates and derives the current page summary.",
+    "Zero remains zero; null stays unknown; no stale/current snapshot substitution.",
+    "Partial-week custom query labels revenue as within selected range.",
+    "Fixed offline chart dimensions; allocation label margin increased to retain full share labels; ECharts legacy containLabel feature included.",
+    "Offline profit-chart legends split by upper/lower panel to avoid overlap; financial series stay unchanged.",
+    "MarkPoint retained for latest leverage; fixed-width x-axis uses month labels and January year labels; full dates remain in panel range and source data."
+  ]
+}
