@@ -11,12 +11,12 @@ import numpy as np
 import pandas as pd
 
 from artifacts import write_json
-from research_sources import source_hashes, runtime_identity
 from .issuance_evaluation import (
     _monthly_predictions,
     _prediction_window,
     _atomic_csv,
     _fingerprint,
+    strip_legacy_keys,
 )
 from .issuance_study import checkpoint_guard
 from .issuance_study_protocol import digest, immutable_json, validate_rows
@@ -71,7 +71,6 @@ def validate_control_identity(identity, panel, as_of, requests, features):
         "as_of": date,
         "events_sha256": frame_sha(requests),
         "features_sha256": frame_sha(features),
-        "runtime": runtime_identity(),
         "candidates": [asdict(c) for c in candidates],
         "controls": [asdict(CONTROL)],
         "horizons": list(SHORT_HORIZONS),
@@ -85,9 +84,7 @@ def validate_control_identity(identity, panel, as_of, requests, features):
         if identity.get(key) != value:
             raise ValueError(f"frozen control {key} differs from current inputs/design")
     current = _fingerprint(panel, (*candidates, CONTROL), pd.Timestamp(as_of))
-    if {key: value for key, value in identity["panel"].items() if key != "code"} != {
-        key: value for key, value in current.items() if key != "code"
-    }:
+    if strip_legacy_keys(identity["panel"]) != current:
         raise ValueError("frozen control panel inputs or representation differ")
 
 
@@ -269,8 +266,6 @@ def evaluate_coupon_updates(panel, as_of, directory, baseline, input_sha256):
     identity = {
         "policy": POLICY,
         "input_sha256": input_sha256,
-        "sources": source_hashes(),
-        "runtime": runtime_identity(),
         "expected_sha256": digest(expected_path),
         "requests_sha256": frame_sha(requests),
         "features_sha256": frame_sha(features),

@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 
 from data.issuance_training import HORIZONS, IssuancePanel
-from research_sources import source_hashes, runtime_identity
 from .export import write_json
 from .issuance_unified import (
     CouponCandidate,
@@ -49,6 +48,11 @@ def frozen_sigmas(rows):
     return result
 
 
+def strip_legacy_keys(stored):
+    """Drop code/runtime keys that records written before their removal still carry."""
+    return {k: v for k, v in stored.items() if k not in ("code", "runtime")}
+
+
 def _fingerprint(panel, candidates, as_of):
     return {
         "as_of": str(as_of.date()),
@@ -70,8 +74,6 @@ def _fingerprint(panel, candidates, as_of):
         "market": hashlib.sha256(
             pd.util.hash_pandas_object(panel.rates.market_features).values.tobytes()
         ).hexdigest(),
-        "code": source_hashes(),
-        "runtime": runtime_identity(),
     }
 
 
@@ -314,7 +316,8 @@ def evaluate_coupons(
     protocol_path = directory / "protocol.json"
     if (
         protocol_path.exists()
-        and json.loads(protocol_path.read_text())["signature"] != signature
+        and strip_legacy_keys(json.loads(protocol_path.read_text())["signature"])
+        != signature
     ):
         raise ValueError(
             "checkpoint data/code/config fingerprint mismatch; use a new experiment directory"

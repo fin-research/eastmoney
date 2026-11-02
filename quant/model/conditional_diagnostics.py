@@ -1,7 +1,6 @@
 """条件漂移的市场增益、事前信号与配对成本概率研究；不激活生产。"""
 
 import hashlib
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -239,16 +238,6 @@ def run_conditional_research(rates, directory):
         directory / "interval-coverage.csv", index=False
     )
     _write_conditional_report(comparisons, directory)
-    code = [
-        "conditional_drift.py",
-        "conditional_diagnostics.py",
-        "rate_forecast.py",
-        "rate_evaluation.py",
-        "rate_diagnostics.py",
-        "rate_policy.py",
-        "rate_intervals.py",
-        "statistical_validity.py",
-    ]
     write_json(
         directory / "manifest.json",
         {
@@ -259,12 +248,6 @@ def run_conditional_research(rates, directory):
             "features_sha256": hashlib.sha256(
                 pd.util.hash_pandas_object(rates.features).values.tobytes()
             ).hexdigest(),
-            "code": {
-                name: hashlib.sha256(
-                    (Path(__file__).parent / name).read_bytes()
-                ).hexdigest()
-                for name in code
-            },
             "outputs": {
                 p.name: hashlib.sha256(p.read_bytes()).hexdigest()
                 for p in directory.glob("*.csv")

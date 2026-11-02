@@ -1,7 +1,6 @@
 """Reproducible decision-learning evidence, separate from the three-field result."""
 
 import hashlib
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -256,18 +255,6 @@ def run_timing_research(engine, directory, date, terms, waiting_cost=0.0):
     protocol["features_sha256"] = hashlib.sha256(
         pd.util.hash_pandas_object(engine.rates.features).values.tobytes()
     ).hexdigest()
-    root = Path(__file__).resolve().parents[1]
-    protocol["code_sha256"] = {
-        p: hashlib.sha256((root / p).read_bytes()).hexdigest()
-        for p in (
-            "model/timing_policy.py",
-            "model/timing_research.py",
-            "model/rate_forecast.py",
-            "data/rate_data.py",
-            "data/feature_engineering.py",
-            "model/statistical_validity.py",
-        )
-    }
     # Never silently replace an experiment after seeing its result.
     if (directory / "protocol.json").exists():
         raise ValueError(

@@ -20,8 +20,7 @@ test('市场列表接受空容器与空行，必需标识缺失不拖累有效�
     for (const value of [null, undefined, [], [null, {}]]) assert.deepEqual(schema.parse(value), []);
     assert.throws(() => schema.parse('invalid'));
   }
-  assert.deepEqual(primaryIssuesSchema.parse({ data: null }), []);
-  assert.deepEqual(primaryIssuesSchema.parse({ data: { list: null } }), []);
+  assert.throws(() => primaryIssuesSchema.parse({ data: { list: [] } }));
   assert.equal(governmentBondsSchema.parse([{ bondCode: null }, { bondCode: '260010.IB', yield: 0 }]).length, 1);
   assert.throws(() => governmentBondsSchema.parse([{ bondCode: '260010.IB', yield: 'broken' }]));
 });

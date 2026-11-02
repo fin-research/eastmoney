@@ -40,15 +40,15 @@ jobs:
       - name: Run Python behavior tests
         run: uv run --locked python -m unittest discover -s tests -v
       - name: Compile active and archived lightweight modules
-        run: uv run --locked python -m compileall -q main.py pipeline.py issue_timing.py issue_report.py backtest.py margin.py query_weekly_research.py application model data choice archive reports research_sources.py tests
+        run: uv run --locked python -m compileall -q main.py pipeline.py issue_timing.py issue_report.py backtest.py margin.py query_weekly_research.py application model data choice archive reports tests
       - name: Check Python lint
         run: uvx ruff@0.15.9 check .
       - name: Check Python complexity
         run: uvx ruff@0.15.9 check . --select C901,PLR0912,PLR0915
       - name: Verify dependency lock
         run: uv lock --check
-      - name: Verify repository data and report
-        run: python scripts/check_repository_data_safety.py && python scripts/build_report.py --check
+      - name: Verify repository data
+        run: python scripts/check_repository_data_safety.py
 
   node:
     runs-on: ubuntu-latest
@@ -66,9 +66,6 @@ jobs:
           node-version: '24'
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
       - name: Install locked Worker dependencies
         run: pnpm --filter ./quant/online --filter . install --frozen-lockfile
         working-directory: .

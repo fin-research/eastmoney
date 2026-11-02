@@ -1,9 +1,6 @@
 import copy
 import hashlib
 import json
-import shutil
-import subprocess
-import sys
 import tempfile
 import unittest
 from datetime import date
@@ -12,8 +9,10 @@ from pathlib import Path
 import numpy as np
 
 from artifacts import export_tree, json_safe, write_json
-from reports.build import ROOT, REPORT, source_hashes, validate_evidence
+from reports.evidence import validate_evidence
 from reports.short_evidence import validate_short_evidence
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class ResearchEvidenceTests(unittest.TestCase):
@@ -100,93 +99,6 @@ class ResearchEvidenceTests(unittest.TestCase):
         self.assertEqual(export_tree(tree), tree)
         with self.assertRaises(ValueError):
             export_tree({**tree, "decision_type": ">"})
-
-
-class ResearchReportCLITests(unittest.TestCase):
-    def setUp(self):
-        temporary = tempfile.TemporaryDirectory()
-        self.addCleanup(temporary.cleanup)
-        self.workspace = Path(temporary.name)
-        self.root = self.workspace / "quant"
-        files = [ROOT / name for name in source_hashes()]
-        files.extend(path for path in (ROOT / "reports").iterdir() if path.is_file())
-        files.append(REPORT)
-        for path in files:
-            destination = self.root / path.relative_to(ROOT, walk_up=True)
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(path, destination)
-
-    def snapshot(self):
-        return {
-            path.relative_to(self.workspace).as_posix(): hashlib.sha256(
-                path.read_bytes()
-            ).hexdigest()
-            for path in self.workspace.rglob("*")
-            if path.is_file()
-        }
-
-    def invoke(self, *arguments):
-        return subprocess.run(
-            [sys.executable, "-B", "scripts/build_report.py", *arguments],
-            cwd=self.root,
-            capture_output=True,
-            text=True,
-            timeout=15,
-        )
-
-    def test_check_is_readonly_and_preserves_authored_readme(self):
-        before = self.snapshot()
-        checked = self.invoke("--check")
-        self.assertEqual(checked.returncode, 0, checked.stderr)
-        self.assertEqual(self.snapshot(), before)
-        built = self.invoke()
-        self.assertEqual(built.returncode, 0, built.stderr)
-        self.assertEqual(self.snapshot(), before)
-
-    def test_changed_readme_is_rejected_without_rewriting_any_file(self):
-        report = self.root / "README.md"
-        report.write_text(report.read_text() + "\nChanged research conclusion.\n")
-        before = self.snapshot()
-        result = self.invoke("--check")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("不一致", result.stderr)
-        self.assertEqual(self.snapshot(), before)
-
-    def test_invalid_evidence_is_rejected_without_rewriting_any_file(self):
-        path = self.root / "reports/research.json"
-        data = json.loads(path.read_text())
-        data["development"]["rows"][0]["requested"] += 1
-        path.write_text(json.dumps(data))
-        before = self.snapshot()
-        result = self.invoke("--check")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("denominators", result.stderr)
-        self.assertEqual(self.snapshot(), before)
-
-    def test_changed_model_source_is_rejected_without_rewriting_any_file(self):
-        path = self.root / "model/train.py"
-        path.write_text(path.read_text() + "\n# changed source\n")
-        before = self.snapshot()
-        result = self.invoke("--check")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("模型实现已变化", result.stderr)
-        self.assertEqual(self.snapshot(), before)
-
-    def test_changed_workspace_lock_is_rejected_without_rewriting_any_file(self):
-        path = self.workspace / "pnpm-lock.yaml"
-        path.write_text(path.read_text() + "\n# changed dependency graph\n")
-        before = self.snapshot()
-        result = self.invoke("--check")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("模型实现已变化", result.stderr)
-        self.assertEqual(self.snapshot(), before)
-
-    def test_check_cannot_update_the_review(self):
-        before = self.snapshot()
-        result = self.invoke("--check", "--review-note", "must not be written")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("检查模式不能更新审阅记录", result.stderr)
-        self.assertEqual(self.snapshot(), before)
 
 
 if __name__ == "__main__":

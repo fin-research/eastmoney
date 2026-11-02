@@ -94,20 +94,19 @@ def method(value):
     return value
 
 
-def protocol(study_id, candidate_method, sources, runtime):
+def protocol(study_id, candidate_method):
     return {
         **RULES,
         "study_id": identifier(study_id),
         "candidate_method": method(candidate_method),
-        "sources": sources,
-        "runtime": runtime,
     }
 
 
 def validate_protocol(value):
+    core = set(RULES) | {"study_id", "candidate_method"}
+    # Ledgers registered before the source binding was removed still carry these keys.
     require(
-        set(value)
-        == set(RULES) | {"study_id", "candidate_method", "sources", "runtime"},
+        core <= set(value) <= core | {"sources", "runtime"},
         "Unexpected registry protocol",
     )
     require(
@@ -116,16 +115,6 @@ def validate_protocol(value):
     )
     identifier(value["study_id"])
     method(value["candidate_method"])
-    require(
-        isinstance(value["sources"], dict) and value["sources"],
-        "Source closure required",
-    )
-    for digest in value["sources"].values():
-        sha(digest)
-    require(
-        isinstance(value["runtime"], dict) and value["runtime"],
-        "Runtime identity required",
-    )
     return value
 
 

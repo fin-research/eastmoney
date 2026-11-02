@@ -31,9 +31,3 @@ export function renderIssuanceProductComparison(host:HTMLElement,rows:IssuanceSn
       itemStyle:{color:colors.brand,borderRadius:[0,4,4,0]}})),
       label:{show:true,position:'right',formatter:(param:{dataIndex:number})=>rows[param.dataIndex]?.coupon_percent==null?'—':`${rows[param.dataIndex]!.coupon_percent!.toFixed(2)}%`}}]});
 }
-export function renderIssuanceMarket(host:HTMLElement,rows:IssuanceSnapshot['market_forecast']):void {
-  setChart(host,{aria:{enabled:true},tooltip:{...tooltip,trigger:'axis'},grid:{left:12,right:16,top:30,bottom:10,containLabel:true},
-    xAxis:{type:'category',data:rows.map(r=>r.date),axisLabel:{...axisLabel,formatter:(v:string)=>v.slice(5)}},
-    yAxis:{type:'value',name:'AAA 3Y %',scale:true,axisLabel,splitLine:gridLine},
-    series:[{name:'市场利率',type:'line',data:rows.map(r=>r.market_level_percent),symbol:'none',itemStyle:{color:colors.brand}}]});
-}

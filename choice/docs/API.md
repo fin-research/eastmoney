@@ -11,13 +11,17 @@ The service exposes six read-only SDK functions:
 - `POST /rpc/v1/choice/datastatistics`
 - `POST /rpc/v1/choice/tradedates`
 
-Authentication uses `Authorization: Bearer $CHOICE_RPC_TOKEN`. Login, logout,
-activation, callbacks, and arbitrary SDK method names are not RPC methods. The
-process performs the former client's one-time `manualactivate` recovery
-internally when Choice returns expired `userInfo` code `10001020`.
+Authentication uses `Authorization: Bearer $CHOICE_RPC_TOKEN`. `GET /health` needs no token. Login, logout, activation and other SDK methods are not RPC methods. When Choice returns expired `userInfo` code `10001020`, the process runs the one-time `manualactivate` recovery internally.
 
-A successful body uses the table contract below. The Data Worker verifies the
-RPC version, parses JSON, and validates the table before exposing its DTO:
+`tradedates` accepts the following body and returns `{"function":"TRADEDATES","fields":["date"],"rows":[{"date":"YYYY-MM-DD"}]}`. Dates come from the SDK calendar, not from market quotes.
+
+```json
+{ "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD", "options": "Market=CNSESH,Period=1,Order=1" }
+```
+
+## Response
+
+A successful body uses this table contract. The Data Worker checks the RPC version, parses the JSON and validates the table before it exposes a DTO.
 
 ```json
 {
@@ -27,12 +31,9 @@ RPC version, parses JSON, and validates the table before exposing its DTO:
 }
 ```
 
-The response headers contain `X-Choice-Rpc-Version: choice.rpc.v1` and echo the
-Worker's `X-Request-Id` on successful and failed parsed requests. The service trims IDs and limits them
-to 128 bytes; internal control bytes, spaces and non-ASCII bytes become `_`. Errors before
-the HTTP parser returns a complete request have no request ID. Errors use one stable shape:
+Every response carries `X-Choice-Rpc-Version: choice.rpc.v1`. Parsed requests also echo the Worker's `X-Request-Id`. The service trims it to 128 bytes and replaces spaces, control bytes and non-ASCII bytes with `_`.
 
-`tradedates` accepts `{ "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD", "options": "Market=CNSESH,Period=1,Order=1" }` and returns `{"function":"TRADEDATES","fields":["date"],"rows":[{"date":"YYYY-MM-DD"}]}`. Dates come from the SDK's calendar result, not from market quotes.
+Errors use one stable shape:
 
 ```json
 {
@@ -45,10 +46,8 @@ the HTTP parser returns a complete request have no request ID. Errors use one st
 }
 ```
 
-[rpc_contract.cpp](../src/rpc_contract.cpp) implements the RPC boundary. [main.cpp](../src/main.cpp) handles HTTP dispatch. [test_rpc.cpp](../tests/test_rpc.cpp) covers regressions. [choice/client.ts](../../data/src/choice/client.ts) consumes the RPC in Data. Update both sides and their tests for changes to version, table shape, or date normalization. Public `/data/choice/*` routing belongs to [Data](../../data/docs/API.md).
+Each parsed request writes one `choice_rpc_result` JSON log with `function` (a method name or `unknown`), `status`, nullable `upstreamCode`, `durationMs` and the sanitized `requestId`. The log has no request bodies, options, tokens, quota values or exception text.
 
-Each parsed request emits one `choice_rpc_result` JSON log. It contains only
-`function` (one of the six method names or `unknown`), HTTP `status`, nullable
-`upstreamCode`, `durationMs` and the sanitized `requestId`. The log excludes request
-bodies, options, tokens, quota values and exception text. The log does not change
-SDK calls or retries.
+## Change rules
+
+[rpc_contract.cpp](../src/rpc_contract.cpp) implements the contract, and [choice/client.ts](../../data/src/choice/client.ts) consumes it in Data. Update both sides and their tests when the version, table shape or date normalization changes. Public `/data/choice/*` routing belongs to [Data](../../data/docs/API.md).

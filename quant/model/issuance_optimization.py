@@ -1,7 +1,6 @@
 """一级层有限候选与逐时点选择；复用真实事件预测，不建立另一套市场模型。"""
 
 import hashlib
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -286,7 +285,6 @@ def save_primary_optimization(paths, engine, directory):
     write_json(
         directory / "primary-optimization-manifest.json",
         {
-            "code_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
             "paths_sha256": hashlib.sha256(
                 pd.util.hash_pandas_object(paths).values.tobytes()
             ).hexdigest(),

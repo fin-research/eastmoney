@@ -35,9 +35,3 @@ export const DATA_ADMIN_DEBT_TYPES = Object.freeze([
 			subtypeOptions: null
 		}))
 ]);
-
-/** @param {string} label */
-export function debtTypeParts(label) {
-	const configured = DEBT_TYPES.find((item) => item.label === label);
-	return configured ? { debtType: configured.type, subtype: configured.subtype } : { debtType: label, subtype: null };
-}

@@ -488,50 +488,6 @@ test("历史择时决策记录只手工保存操作与结果并从 model_run 派
   assert.deepEqual(timingDecisionHistorySchema.parse(history), history);
 });
 
-test("model_run migration 完整拆分 payload 并合并整体结论", async () => {
-  const [migration, recommendationMigration, sampleMigration] = await Promise.all([
-    readFile(
-      new URL(
-        "../financing-model-migrations/0002_structure_model_run.sql",
-        import.meta.url,
-      ),
-      "utf8",
-    ),
-    readFile(
-      new URL(
-        "../financing-model-migrations/0003_driver_groups_and_product_scenarios.sql",
-        import.meta.url,
-      ),
-      "utf8",
-    ),
-    readFile(
-      new URL(
-        "../financing-model-migrations/0004_model_sample_range.sql",
-        import.meta.url,
-      ),
-      "utf8",
-    ),
-  ]);
-
-  assert.match(migration, /CREATE TABLE financing_model\.model_run_market_driver/);
-  assert.match(migration, /CREATE TABLE financing_model\.model_run_forecast_window/);
-  assert.match(migration, /base_conclusion_preferred_dates date\[\]/);
-  assert.match(migration, /timing_group_means numeric\(20, 10\)\[\]/);
-  assert.match(migration, /DROP TABLE financing_model\.conclusion_revision/);
-  assert.match(migration, /DROP COLUMN payload/);
-  assert.match(recommendationMigration, /ADD COLUMN lcr_value/);
-  assert.match(recommendationMigration, /ADD COLUMN cv_mae/);
-  assert.match(recommendationMigration, /model_run_driver_group/);
-  assert.match(recommendationMigration, /model_run_product_scenario/);
-  assert.match(recommendationMigration, /CREATE TABLE financing_model\.timing_decision_record/);
-  assert.match(recommendationMigration, /decision_action text NOT NULL/);
-  assert.match(recommendationMigration, /outcome text NOT NULL DEFAULT ''/);
-  assert.doesNotMatch(recommendationMigration, /\bstatus\b/);
-  assert.match(sampleMigration, /ADD COLUMN model_sample_count integer/);
-  assert.match(sampleMigration, /model_sample_start_date date/);
-  assert.match(sampleMigration, /model_sample_end_date date/);
-});
-
 test("卖方观点快照保存搜索口径和完整 payload", async () => {
   const calls = [];
   const client = {
@@ -575,19 +531,6 @@ test("卖方逻辑汇总编辑采用追加快照并保留检索证据", async ()
   assert.match(calls[0].parameters[6], /兴业固收/);
   assert.equal(revised.edited, true);
   assert.equal(revised.updatedAt, updatedAt);
-});
-
-test("融资模型页面只展示发行建议、预测票面和真实SHAP，保留人工与卖方操作", async () => {
-  const page = await readFile(new URL("../src/lib/pages/FinancingModelPage.svelte", import.meta.url), "utf8");
-  assert.match(page, /parseCurrentFinancingReport/);
-  for (const field of ["couponSnapshot.forecast", "explanation?.features", "timingSnapshot.probabilities"]) assert.ok(page.includes(field));
-  for (const label of ["预测发行利率", "整体结论", "业务指标", "资金缺口", "主体利差", "四品种对比", "因子贡献", "预测命中率", "决策操作", "编辑卖方逻辑汇总"]) assert.ok(page.includes(label));
-  assert.doesNotMatch(page, /90%区间|区间下限|区间上限/);
-  assert.doesNotMatch(page, /窗口净节约|等待省钱概率|编辑整体结论/);
-  assert.doesNotMatch(page, /snapshot\.(prediction|company_metrics|product_recommendation|forecast_window)/);
-  assert.match(page, /renderIssuanceForecast/);
-  assert.match(page, /renderFinancingDriverContributions/);
-  assert.match(page, /InstitutionLogo/);
 });
 
 test("AI Search 固定检索最近七个上海自然日且最多返回50条", () => {

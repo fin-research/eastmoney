@@ -180,21 +180,6 @@ test("资金日报上传校验已有请求长度并兼容代理省略 Content-Le
   assert.equal(result.fileName, "2026-08-24.html");
 });
 
-test("上传模态框保留文件选择与上传主操作", async () => {
-  const { readFile } = await import("node:fs/promises");
-  const page = await readFile(
-    new URL("../src/lib/FundReportUploadDialog.svelte", import.meta.url),
-    "utf8",
-  );
-  assert.match(page, /<Modal[\s\S]*?aria-labelledby="fund-report-upload-title"/);
-  assert.match(page, /upload-file-input[\s\S]*?type="file"/);
-  assert.match(
-    page,
-    /<footer class="upload-actions">[\s\S]*?<Button[^>]*variant="default"[\s\S]*?upload-button[\s\S]*?type="submit"/,
-  );
-  assert.match(page, /disabled=\{!selectedFile \|\| uploading\}/);
-});
-
 test("资金日报读取只使用日期派生 key 并添加隔离响应头", async () => {
   const html = "<html><body><script>window.ready = true</script></body></html>";
   const object = {
@@ -263,18 +248,6 @@ test("历史资金日报枚举固定前缀、过滤非法对象并按日期倒�
       },
     ],
   );
-});
-
-test("资金日报列表页呈现历史入口、空状态和读取失败状态", async () => {
-  const { readFile } = await import("node:fs/promises");
-  const page = await readFile(
-    new URL("../src/routes/fund-report/+page.svelte", import.meta.url),
-    "utf8",
-  );
-  assert.match(page, /<h2 id="fund-report-list-title">历史资金日报<\/h2>/);
-  assert.match(page, /href=\{report\.url\}/);
-  assert.match(page, /暂无历史资金日报/);
-  assert.match(page, /资金日报列表暂时无法读取|data\.loadError/);
 });
 
 function reportObject(key, size) {

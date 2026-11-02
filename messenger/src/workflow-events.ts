@@ -1,18 +1,14 @@
 import { z } from 'zod';
 import { messageSchema, type Bindings, type MessageInput } from './contracts';
-import { notify, migrateLegacyWorkflowSubscriber } from './notifications';
+import { notify } from './notifications';
 import { economicSyncHasOnlyDataGaps, economicSyncGapSummary } from './economic-sync-notification';
 
 export const workflowBindings = {
   omo: 'OMO',
-  'open-market': 'OPEN_MARKET', // Historical namespace; no new Cron instances.
   'market-briefing': 'MARKET_BRIEFING',
   article: 'ARTICLE',
-  'article-cleanup': 'ARTICLE_CLEANUP',
   telegram: 'TELEGRAM',
   'policy-aggregation': 'POLICY_AGGREGATION',
-  'bond-ledger-import': 'BOND_LEDGER_IMPORT',
-  'financing-debt-import': 'FINANCING_DEBT_IMPORT',
   'economic-indicator-sync': 'ECONOMIC_INDICATOR_SYNC',
 } as const;
 export type WorkflowBindingName = typeof workflowBindings[keyof typeof workflowBindings];
@@ -144,7 +140,6 @@ export async function processWorkflowEvent(env: Bindings, id: string) {
   const row = await env.DB.prepare('SELECT * FROM workflow_events WHERE id=?').bind(id).first<EventRow>();
   if (!row || row.completed_at !== null) return;
   try {
-    await migrateLegacyWorkflowSubscriber(env);
     if (!row.messages) {
       const event = eventSchema.parse(JSON.parse(row.event));
       const key = workflowBindings[event.source.workflowName as keyof typeof workflowBindings];

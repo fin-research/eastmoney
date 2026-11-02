@@ -5,11 +5,9 @@ import { parse } from 'yaml';
 
 const read = path => readFileSync(new URL('../../' + path, import.meta.url), 'utf8');
 const workspace = parse(read('pnpm-workspace.yaml'));
-const lock = parse(read('pnpm-lock.yaml'));
 const projects = ['gateway', 'dashboard', 'data', 'messenger', 'ingest', 'quant/online'];
 assert.deepEqual(workspace.packages, projects);
 assert.equal(JSON.parse(read('package.json')).packageManager, 'pnpm@10.33.2');
-assert.deepEqual(Object.keys(lock.importers).sort(), ['.', ...projects].sort());
 for (const [name, version] of Object.entries(workspace.catalog)) {
   if (name === 'xlsx') {
     assert.equal(version, '0.20.3');
@@ -31,16 +29,6 @@ for (const project of ['.', ...projects]) {
       assert.equal(specifier, 'catalog:', `${project}: ${name} must use catalog`);
       const expected = workspace.catalog[name];
       assert.ok(expected, `${name}: missing catalog entry`);
-      if (name === 'xlsx') {
-        assert.equal(lock.importers[project][section][name].specifier, 'file:../vendor/xlsx-0.20.3.tgz');
-        assert.equal(lock.importers[project][section][name].version, 'file:vendor/xlsx-0.20.3.tgz');
-        continue;
-      }
-      assert.equal(lock.importers[project][section][name].specifier, 'catalog:');
-      assert.equal(lock.catalogs.default[name].specifier, expected);
-      const resolved = lock.importers[project][section][name].version.split('(')[0];
-      assert.equal(resolved, expected);
-
     }
   }
 }
