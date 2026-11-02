@@ -78,12 +78,6 @@
       "script_name": "ingest"
     },
     {
-      "binding": "OPEN_MARKET",
-      "name": "open-market",
-      "class_name": "OpenMarketWorkflow",
-      "script_name": "ingest"
-    },
-    {
       "binding": "MARKET_BRIEFING",
       "name": "market-briefing",
       "class_name": "MarketBriefingWorkflow",
@@ -93,12 +87,6 @@
       "binding": "ARTICLE",
       "name": "article",
       "class_name": "ArticleWorkflow",
-      "script_name": "ingest"
-    },
-    {
-      "binding": "ARTICLE_CLEANUP",
-      "name": "article-cleanup",
-      "class_name": "ArchiveCleanupWorkflow",
       "script_name": "ingest"
     },
     {
@@ -112,18 +100,6 @@
       "name": "policy-aggregation",
       "class_name": "PolicyWorkflow",
       "script_name": "ingest"
-    },
-    {
-      "binding": "BOND_LEDGER_IMPORT",
-      "name": "bond-ledger-import",
-      "class_name": "BondLedgerImportWorkflow",
-      "script_name": "eastmoney-dashboard"
-    },
-    {
-      "binding": "FINANCING_DEBT_IMPORT",
-      "name": "financing-debt-import",
-      "class_name": "DebtImportWorkflow",
-      "script_name": "eastmoney-dashboard"
     },
     {
       "binding": "ECONOMIC_INDICATOR_SYNC",

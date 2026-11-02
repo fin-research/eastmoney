@@ -15,8 +15,6 @@ dist/
 .env.*
 !.env.local.example
 
-.auth0-deploy/
-
 node_modules
 
 # Local test evidence

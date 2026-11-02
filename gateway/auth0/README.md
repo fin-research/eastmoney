@@ -12,7 +12,7 @@ post-login 绑定两个 Action：注册资料 Action 和 `login claims`（`35884
 - `role` 供数据库使用，不用于业务授权。`_roles` 由 Gateway 按组织权限缓存解析为角色 ID。
 - `eastmoney-signup-profile` 只处理新账号的 pending 标记。姓名和部门不授予权限，也不自动关联业务负责人。
 - 基础角色来自 Auth0 组织成员关系，Action 不自动分配。
-- `actions/eastmoney-login.cjs` 和 `scripts/publish-login-claims.mjs` 实现旧 nested `user` 协议。网站已拒绝该协议，重新发布会破坏登录。
+- `actions/eastmoney-login.cjs` 实现旧 nested `user` 协议。网站已拒绝该协议，发布会破坏登录。
 
 发布 Action 只修改目标 code，保留 Secret、依赖和 post-login 绑定，并避免覆盖其他会话未发布的草稿。
 

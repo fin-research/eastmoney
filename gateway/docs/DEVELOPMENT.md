@@ -45,7 +45,6 @@ git diff --check
 - 线上登录声明以已绑定、已部署的 `login claims` Action 为准，用 Auth0 CLI 读取绑定与 deployed version 核对。
 - 权限注册到 Gateway audience。API 启用 RBAC，`token_dialect=access_token`，不启用 Add Permissions in the Access Token，JWT 只含身份与角色名称。
 - 新增业务权限：按共享 AUTH 的 CLI 流程更新 API scope 和本站角色授权。发布后用管理员刷新缓存，运行 `pnpm auth:verify -- --refresh-permissions` 并读取受影响接口。其他节点按缓存 TTL 更新。
-- `scripts/` 下的 `prepare-*`、`cutover`、`consolidate-*`、`cleanup-*`、`migrate-*`、`publish-*` 、`provision-*`、`auth0-deploy*`、`verify-managed-mcp*`、`verify-mcp-registration*` 和 `*mcp-portal*` 是迁移期一次性或依赖已退役凭据的脚本，不是维护入口。重跑会覆盖现有租户配置。
 
 ## 生产交付
 

@@ -5,14 +5,10 @@ import { economicSyncHasOnlyDataGaps, economicSyncGapSummary } from './economic-
 
 export const workflowBindings = {
   omo: 'OMO',
-  'open-market': 'OPEN_MARKET', // Historical namespace; no new Cron instances.
   'market-briefing': 'MARKET_BRIEFING',
   article: 'ARTICLE',
-  'article-cleanup': 'ARTICLE_CLEANUP',
   telegram: 'TELEGRAM',
   'policy-aggregation': 'POLICY_AGGREGATION',
-  'bond-ledger-import': 'BOND_LEDGER_IMPORT',
-  'financing-debt-import': 'FINANCING_DEBT_IMPORT',
   'economic-indicator-sync': 'ECONOMIC_INDICATOR_SYNC',
 } as const;
 export type WorkflowBindingName = typeof workflowBindings[keyof typeof workflowBindings];

@@ -1,9 +1,9 @@
 {
-  "note": "JavaScript依赖统一根catalog和单锁；身份闭包与复现登记覆盖根依赖配置、锁及经旧锁sha512核验的SheetJS0.20.3官方归档，拒绝未提交依赖输入。厂商CDN503和停滞通过本地同字节归档解决，包版本与内容未变。Python依赖、模型算法、已发布模型权重、概率与研究结论未变，README正文保持原样。",
+  "note": "pnpm-lock.yaml 与 pnpm-workspace.yaml：移除 auth0-deploy-cli，Quant 输入、模型算法与研究结论无变化。",
   "source_hashes": {
     "../package.json": "ebbc1d5b7b257d37a4c1bb353bee5b2a5d71833292b35256edf83f8efcfb7882",
-    "../pnpm-lock.yaml": "3f75c6287023da26ed7d8156fd8198fc0f6f1c4c6f129ca60df0154edc329260",
-    "../pnpm-workspace.yaml": "f9299d27c39b954ad4b49123de9f722325ab27537efd140f248cf33a97fe5803",
+    "../pnpm-lock.yaml": "b06406bcb2bb95285f1f60afc32a973ebf92b77510063d2eb197e8c6f51bdfab",
+    "../pnpm-workspace.yaml": "059acc4b00d44a91a778701b393ab33181b64098be2e8a47d3f51e51392bc42d",
     "application/__init__.py": "64b63aff9187f899f87c2029cee3042497c9ac55c83d6b371e80fbb8eebeb05e",
     "application/arguments.py": "bd67c9cb2b0faf8681fe379186cab370e29e975c5f3f4b7e7143d504847fbb7f",
     "application/cli.py": "e24f50beba36c0c26e626703ded1d9bcdac787b109bb4ebd5d86555048e22b46",

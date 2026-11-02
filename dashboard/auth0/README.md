@@ -1,6 +1,6 @@
 # Auth0 主题与注册资料
 
-Auth0 配置、登录 Action 与管理应用由 [Gateway](../../gateway/auth0/README.md) 维护，租户操作流程见 [本地租户管理](../../docs/AUTH.md#auth0-本地租户管理)。本目录保存登录主题、中文文案和注册资料表单。
+Auth0 配置、登录 Action 与管理应用由 [Gateway](../../gateway/auth0/README.md) 维护，租户操作流程见 [本地租户管理](../../docs/AUTH.md#auth0-本地租户管理)。本目录保存登录主题、中文文案和注册资料表单。发布用 `auth0` CLI。
 
 租户为 `hasbai.eu.auth0.com`，登录域为 `auth.hasbai.xyz`，使用 New Universal Login，Auth0 负责密码和身份验证。登录域 CNAME 指向 `hasbai-cd-j8r0mxglxwb2knim.edge.tenants.eu.auth0.com`，使用 Auth0 托管证书，保留该记录用于续期。
 
