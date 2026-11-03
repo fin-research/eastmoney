@@ -205,15 +205,3 @@ export async function fetchImportantNews(
   }
   return items.sort((left, right) => (issueTime(right) ?? 0) - (issueTime(left) ?? 0));
 }
-
-export function formatNewsItem(index: number, item: Row): string {
-  const timeText = typeof item.time === "string" ? item.time.replace("T", " ").slice(0, 19) : "--";
-  const tags = Array.isArray(item.tags) && item.tags.length > 0 ? item.tags.join("、") : "--";
-  const content = typeof item.content === "string" && item.content ? item.content : "（无正文）";
-  return [
-    `【${index}】${timeText} ${String(item.title ?? "")}`,
-    `标签：${tags}`,
-    "正文：",
-    content,
-  ].join("\n");
-}

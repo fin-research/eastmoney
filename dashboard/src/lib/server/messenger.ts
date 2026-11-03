@@ -12,8 +12,3 @@ export async function messengerJson<T>(binding: MessengerBinding, path: string, 
   if (!response.ok) throw new Error(`消息中台请求失败（${response.status}）`);
   return response.json() as Promise<T>;
 }
-export async function submitMessage(binding: MessengerBinding, body: unknown): Promise<{id: string; status: string}> {
-  const value = await messengerJson<{id?: unknown; status?: unknown}>(binding, '/messages', body);
-  if (typeof value.id !== 'string' || typeof value.status !== 'string') throw new Error('消息中台响应无效');
-  return {id: value.id, status: value.status};
-}

@@ -43,7 +43,7 @@ test('CIMD identities require an https client and their signed namespace, with n
     assert.equal((await status(request(await f.signed({azp,[mcpIdentityClaim]:f.flatClaims,org_id:'org_Other'})),f.env)),401);
   }
   assert.equal((await status(request(await f.signed({azp:'https://unknown.example/client.json',[mcpIdentityClaim]:f.flatClaims})),f.env)),200);
-  for(const azp of ['M1a5PF3UJaFIZv1k4HO4IV06Z5fXQBHV','http://unknown.example/client.json'])
+  for(const azp of ['unregistered-client','M1a5PF3UJaFIZv1k4HO4IV06Z5fXQBHV','http://unknown.example/client.json'])
     assert.equal((await status(request(await f.signed({azp,[mcpIdentityClaim]:f.flatClaims})),f.env)),403);
 });
 test('private MCP policies and dispatch enforce fresh real-route permission and named action',async t=>{

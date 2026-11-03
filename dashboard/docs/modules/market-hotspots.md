@@ -1,43 +1,36 @@
 # 市场热点
 
-入口：`/trading-research/market-hotspots`。公共规则见 [文档分流](../../AGENTS.md#context-routing)。仅在任务涉及本模块时读取。
+入口：`/trading-research/market-hotspots`。
 
 ## 接口
 
-- `GET /api/rag/hotspots`：返回最近快照。无快照为 404。不接受范围参数。
-- `POST /api/rag/hotspots`：生成并追加快照。前端携带 `Accept: text/event-stream` 时返回统一 `progress/result/error` SSE，普通 JSON 请求成功为 201。
-- 滚动请求：`{"mode":"rolling","rollingCount":20}`，数量必须为 8–100 的整数。
-- 日期请求：`{"mode":"range","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD"}`。
+- `GET /api/rag/hotspots`：返回最近一次成功快照，不调用模型，不接受范围参数。无快照为 404。
+- `POST /api/rag/hotspots`：按证据范围生成并追加快照。带 `Accept: text/event-stream` 时返回统一 `progress/result/error` SSE，普通 JSON 请求成功为 201。
+- 滚动范围：`{"mode":"rolling","rollingCount":20}`，数量为 8–100 的整数，默认最近 20 篇。
+- 日期范围：`{"mode":"range","startDate":"YYYY-MM-DD","endDate":"YYYY-MM-DD"}`，最多取最近 100 篇已完成特征抽取的文章。
 
 ## 业务规则
 
-- `GET` 只读取最近一次成功生成的快照，不根据当前筛选重新解释历史结果，也不调用模型。
-- `POST` 才按证据范围生成并追加快照。滚动模式默认最近 20 篇。日期范围模式最多读取最近 100 篇已完成特征抽取的文章。
-- 输出为 8–15 个热点。热度由模型给出 0–100 分，应用只做 Schema、范围和单来源最高 60 分校验，不重新计算权重。
-- D1 只提供标题、摘要、重要性和关键词等结构化证据。文章正文不进入热点查询。
-- 页面必须完整展示热点总结与证据文本，不使用截断。证据 ID 位于正文上方。
+- 首次访问只读最近快照，只有用户手动生成才调用模型。快照追加保存，不覆盖历史，也不按当前筛选重新解释。
+- 输出 8–15 个热点。热度由模型给出 0–100 分，应用只校验 Schema、范围和单来源最高 60 分，不重算权重。
+- 证据只用 D1 `article` / `keyword` 的标题、摘要、重要性和关键词，不读文章正文。
+- 页面完整展示热点总结与证据文本，证据 ID 位于正文上方。
 
-## 数据流
+## 数据流与存储
 
-`ingest` 写入的 D1 `article` / `keyword` → Worker 读取证据 → AI Gateway → 追加 `hotspot_snapshot` → 页面读取最近快照。
+`article` / `keyword`（Ingest 写入）→ Worker 读证据 → AI Gateway → 追加 `hotspot_snapshot` → 页面读最近快照。
 
-## 存储：D1：文章证据、政策跟踪与热点快照
+- `hotspot_snapshot` 保存完整热点响应、输入指纹、生成时间、模型和已解析的证据范围。
+- D1 结构变化写入 `migrations/`，并核对共享同一生产库的 Ingest 写入契约。表归属见 [共享数据库](../../../docs/DATABASE.md#共享-d1)。
 
-生产绑定为 `DB`，数据库名 `eastmoney`。当前运行时关注：
+## 视图
 
-- `article`：文章元数据、摘要和重要性。不保存正文。
-- `keyword`：按 `(article_id, ordinal)` 保存结构化主题、事实、解读和影响。
-- `hotspot_snapshot`：追加保存完整热点响应、输入指纹、生成时间、模型和已经解析的证据范围。
-- `policy_event` / `policy_news`：由 ingest 的 Policy Workflow 写入规范政策卡片与原始资讯证据。`policy_event.importance` 保存面向境内资金/利率研究的 `important`、`related`、`general` 三档重要性，Dashboard 只读展示。`policy_news` 保留 DM 原文和政策原文链接，供点评生成与统一新闻资讯详情读取，Dashboard 不修改这些字段。
-- `policy_article`：政策与 article 的多对多关系，只保存关系状态、关联方式和时间戳，不保存模型置信度或关联理由。Dashboard 人工关联或排除写为 `manual`，后续 AI 不覆盖。
-- `commentary`：通用标准化点评，类型覆盖时事快评、政策跟踪和海外事件。当前政策页以 `policy_id UNIQUE` 保证每项政策至多一条点评，并保存 AI 初版和人工修订状态。
+继承[全站 DESIGN](../../DESIGN.md)，不设独立的主题、字体或控件体系。
 
-`daily_hotspot` 与 `hotspot_cache` 是历史 migration 中的旧结构，不应作为新功能的运行时入口。最新读取统一走 `hotspot_snapshot`。
-
-规则：
-
-- D1 结构修改写入 `migrations/`，并检查共享同一生产数据库的 `ingest` 写入契约。
-- 本地开发默认使用本地 D1。`pnpm dev` 不同步远端数据。
-- `pnpm db:sync:remote` 仅做显式的有限增量同步。不要把它加入普通启动流程。
-- 快照为追加记录，不原地覆盖历史生成结果。
-- 政策聚合只由 ingest Workflow 执行。政策点评只由页面人工点击生成，不设自动生成任务。
+- 冷灰浅色画布，白色摘要与详情面板，轻边框，全站低阴影，系统字体。
+- 保留多色词云和热度字号层次。颜色取品牌、成功、提醒、次级和错误令牌中较深的蓝、绿、橙、紫、红，保证浅底可读。不用发光、亮度滤镜或暗色描边。
+- 摘要、解释与证据正文完整展示。正文 `1rem`，常规标签不小于 `.875rem`，日期与证据 ID 可用 `.75rem`。
+- 宽屏保留画布与右侧详情。窄屏词云保留足够高度，必要时由工作台内容区纵向滚动。范围设置与详情面板受视口约束，并避让工作台顶栏的实际高度。
+- 主要控件不小于 `44px`。词语支持点击、Enter / Space 选择、可见聚焦和选中反馈。
+- 尊重减少动效设置。选中和聚焦不改变文字边界与布局。
+- 视觉改造不重算或删减热度、证据范围、证据 ID、关联内容和解释。

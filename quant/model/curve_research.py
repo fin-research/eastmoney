@@ -2,7 +2,6 @@
 
 from dataclasses import asdict
 import hashlib
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -224,7 +223,6 @@ def run_curve_research(
     directory.mkdir(parents=True, exist_ok=True)
     if (directory / "protocol.json").exists():
         raise ValueError("experiment already frozen; choose a new directory")
-    root = Path(__file__).resolve().parents[1]
     first_year = max(2013, int(rates.levels_bp.index[0].year) + 3)
     evaluation_start = f"{first_year}-01-01"
     protocol = {
@@ -248,21 +246,6 @@ def run_curve_research(
         "features_sha256": hashlib.sha256(
             pd.util.hash_pandas_object(rates.features).values.tobytes()
         ).hexdigest(),
-        "code_sha256": {
-            p: hashlib.sha256((root / p).read_bytes()).hexdigest()
-            for p in (
-                "model/rate_curve.py",
-                "model/curve_research.py",
-                "data/rate_data.py",
-                "data/feature_engineering.py",
-                "model/rate_forecast.py",
-                "model/primary_pricing.py",
-                "model/timing_policy.py",
-                "pipeline.py",
-                "model/statistical_validity.py",
-                "model/timing_research.py",
-            )
-        },
     }
     write_json(directory / "protocol.json", protocol)
     policies, selections = evaluate_curves(

@@ -1,20 +1,14 @@
 # Data 开发与验证
 
-JavaScript依赖由[根workspace](../../pnpm-workspace.yaml)统一管理，使用Node 24和根packageManager指定的pnpm。`pnpm install --frozen-lockfile`自动使用根锁；只装本项目时在根目录运行 `pnpm --filter ./data --filter . install --frozen-lockfile`。不维护子项目锁文件。
-
-常用命令见 [AGENTS](../AGENTS.md#commands)，脚本以 [package.json](../package.json) 为准。跨项目工作树规则见 [项目组 AGENTS](../../AGENTS.md#parallel-development)。
+依赖由[根 workspace](../../pnpm-workspace.yaml)统一管理，安装见[根 README](../../README.md#开发)。命令见 [AGENTS](../AGENTS.md#commands)，脚本以 [package.json](../package.json) 为准。
 
 ## Worker 验证
 
-```bash
-pnpm install
-pnpm check
-pnpm benchmark:cpu
-pnpm check:startup
-pnpm deploy:dry
-```
+默认交付运行 `pnpm check`、`pnpm deploy:dry` 和 `git diff --check`。`pnpm check` 已串联类型生成、OpenAPI 生成、类型检查与测试。生成文件变化时先检查来源，不手工修补。
 
-三条 VPC 连通性测试必须部署到 Cloudflare edge：
+CPU 相关变更另跑 `pnpm benchmark:cpu` 和 `pnpm check:startup`，并按 [CPU 预算](CPU_BUDGET.md)取生产证据。本地 dry-run 和单元测试不能证明生产 CPU 达标。
+
+VPC 连通性测试必须部署到 Cloudflare edge：
 
 ```bash
 pnpm exec wrangler deploy --config wrangler.vpc-smoke.jsonc
@@ -24,21 +18,19 @@ curl https://eastmoney-data-vpc-smoke.hasbai.workers.dev/camel
 pnpm exec wrangler delete --config wrangler.vpc-smoke.jsonc
 ```
 
-Smoke 只返回连通性、HTTP 状态和 RPC 契约版本，不返回 DM 正文或凭据。Wrangler
-`dev --remote` 的 VPC remote binding 在历史排查中曾出现本地超时，不能据此判定生产 VPC
-故障。以部署后的 edge smoke 为准。
+Smoke 只返回连通性、HTTP 状态和 RPC 契约版本，不返回 DM 正文或凭据。`wrangler dev --remote` 的 VPC 远程 binding 会在本地超时，office 网络、VPC service 和 tunnel 均正常。以部署后的 edge smoke 判定 VPC 健康。
 
-## 默认交付
+## 发布
 
-执行 `pnpm typegen`、`pnpm typecheck`、`pnpm test`、`pnpm check`、`pnpm deploy:dry`、`git diff --check`。`pnpm check` 已串联类型生成、OpenAPI 生成、类型检查与测试。生成结果变化必须检查来源，不能手工修补生成文件。
-
-只提交任务文件，推送后核对远端。必要手动部署已授权，无需再次询问。部署后检查线上版本、受影响资源及真实 VPC smoke。CPU 变化时加做 [CPU 预算验证](CPU_BUDGET.md)，不能以单元测试或本地 dry-run 宣称生产 CPU 达标。
+只提交任务文件，推送后核对远端。部署后检查线上版本、受影响资源和真实 VPC smoke。
 
 ## Office 运维所有权
 
-Choice 镜像、SDK、受限 env file 与容器恢复只按 [Choice 开发文档](../../choice/docs/DEVELOPMENT.md) 操作。Data 只维护 VPC 客户端和 Worker binding。不要在本仓库维护第二套 office 安装命令。
+Choice 镜像、SDK、受限 env file 与容器恢复按 [Choice 开发文档](../../choice/docs/DEVELOPMENT.md)操作。Data 只维护 VPC 客户端和 Worker binding。
 
-历史版本、切换与故障证据见 [MIGRATION](MIGRATION.md)。宿主 cloudflared / 容器状态与 WUD 运行状态必须实时核验，不能把历史 SSH 记录当成现状。
+Choice 返回 `login count up to limit` 时，原因是 office RPC 进程启动时 SDK `start()` 失败，同一账号被另一个进程或残留会话占用。先核对是否还有其他 RPC 进程，再单实例重启 `data` 容器。Data 透传该错误，重试无法绕过会话上限。
+
+宿主 cloudflared、容器和 WUD 状态要实时核验。
 
 ## Secrets
 
@@ -52,21 +44,14 @@ pnpm exec wrangler secret put CAMEL_USERNAME
 pnpm exec wrangler secret put CAMEL_PASSWORD
 ```
 
-office 主机的 `CHOICE_AUTH` 只存在受限 env file。Worker 不持有 Choice 账号。
-`.dev.vars`、`.env` 和所有真实凭据均不得提交。
-
-## 文档维护
-
-公共协议在 API，内部依赖在 ARCHITECTURE，CAMEL 会话在模块文档。跨仓库职责和存储归属回到项目组 docs。新增资源更新代码契约和 [AGENTS 的模块分流](../AGENTS.md#context-routing)，不复制完整端点清单。
+`CHOICE_AUTH` 只存在 office 主机的受限 env file，Worker 不持有 Choice 账号。本地 `.dev.vars` 和 `.env` 已被 Git 忽略。
 
 ## 权限专项验证
 
-按 [共享 AUTH](../../docs/AUTH.md#程序化权限测试) 执行本仓库匿名/测试账号覆盖。权限验收禁止 browser。真实登录统一使用 Gateway 的 `pnpm auth:verify`，凭据只从项目组根 `.env` 读取，不复制登录实现或密码到各仓库。
+测试账号覆盖按[共享 AUTH](../../docs/AUTH.md#程序化权限测试)执行。`pnpm test:auth` 运行 `tests/access.test.ts`。真实登录用 Gateway 的 `pnpm auth:verify`，不在本项目复制登录实现。
 
-本站公网流量由 Gateway 按 `/data` 分流，Data 不再配置 Access 应用或 Service Token。发布后核对 `GatewayData` 与 `InternalData` 均可用，且本 Worker 无 routes、workers.dev、preview 或 Custom Domain，默认 fetch 404。原 `InternalData` 消费者保持可用。
+Gateway 联调脚本 `node scripts/verify-integration.mjs` 覆盖真实 Data handler。Choice 探针用缺参数的 422，不消耗额度。
 
-MCP 的 SDK 契约测试在 `tests/mcp.test.ts`，本地基准为 `pnpm exec tsx scripts/benchmark-mcp.ts`。线上真实用户验证使用 Gateway `scripts/verify-mcp-oauth.mjs`，通过统一 `/mcp` 验证目录、Data/业务查询和刷新；旧公网 Data MCP 入口返回410。
+发布后核对 `GatewayData` 与 `InternalData` 均可用。本 Worker 无 routes、workers.dev、preview 和 Custom Domain，默认 fetch 返回 404。
 
-## 测试分层与覆盖率
-
-测试规范与覆盖率口径见 [TESTING](TESTING.md)。
+MCP 的 SDK 契约测试在 `tests/mcp.test.ts`，本地基准为 `pnpm exec tsx scripts/benchmark-mcp.ts`。线上用户验证用 Gateway 的 `scripts/verify-mcp-oauth.mjs`，经统一 `/mcp` 验证目录、Data 查询和刷新。

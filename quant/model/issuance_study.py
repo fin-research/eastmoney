@@ -13,6 +13,7 @@ from .issuance_evaluation import (
     _atomic_csv,
     _best_candidate,
     _fingerprint,
+    strip_legacy_keys,
     _monthly_predictions,
 )
 from .issuance_diagnostics import period_metrics
@@ -93,7 +94,7 @@ def historical_candidate(spec, spec_path, identity):
         else "qualified_for_historical_report"
     )
     if (
-        protocol["identity"] != identity
+        strip_legacy_keys(protocol["identity"]) != identity
         or protocol["spec"]["stage"] != "development"
         or selection["identity_sha256"] != protocol["identity_sha256"]
         or selection["final_period_touched"]

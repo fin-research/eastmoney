@@ -21,7 +21,6 @@ from model.issuance_evaluation import _fingerprint
 from model.issuance_unified import CouponModel
 from model.issuance_diagnostics import training_diagnostics
 from model.short_coupon import CONTROL, short_candidates, SELECTION
-from research_sources import runtime_identity
 
 
 def fixture():
@@ -87,7 +86,6 @@ class CouponUpdateTests(unittest.TestCase):
             "as_of": date,
             "events_sha256": frame_sha(r),
             "features_sha256": frame_sha(f),
-            "runtime": runtime_identity(),
             "candidates": [asdict(c) for c in short_candidates()],
             "controls": [asdict(CONTROL)],
             "horizons": [1, 14, 30],
@@ -101,6 +99,11 @@ class CouponUpdateTests(unittest.TestCase):
             ),
         }
         validate_control_identity(identity, panel, date, r, f)
+        legacy = {
+            **identity,
+            "panel": {**identity["panel"], "code": {"x": "0" * 64}, "runtime": {"python": "3"}},
+        }
+        validate_control_identity(legacy, panel, date, r, f)
         for frame, column in (
             (r, "coupon_bp"),
             (f, "issuer_quote_lag_0_bp"),

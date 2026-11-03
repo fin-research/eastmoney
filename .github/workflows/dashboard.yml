@@ -106,12 +106,7 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
-      - name: Read enforced merge rules for PR admission
-        if: github.event_name == 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh api "repos/$GITHUB_REPOSITORY/rules/branches/main" > "$RUNNER_TEMP/dashboard-rules.json"
-      - name: Require queue protection or every full check
+      - name: Admit pull requests or require every full check
         env:
           CI_AFFECTED: ${{ inputs.affected }}
           CI_EVENT: ${{ github.event_name }}

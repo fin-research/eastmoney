@@ -6,7 +6,6 @@
 
 新仓采用审计后的干净源码基线，不导入旧Git对象和标签。
 旧仓保留原可见性及历史。
-后续清理与依赖统一见[执行记录](monorepo-cleanup-2026-10-28.md)。
 原私有Data、Choice、Quant的全部可用引用已做历史密钥扫描。
 历史扫描使用Gitleaks 8.30.1，并检查LFS指针和高风险文件路径。
 
@@ -65,9 +64,8 @@ master保留为私有历史，不强行合并，也不导入新仓。
 新仓使用普通checkout，根目录内七项目平级。
 不创建新worktree。
 后续已将 `quant/outputs`、`.Codex` 实体迁入新目录并重建环境。
-旧工作树在私有恢复归档校验后删除，详见[清理记录](monorepo-cleanup-2026-10-28.md)。
+旧工作树在私有恢复归档校验后删除，本地恢复入口为 `var/monorepo-cleanup-20261028/`。
 这些入口均被Git忽略，原始数据和模型仍只在本地。
-旧路径记录仅供历史证据追溯，不作为新研究的工作目录要求。
 
 Git源码读取已区分monorepo根与Quant项目根。
 研究报告的审阅记录说明工程迁移，不改变原报告结论。
@@ -78,8 +76,7 @@ Git源码读取已区分monorepo根与Quant项目根。
 集成提交为 `f742b68ac0de60ec17df94d47ac1eb70610b198e`。
 [PR1](https://github.com/fin-research/eastmoney/pull/1)通过合并队列合入main。
 [完整CI](https://github.com/fin-research/eastmoney/actions/runs/40646356371)在同一SHA成功。
-公开仓规则要求PR、串行合并队列和GitHub Actions的 `Monorepo CI`，没有bypass。
-规则源为[main-ruleset.json](../../.github/main-ruleset.json)。
+公开仓规则要求PR、串行合并队列和GitHub Actions的 `Monorepo CI`，初始规则没有bypass，现行规则允许仓库管理员绕过，见[main-ruleset.json](../../.github/main-ruleset.json)。
 
 五个旧生产构建触发器已停止，新触发器仅跟踪eastmoney/main。
 根目录分别为对应项目，watch paths为对应 `项目/*`。
@@ -129,11 +126,6 @@ Quant没有Git自动触发器，本次未发布推理模型或研究报告。
 | Choice私有打包来源 | 已切换、发布新digest并核对office运行状态 |
 
 本迁移未执行数据库migration或回填，也未重建Cloudflare资源及既有Workflow。
-
-额外执行旧 `dashboard pnpm verify:routes` 时，旧融资脚本仍预期匿名页面303跳转。
-当前Gateway采用匿名页面壳，实际返回200，该旧脚本失败。
-现行Gateway真实处理器80项集成与统一MCP集成通过。
-此历史脚本差异不作为已通过项目记录，后续须按现行认证契约维护。
 
 发布后8项匿名HTTP检查通过：公开页面、Data health、保护API拒绝、旧MCP入口410及私有后端origin404。
 真实测试账号程序化登录后，92项HTTP探针均通过。

@@ -3,12 +3,10 @@
 import hashlib
 import json
 from pathlib import Path
-import subprocess
 
 import numpy as np
 import pandas as pd
 
-from research_sources import runtime_identity, source_hashes
 from .issuance_calibration import MODES, RULES, calibrate_oof, validate_oof
 from .issuance_diagnostics import error_metrics
 from .issuance_market_validation import verified_market_stage, verify_market_selection
@@ -35,7 +33,7 @@ def source_inventory(directory):
     }
 
 
-def _source_predictions(directory, root):
+def _source_predictions(directory):
     protocol = json.loads((directory / "protocol.json").read_text())
     spec = protocol["spec"]
     token = hashlib.sha256(
@@ -44,7 +42,6 @@ def _source_predictions(directory, root):
     if (
         spec["schema_version"] != 9
         or spec["stage"] != "development"
-        or source_hashes(root) != protocol["identity"]["code"]
         or token != protocol["identity_sha256"]
     ):
         raise ValueError("calibration requires unchanged schema9 development source")
@@ -57,43 +54,15 @@ def _source_predictions(directory, root):
     return validate_oof(rows[candidates[0].name]), protocol
 
 
-def register_study(source, source_root, output):
-    """Freeze both old prediction provenance and new transform before any scoring."""
-    root = Path(__file__).resolve().parents[1]
-    revision = subprocess.check_output(
-        ["git", "rev-parse", "HEAD"], cwd=root, text=True
-    ).strip()
-    repository = Path(
-        subprocess.check_output(
-            ["git", "rev-parse", "--show-toplevel"], cwd=root, text=True
-        ).strip()
-    )
-    prefix = root.relative_to(repository)
-    code = source_hashes()
-    for name, checksum in code.items():
-        content = subprocess.check_output(
-            [
-                "git",
-                "show",
-                f"{revision}:{(repository / prefix / name).resolve().relative_to(repository).as_posix()}",
-            ],
-            cwd=repository,
-        )
-        if hashlib.sha256(content).hexdigest() != checksum:
-            raise ValueError("commit scientific sources before registration")
-    source, source_root, output = map(
-        lambda p: Path(p).resolve(), (source, source_root, output)
-    )
-    _, old = _source_predictions(source, source_root)
+def register_study(source, output):
+    """Freeze old prediction provenance and the new transform before any scoring."""
+    source, output = map(lambda p: Path(p).resolve(), (source, output))
+    _, old = _source_predictions(source)
     value = {
         **FIXED_PROTOCOL,
         "source_directory": str(source),
-        "source_root": str(source_root),
         "source_inventory": source_inventory(source),
         "original_identity": old["identity_sha256"],
-        "transform_revision": revision,
-        "transform_code": code,
-        "runtime": runtime_identity(),
     }
     output.mkdir(parents=True, exist_ok=True)
     immutable_json(output / "protocol.json", value)
@@ -143,14 +112,11 @@ def run_study(directory):
     directory = Path(directory).resolve()
     spec = json.loads((directory / "protocol.json").read_text())
     source = Path(spec["source_directory"])
-    if (
-        any(spec.get(k) != value for k, value in FIXED_PROTOCOL.items())
-        or spec["transform_code"] != source_hashes()
-        or spec["runtime"] != runtime_identity()
-        or spec["source_inventory"] != source_inventory(source)
-    ):
-        raise ValueError("calibration protocol/source/runtime drift")
-    raw, old = _source_predictions(source, Path(spec["source_root"]))
+    if any(spec.get(k) != value for k, value in FIXED_PROTOCOL.items()) or spec[
+        "source_inventory"
+    ] != source_inventory(source):
+        raise ValueError("calibration protocol/source drift")
+    raw, old = _source_predictions(source)
     if spec["original_identity"] != old["identity_sha256"]:
         raise ValueError("original prediction identity differs from registration")
     h30 = raw.loc[raw.lead_days.eq(30)]

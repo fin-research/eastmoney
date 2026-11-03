@@ -500,19 +500,6 @@ export async function getWorkflowSettingsData() {
 	};
 }
 
-const SOP_EVENT_DEBT_TYPE_SCOPE = { 公司债: ['公司债', '小公募', '私募债', '次级债'] };
-
-async function getActiveSopEventDebtTypes(db) {
-	const activeTypes = await db.prepare(`
-		SELECT DISTINCT debt_type AS debtType FROM sop_templates WHERE is_active = TRUE
-	`).all();
-	return [...new Set(activeTypes.flatMap(({ debtType }) => SOP_EVENT_DEBT_TYPE_SCOPE[debtType] ?? [debtType]))];
-}
-
-export async function getActiveSopDebtTypeOptions() {
-	return getActiveSopEventDebtTypes(getDatabase());
-}
-
 /** @param {{ today: string, toDate: string, personId?: string | null, ownOnly?: boolean, limit?: number }} options */
 export async function getLayoutData({ today, toDate, personId = null, ownOnly = false, limit = 10 }) {
 	const safeLimit = Math.min(Math.max(Number(limit) || 10, 1), 30);

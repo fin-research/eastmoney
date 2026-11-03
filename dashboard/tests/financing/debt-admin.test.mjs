@@ -91,3 +91,14 @@ test('debt tabs hide inactive categories without changing existing entity URLs',
  assert.equal(DEBT_ENTITIES.find(entity=>entity.key==='debt-1').label,'小公募');
  assert.equal(DATA_ADMIN_TABS.find(tab=>tab.label==='短期融资券').id,'debt-5');
 });
+
+test('data editor binds values, enforces table/column ownership and requires complete mutation keys', () => {
+  const query = compileDataAdminQuery('bond', 'PATCH', new URLSearchParams({ id: 'eq.42', updated_at: 'eq.2026-09-01' }), { name: "x'); DROP TABLE financing.people; --" });
+  assert.ok(!query.sql.includes('DROP TABLE')); assert.equal(query.values[2], "x'); DROP TABLE financing.people; --");
+  assert.ok(query.sql.includes('"id" = $1')); assert.ok(query.sql.includes('"updated_at" = $2'));
+  assert.throws(() => compileDataAdminQuery('people', 'GET', new URLSearchParams()), /不支持/);
+  assert.throws(() => compileDataAdminQuery('bond', 'DELETE', new URLSearchParams()), /完整主键/);
+  assert.throws(() => compileDataAdminQuery('bond', 'PATCH', new URLSearchParams({ id: 'eq.42' }), { id: 43 }), /只读|主键/);
+  assert.throws(() => compileDataAdminQuery('bond', 'GET', new URLSearchParams({ select: 'password' })), /白名单/);
+  assert.throws(() => compileDataAdminQuery('bond', 'GET', new URLSearchParams({ limit: '100000' })), /范围/);
+});

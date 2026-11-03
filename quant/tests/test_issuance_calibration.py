@@ -180,18 +180,10 @@ class CalibrationTests(unittest.TestCase):
                 "rules": RULES,
                 "modes": list(MODES),
                 "production_eligible": False,
-                "transform_code": {},
-                "runtime": {},
                 "source_inventory": {"old": "hash"},
             }
             (p / "protocol.json").write_text(json.dumps(spec))
             with (
-                patch(
-                    "model.issuance_calibration_study.source_hashes", return_value={}
-                ),
-                patch(
-                    "model.issuance_calibration_study.runtime_identity", return_value={}
-                ),
                 patch(
                     "model.issuance_calibration_study.source_inventory", return_value={}
                 ),
@@ -207,21 +199,12 @@ class CalibrationTests(unittest.TestCase):
             spec = {
                 **FIXED_PROTOCOL,
                 "source_directory": temp,
-                "source_root": temp,
                 "original_identity": "expected",
-                "transform_code": {},
-                "runtime": {},
                 "source_inventory": {},
             }
             variants = [dict(spec, original_identity="wrong")]
             variants += [dict(spec, **{key: "tampered"}) for key in FIXED_PROTOCOL]
             with (
-                patch(
-                    "model.issuance_calibration_study.source_hashes", return_value={}
-                ),
-                patch(
-                    "model.issuance_calibration_study.runtime_identity", return_value={}
-                ),
                 patch(
                     "model.issuance_calibration_study.source_inventory", return_value={}
                 ),

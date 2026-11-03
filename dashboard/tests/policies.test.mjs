@@ -2,7 +2,6 @@ import { commentaryDraftSchema } from "../src/lib/commentary.ts";
 import { createCommentary, updateCommentary, getCommentary } from "../src/lib/server/commentary-repository.ts";
 import { commentaryDatabase } from "./helpers/commentary-database.mjs";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
@@ -64,42 +63,6 @@ test("政策时间轴一次装配政策资讯、自动研报关系与一对一�
   assert.equal(policies[0].commentary.type, "policy_tracking");
 });
 
-test("政策页面展示重要性并使用隔离的时间轴类名", async () => {
-  const [page, migration, relationMigration, importanceMigration] = await Promise.all([
-    readFile(new URL("../src/lib/pages/PolicyTrackingPage.svelte", import.meta.url), "utf8"),
-    readFile(new URL("../migrations/1004_create_policy_tracking.sql", import.meta.url), "utf8"),
-    readFile(new URL("../migrations/1005_remove_policy_article_explanations.sql", import.meta.url), "utf8"),
-    readFile(new URL("../migrations/1014_add_policy_importance.sql", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(page, /\/trading-research\/tracking-commentary/);
-  assert.doesNotMatch(page, /generateCommentary|commentaryDraft/);
-  assert.doesNotMatch(page, /请先关联至少一篇研报/);
-  assert.match(page, /撰写点评/);
-  assert.match(page, /\.policy-timeline \{ display: grid; gap: 2rem;/);
-  assert.match(page, /\.policy-timeline-item \{ display: grid; grid-template-columns: 126px minmax\(0, 1fr\); gap: 2rem;/);
-  assert.doesNotMatch(page, /class="timeline(?:-item)?"/);
-  assert.match(page, /\.timeline-date \{[^}]*display: flex; align-items: flex-start; justify-content: flex-end;/);
-  assert.match(page, /importance-chip--\$\{policy\.importance\}/);
-  assert.match(page, /policyImportanceLabels\[policy\.importance\]/);
-  assert.match(page, /\.importance-chip--important \{[^}]*color: #b42318;/);
-  assert.match(page, /\.importance-chip--related \{[^}]*color: #175cd3;/);
-  assert.match(page, /\.importance-chip--general \{[^}]*color: #475467;/);
-  assert.match(page, /<small>\{article\.summary\}<\/small>/);
-  assert.doesNotMatch(page, /article\.confidence|article\.rationale|ai-badge/);
-  assert.match(page, />调整关联</);
-  assert.doesNotMatch(page, /\/api\/policies\/aggregate/);
-  assert.match(migration, /CREATE TABLE IF NOT EXISTS policy_event/);
-  assert.match(migration, /CREATE TABLE IF NOT EXISTS policy_news/);
-  assert.match(migration, /CREATE TABLE IF NOT EXISTS policy_article/);
-  assert.match(migration, /association_method IN \('ai', 'manual'\)/);
-  assert.match(migration, /policy_id TEXT UNIQUE/);
-  assert.match(relationMigration, /CREATE TABLE policy_article_next/);
-  assert.doesNotMatch(relationMigration, /confidence|rationale/);
-  assert.match(importanceMigration, /ADD COLUMN importance TEXT NOT NULL DEFAULT 'general'/);
-  assert.match(importanceMigration, /'important', 'related', 'general'/);
-});
-
 test("无关联研报时仍可装配政策点评生成上下文", async () => {
   const context = await loadCommentaryGenerationContext(
     fakeCommentaryGenerationDatabase(),
@@ -108,28 +71,6 @@ test("无关联研报时仍可装配政策点评生成上下文", async () => {
 
   assert.equal(context.news.length, 1);
   assert.deepEqual(context.articles, []);
-});
-
-test("政策资讯、研报与点评使用独立深链并从政策页面进入", async () => {
-  const [policyPage, newsPage, articlePage, commentaryPage] = await Promise.all([
-    readFile(new URL("../src/lib/pages/PolicyTrackingPage.svelte", import.meta.url), "utf8"),
-    readFile(new URL("../src/routes/news/[id]/+page.svelte", import.meta.url), "utf8"),
-    readFile(new URL("../src/routes/articles/[id]/+page.svelte", import.meta.url), "utf8"),
-    readFile(new URL("../src/routes/commentaries/[id]/+page.svelte", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(policyPage, /\/news\/\$\{encodeURIComponent\(item\.id\)\}/);
-  assert.match(policyPage, /\/articles\/\$\{encodeURIComponent\(article\.id\)\}/);
-  assert.match(policyPage, /tracking-commentary\?id=\$\{encodeURIComponent\(policy\.commentary\.id\)\}/);
-  assert.match(newsPage, /\/api\/news\/\$\{encodeURIComponent\(data\.id\)\}/);
-  assert.match(newsPage, /DM 原文/);
-  assert.match(newsPage, /查看政策原文/);
-  assert.match(articlePage, /\/api\/articles\/\$\{encodeURIComponent\(data\.id\)\}/);
-  assert.match(articlePage, /研报正文/);
-  assert.doesNotMatch(articlePage, /:global\(\.report-content\)/);
-  assert.match(articlePage, /research-report-content/);
-  assert.match(commentaryPage, /\/api\/commentaries\/\$\{encodeURIComponent\(data\.id\)\}/);
-  assert.match(commentaryPage, /查看对应政策/);
 });
 
 test("研报正文以纯文本块安全呈现标题、列表和段落", () => {

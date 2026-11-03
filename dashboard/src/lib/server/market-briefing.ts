@@ -23,13 +23,6 @@ const briefingNewsSummarySchema = z.object({
   tags: z.array(z.string()),
   important: z.boolean().optional(),
 });
-const briefingNewsListSchema = z.array(briefingNewsSummarySchema);
-export const briefingNewsResponseSchema = z
-  .union([
-    briefingNewsListSchema,
-    z.object({ list: briefingNewsListSchema }),
-  ])
-  .transform((value) => Array.isArray(value) ? value : value.list);
 export const briefingNewsDetailSchema = briefingNewsSummarySchema.extend({
   content: z.string().default(""),
   link: z.string().url().optional(),
@@ -347,27 +340,6 @@ export async function fetchDataJson<T>(
     );
   }
   return parsed.data;
-}
-
-export async function mapWithConcurrency<T, R>(
-  items: readonly T[],
-  concurrency: number,
-  task: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results = new Array<R>(items.length);
-  let nextIndex = 0;
-  const worker = async () => {
-    while (nextIndex < items.length) {
-      const index = nextIndex;
-      nextIndex += 1;
-      const item = items[index];
-      if (item !== undefined) results[index] = await task(item);
-    }
-  };
-  await completeAll(
-    Array.from({ length: Math.min(concurrency, items.length) }, worker),
-  );
-  return results;
 }
 
 function formatBriefingItem(

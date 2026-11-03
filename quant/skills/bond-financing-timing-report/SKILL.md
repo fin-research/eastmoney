@@ -1,22 +1,22 @@
 ---
 name: bond-financing-timing-report
-description: 基于当前公募真实票面模型及冻结证据维护 Quant 可视化研究报告或生成当期发行建议。
+description: 基于当前三档择时模型 timing-advice-v1 及冻结证据，维护 Quant 研究报告或核对当期发行建议。
 ---
 
-# 债券模型研究与发行报告
+# 债券融资择时报告
 
-在 Quant 仓库执行。现行模型契约、口径与发布边界分别读 [ONLINE_INFERENCE](../../docs/ONLINE_INFERENCE.md)、[DOMAIN](../../docs/DOMAIN.md) 和 [PLAN](../../PLAN.md)。
+在 Quant 项目执行。现行模型契约、状态和口径分别读 [ONLINE_INFERENCE](../../docs/ONLINE_INFERENCE.md) 和 [DOMAIN](../../docs/DOMAIN.md)。
 
 ## 研究报告
 
-唯一当前研究报告为根 `REPORT.html`，采用论文式可视化结构，维护与构建遵循 [RESEARCH_REPORT](../../docs/RESEARCH_REPORT.md)。每次模型/训练/特征/数据/评价/推理修改都要更新并检查报告。两融已封存，不包含在其中。保留研究问题、方法、数据可用时点、分母与切分、基准及失败结果、局限和后续方向。
+唯一的研究报告是项目根 `README.md`，维护与检查按 [RESEARCH_REPORT](../../docs/RESEARCH_REPORT.md)。模型、训练、特征、数据、评价或推理变化时，更新并检查报告。两融已封存，不在报告内。保留研究问题、方法、数据可用时点、分母与切分、基准与失败结果、局限。
 
-优先使用任务指定的冻结评价与最近已验证产物，不为报告重写自动训练或调用收费上游。只将审阅后的聚合证据写入报告源。原始输入、逐笔预测和模型继续留忽略目录。工程维护不把旧数据日期改为今天，也不称为新前向成绩。
+优先使用任务指定的冻结评价和最近已验证的产物，不为重写报告自动训练或调用收费上游。只把审阅后的聚合证据写入报告源，原始输入、逐笔预测和模型留在忽略目录。工程维护不把旧数据日期改成今天，也不称新前向成绩。
 
 ## 当期发行建议
 
-需要新预测时运行 `uv run python main.py --window-days 30`，使用任务指定冻结公募选择。默认只读 Neon。以 JSON 业务结果为准，不读取旧 Markdown 成绩充作研究证据。当前 Huber 是稳健票面中心，节约、年化金额与节约概率为空，不能从两日期点预测差补造期望收益。
+每个交易日由线上 Workflow 生成并写入 Dashboard。本地复核时，对固定包运行 `scripts/run_timing_advice.py`（只读 Neon，不训练），再用 `online/verify-timing.mjs` 核对 Python/JS，命令见 [ONLINE_INFERENCE](../../docs/ONLINE_INFERENCE.md#当前三档发行建议)。
 
-SHAP 基准加所有贡献须还原票面。组合结构按显式归因方法解释，不伪装为纯 TreeSHAP。贡献是预测关联，不是因果。日期建议来自点预测最低四分位，历史精度不证明实际融资收益。
+建议取概率最大的类别，不含票面、节约或发行日期。引用时同时给出三档概率、市场日期，并注明状态是“开发检验、探索性选用”。
 
-卖方观点仅在用户明确要求时使用独立 `query_weekly_research.py`，模型 pipeline 不调用研究库。区分环境判断、模型预测和实际验证，保留分歧，不补造支持性观点。线上状态以真实 Workflow 发布及 API 回读为准。
+卖方观点只在用户明确要求时使用独立的 `query_weekly_research.py`，模型 pipeline 不调用研究库。区分环境判断、模型预测和实际验证，保留分歧，不补造支持性观点。线上状态以真实 Workflow 发布及 API 回读为准。

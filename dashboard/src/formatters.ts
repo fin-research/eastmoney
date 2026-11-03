@@ -61,17 +61,6 @@ export function chineseDateParts(
   };
 }
 
-export function timeLabel(isoDateTime: string | null): string {
-  if (!isoDateTime) return "—";
-  return new Intl.DateTimeFormat("zh-CN", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(new Date(isoDateTime));
-}
-
 export function shortDate(isoDate: string): string {
   return isoDate.slice(5).replace("-", ".");
 }
