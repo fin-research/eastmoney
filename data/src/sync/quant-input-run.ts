@@ -34,7 +34,7 @@ const PAID_FETCH = { retries: { limit: 0, delay: '1 second' }, timeout: '2 minut
 
 export async function runQuantInputSync(
   step: Pick<WorkflowStep, 'do'>,
-  env: Pick<Cloudflare.Env, 'HYPERDRIVE' | 'EASTMONEY' | 'CHOICE_RPC' | 'CHOICE_RPC_TOKEN' | 'CHOICE_FAST_LIMIT' | 'CHOICE_OTHER_LIMIT'>,
+  env: Pick<Cloudflare.Env, 'HYPERDRIVE' | 'EASTMONEY' | 'CHOICE_SESSION' | 'CHOICE_FAST_LIMIT' | 'CHOICE_OTHER_LIMIT'>,
   scheduledTime: number,
   request: DataApiRequest,
   instanceId?: string,

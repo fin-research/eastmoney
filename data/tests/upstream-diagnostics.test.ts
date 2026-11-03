@@ -4,10 +4,10 @@ import { handleRequest } from "../src/app";
 import { readUpstreamError, readUpstreamJson, UpstreamPayloadError, diagnosticBody, redactDiagnosticText } from "../src/upstream-diagnostics";
 import { allowRateLimits } from "./rate-limit-bindings";
 
-function env(source: "DM" | "CHOICE_RPC", fetch: (request: Request) => Promise<Response>): Cloudflare.Env {
-  return { DM_COOKIE: "device_id=private-device; session=private-session", CHOICE_RPC_TOKEN: "private-rpc-token",
+function env(source: "DM" | "CHOICE_SESSION", fetch: (request: Request) => Promise<Response>): Cloudflare.Env {
+  return { DM_COOKIE: "device_id=private-device; session=private-session",
     ...allowRateLimits(),
-    [source]: { fetch },
+    [source]: source === "CHOICE_SESSION" ? { getByName: () => ({ fetch }) } : { fetch },
   } as unknown as Cloudflare.Env;
 }
 const historyUrl = "https://example.test/cfets-histories?bondCode=DR001&endCapitalTime=1788969615000&limit=100";
@@ -29,18 +29,18 @@ describe("upstream diagnostics", () => {
   });
 
   it("retains Choice SDK error code and raw redacted response", async () => {
-    const response = await handleRequest(new Request(edbUrl), env("CHOICE_RPC", async () => Response.json({
-      error: { code: 10003008, message: "invalid stock code", diagnostic: "private-rpc-token", token: "echoed-secret" },
+    const response = await handleRequest(new Request(edbUrl), env("CHOICE_SESSION", async () => Response.json({
+      error: { code: 10003008, message: "invalid stock code", authorization: "Bearer private-rpc-token", token: "echoed-secret" },
     }, { status: 503 })));
     const body = await response.json() as { detail: string; error: Record<string, unknown> };
     expect(body.detail).toBe("invalid stock code");
-    expect(body.error).toMatchObject({ upstreamCode: 10003008, upstreamStatus: 503, upstreamPath: "/rpc/v1/choice/edb" });
+    expect(body.error).toMatchObject({ upstreamCode: 10003008, upstreamStatus: 503, upstreamPath: "/query/edb" });
     expect(JSON.stringify(body)).not.toMatch(/private-rpc-token|echoed-secret/);
     expect(JSON.stringify(body)).toContain("10003008");
   });
 
   it("preserves the numeric Choice permission code from the real RPC envelope", async () => {
-    const response = await handleRequest(new Request(edbUrl), env("CHOICE_RPC", async () => Response.json({
+    const response = await handleRequest(new Request(edbUrl), env("CHOICE_SESSION", async () => Response.json({
       error: { code: "CHOICE_UPSTREAM", upstreamCode: 10001003, message: "user has no access for this API", retryable: true },
     }, { status: 503 })));
     expect(response.status).toBe(503);
@@ -59,9 +59,9 @@ describe("upstream diagnostics", () => {
   });
 
   it("captures HTML masquerading as a successful protobuf or Choice JSON response", async () => {
-    for (const source of ["DM", "CHOICE_RPC"] as const) {
+    for (const source of ["DM", "CHOICE_SESSION"] as const) {
       const response = await handleRequest(new Request(source === "DM" ? historyUrl : edbUrl), env(source, async () => new Response(
-        "<html>upstream maintenance</html>", { headers: { "Content-Type": "text/html", "X-Choice-Rpc-Version": "choice.rpc.v1" } },
+        "<html>upstream maintenance</html>", { headers: { "Content-Type": "text/html", "X-Choice-Native-Version": "choice.native.v1" } },
       )));
       const body = await response.json() as { error: { stage: string; upstreamResponse: { body: string; status: number } } };
       expect(response.status).toBe(503);

@@ -39,11 +39,10 @@ VPC service 经 `office` tunnel 连接，service id 以 [wrangler.jsonc](../wran
 | binding | VPC service | 目标 |
 | --- | --- | --- |
 | `DM` | `dm` | `rest.innodealing.com:80,443` |
-| `CHOICE_RPC` | `choice` | office `127.0.0.1:8767`，HTTP |
 | `CAMEL` | `camel` | office `10.6.88.192:7000`，HTTP |
 
 - DM：Worker 用 `DM_COOKIE` 中的 `device_id` 重算 MD5 签名，解码 JSON 和 deflate/gzip protobuf。
-- Choice：Bearer `CHOICE_RPC_TOKEN` 鉴权。方法、版本头和错误契约由 [Choice API](../../choice/docs/API.md) 维护。RPC 只监听 loopback，不加公网 hostname。
+- Choice：私有 `CHOICE_SESSION` Durable Object 经出站 TCP 和 HTTPS 访问厂商服务，不走 VPC。会话、令牌有效期、费用和离线验证边界见[原生协议迁移](modules/choice-native.md)，该迁移尚未部署。
 - CAMEL：无公共业务路由，浏览器经 Gateway 调用 `/data/camel/*`，详见 [CAMEL](modules/camel.md)。
 
 东方财富网页与行情走普通 fetch，网络等待不计入 CPU。

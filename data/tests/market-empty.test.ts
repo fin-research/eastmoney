@@ -5,7 +5,7 @@ import { fetchMarginHistory } from "../src/eastmoney";
 import { allowRateLimits } from "./rate-limit-bindings";
 
 const bindings = (fetch: (request: Request) => Promise<Response>) => ({
-  DM: { fetch }, DM_COOKIE: "device_id=test", CHOICE_RPC: { fetch }, CHOICE_RPC_TOKEN: "test",
+  DM: { fetch }, DM_COOKIE: "device_id=test", CHOICE_SESSION: { getByName: () => ({ fetch }) } as unknown as Cloudflare.Env['CHOICE_SESSION'],
   ...allowRateLimits(),
 }) as unknown as Cloudflare.Env;
 

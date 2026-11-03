@@ -10,7 +10,7 @@ import {
   requireMethod,
 } from "../http";
 
-type ChoiceEnv = Pick<Cloudflare.Env, "CHOICE_RPC" | "CHOICE_RPC_TOKEN" | "CHOICE_FAST_LIMIT" | "CHOICE_OTHER_LIMIT">;
+type ChoiceEnv = Pick<Cloudflare.Env, "CHOICE_SESSION" | "CHOICE_FAST_LIMIT" | "CHOICE_OTHER_LIMIT">;
 
 function dateRange(parameters: URLSearchParams): {
   startDate: string;

@@ -6,7 +6,7 @@ import { fetchMarginHistory } from "../src/eastmoney";
 import { allowRateLimits } from "./rate-limit-bindings";
 
 const choiceTable = () => Response.json({ function: "CSS", fields: [], rows: [] }, {
-  headers: { "X-Choice-Rpc-Version": "choice.rpc.v1" },
+  headers: { "X-Choice-Native-Version": "choice.native.v1" },
 });
 
 describe("upstream rate limits", () => {
@@ -16,7 +16,7 @@ describe("upstream rate limits", () => {
     const other = { limit: vi.fn(async () => ({ success: false })) } as unknown as RateLimit;
     const env = {
       ...allowRateLimits(), CHOICE_FAST_LIMIT: fast, CHOICE_OTHER_LIMIT: other,
-      CHOICE_RPC: { fetch: rpc }, CHOICE_RPC_TOKEN: "fixture",
+      CHOICE_SESSION: { getByName: () => ({ fetch: rpc }) } as unknown as Cloudflare.Env['CHOICE_SESSION'],
     } as unknown as Cloudflare.Env;
 
     const css = await handleRequest(new Request("https://test/data/choice/css?codes=000001.SH&indicators=CLOSE"), env);
@@ -37,7 +37,7 @@ describe("upstream rate limits", () => {
       ...allowRateLimits(),
       CHOICE_FAST_LIMIT: { limit: vi.fn(async () => ({ success: false })) },
       DM_LIMIT: { limit: vi.fn(async () => ({ success: false })) },
-      CHOICE_RPC: { fetch: rpc }, CHOICE_RPC_TOKEN: "fixture",
+      CHOICE_SESSION: { getByName: () => ({ fetch: rpc }) } as unknown as Cloudflare.Env['CHOICE_SESSION'],
       DM: { fetch: dm }, DM_COOKIE: "device_id=fixture",
     } as unknown as Cloudflare.Env;
 

@@ -11,7 +11,7 @@
 | Dashboard Worker | 私有 `GatewayDashboard` 承接 UI、业务 API 和 actions。market-briefing Workflow、授信 Agent | [wrangler](../dashboard/wrangler.jsonc)、[入口](../dashboard/worker/entry.ts) |
 | Messenger Worker | 私有 `Messaging` / `MessengerAdmin`。消息投递和全项目唯一的分钟 Cron | [wrangler](../messenger/wrangler.jsonc)、[接口](../messenger/README.md) |
 | Ingest Worker | 研报、政策与央行资讯的私有 `ScheduledTasks` 和 Workflows。不承接站点页面 | [wrangler](../ingest/wrangler.jsonc)、[入口](../ingest/src/index.ts) |
-| Choice RPC | office Linux amd64 上的 Choice SDK 单会话私网服务 | [构建与运行](../choice/docs/DEVELOPMENT.md) |
+| Choice | 生产为 office Linux amd64 上的 SDK 单会话私网服务。本分支由 Data 的私有 Durable Object 持有原生会话，尚未部署 | [构建与运行](../choice/docs/DEVELOPMENT.md)、[原生协议迁移](../data/docs/modules/choice-native.md) |
 | Quant | 本地债券训练（两融已封存于 `archive`）。线上为私有债券推理 Workflow 和静态研究报告，无公网 API | [本地架构](../quant/docs/ARCHITECTURE.md)、[线上推理](../quant/docs/ONLINE_INFERENCE.md) |
 
 路由：
@@ -44,7 +44,8 @@ Dashboard 管理页 → MESSENGER_ADMIN: MessengerAdmin → 投递历史与人�
 Cloudflare Workflow 终态 → Event Subscriptions / Queue messenger-workflow-events → Messenger
 Messenger 每分钟 Cron → 私有 ScheduledTasks → Dashboard / Data / Ingest / Quant
 Dashboard / Ingest / Quant → DATA: InternalData → Data
-Data → DM / CHOICE_RPC / CAMEL VPC → office 上游
+Data → DM / CAMEL VPC → office 上游
+Data → CHOICE_SESSION Durable Object → Choice 厂商 TCP / HTTPS（本分支，尚未部署）
 Data economic-indicator-sync → Hyperdrive → Neon public.edb / quant_input
 Data economic-indicator-sync → R2 eastmoney/fund-reports（只读）
 Ingest → D1 + R2 article → AI Search research

@@ -65,7 +65,7 @@ Dashboard market-briefing Workflow 经 `DATA` binding 分段读取原始资源�
 - [app.ts](../src/app.ts) 装配公共 HTTP，[http.ts](../src/http.ts) 负责错误、限长读取和 JSON 响应，[graphql.ts](../src/graphql.ts) 镜像相同资源。
 - 修改字段时先扩展 Zod 契约并运行 `pnpm openapi:generate`，再同步 REST 投影、GraphQL 和[契约测试](../tests/contracts.test.ts)。
 - 公共响应保留 `Cache-Control: no-store` 和既有 HTTP 状态。
-- Choice RPC 的版本、请求、响应和失败契约由 [Choice API](../../choice/docs/API.md) 维护。[Choice client](../src/choice/client.ts) 负责版本检查、解析和表结构校验。
+- 原生 Choice 会话、协议和兼容范围见[原生协议迁移](modules/choice-native.md)。[Choice client](../src/choice/client.ts) 检查私有对象的协议版本并校验表结构。生产切换尚未执行。
 - 跨仓库变更只读受影响的消费者模块，按[共享架构的变更协同](../../docs/ARCHITECTURE.md#变更协同)检查。
 
 ## 中国货币网

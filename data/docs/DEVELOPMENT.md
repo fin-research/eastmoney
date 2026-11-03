@@ -13,7 +13,6 @@ VPC 连通性测试必须部署到 Cloudflare edge：
 ```bash
 pnpm exec wrangler deploy --config wrangler.vpc-smoke.jsonc
 curl https://eastmoney-data-vpc-smoke.hasbai.workers.dev/dm
-curl https://eastmoney-data-vpc-smoke.hasbai.workers.dev/choice
 curl https://eastmoney-data-vpc-smoke.hasbai.workers.dev/camel
 pnpm exec wrangler delete --config wrangler.vpc-smoke.jsonc
 ```
@@ -26,7 +25,7 @@ Smoke 只返回连通性、HTTP 状态和 RPC 契约版本，不返回 DM 正文
 
 ## Office 运维所有权
 
-Choice 镜像、SDK、受限 env file 与容器恢复按 [Choice 开发文档](../../choice/docs/DEVELOPMENT.md)操作。Data 只维护 VPC 客户端和 Worker binding。
+Choice 镜像、SDK、受限 env file 与容器恢复按 [Choice 开发文档](../../choice/docs/DEVELOPMENT.md)操作。原生会话迁移见 [Choice 原生协议](modules/choice-native.md)，生产 office 服务尚未退役。
 
 Choice 返回 `login count up to limit` 时，原因是 office RPC 进程启动时 SDK `start()` 失败，同一账号被另一个进程或残留会话占用。先核对是否还有其他 RPC 进程，再单实例重启 `data` 容器。Data 透传该错误，重试无法绕过会话上限。
 
@@ -38,13 +37,14 @@ Worker 生产 Secret：
 
 ```bash
 pnpm exec wrangler secret put DM_COOKIE
-pnpm exec wrangler secret put CHOICE_RPC_TOKEN
+pnpm exec wrangler secret put CHOICE_CREDENTIALS
+pnpm exec wrangler secret put CHOICE_SERVERS
 pnpm exec wrangler secret put CF_AIG_TOKEN
 pnpm exec wrangler secret put CAMEL_USERNAME
 pnpm exec wrangler secret put CAMEL_PASSWORD
 ```
 
-`CHOICE_AUTH` 只存在 office 主机的受限 env file，Worker 不持有 Choice 账号。本地 `.dev.vars` 和 `.env` 已被 Git 忽略。
+`CHOICE_AUTH` 只存在 office 主机的受限 env file。本分支的 Worker Secrets `CHOICE_CREDENTIALS` 和 `CHOICE_SERVERS` 持有原生协议凭据，尚未部署。本地 `.dev.vars` 和 `.env` 已被 Git 忽略。
 
 ## 权限专项验证
 

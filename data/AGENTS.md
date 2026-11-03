@@ -5,16 +5,16 @@
 私有 Cloudflare 数据 API。Hono TypeScript Worker 在 Gateway 之后，经命名 Service Binding 提供 `/data` 资源。
 
 - DM 经 `DM` Workers VPC binding。
-- Choice 经 `CHOICE_RPC` 调用 office 主机上的 C++ SDK 小服务。
+- Choice 经私有 `CHOICE_SESSION` Durable Object 走厂商原生协议，见 [原生协议迁移](docs/modules/choice-native.md)。该迁移尚未部署。
 - CAMEL 资金系统经 `CAMEL` VPC binding。登录会话缓存在命名 Cache API，验证码经 AI Gateway 识别。
 
-Free 计划不使用 Cloudflare Containers 等付费计算。
+Free 计划不使用 Cloudflare Containers 等付费计算。用户已批准 Choice 会话对象的 Durable Object 费用，协议与费用审查完成前不部署。
 
 ## Mandatory Rules
 
 - Gateway 的公网路径保留 `/data`，私有和本地 handler 可用无前缀路径。Data 无 routes、workers.dev 和 preview URL，默认 fetch 返回 404。
-- 上游请求只走 VPC binding，没有公网回退：`rest.innodealing.com` 用 `env.DM.fetch`，Choice 用 `env.CHOICE_RPC.fetch`，CAMEL 用 `env.CAMEL.fetch`。
-- `DM_COOKIE`、`CHOICE_RPC_TOKEN`、`CF_AIG_TOKEN`、`CAMEL_USERNAME`、`CAMEL_PASSWORD` 是 Worker secret。`CHOICE_AUTH` 只在 office Docker 主机。这些值不进入源码、Wrangler vars、日志、夹具、镜像层和文档。
+- DM 和 CAMEL 只走 VPC binding，没有公网回退：`rest.innodealing.com` 用 `env.DM.fetch`，CAMEL 用 `env.CAMEL.fetch`。Choice 查询经 `CHOICE_SESSION`，每个授权账号只有一个会话所有者，不保留 office RPC 回退。
+- `DM_COOKIE`、`CHOICE_CREDENTIALS`、`CHOICE_SERVERS`、`CF_AIG_TOKEN`、`CAMEL_USERNAME`、`CAMEL_PASSWORD` 是 Worker secret。`CHOICE_AUTH` 只在 office Docker 主机和本地研究环境。这些值不进入源码、Wrangler vars、日志、夹具、镜像层和文档。
 - CAMEL 会话缓存只存 access token、token name、device ID 和服务端推导的到期时间。
 - Gateway 负责公网认证与授权，Data 不校验 JWT。`GatewayData` 消费 Gateway 的判定上下文，`InternalData` 是 Dashboard 和 Ingest 的机器 binding。身份信任只来自 binding，不来自请求头。
 - 保持既有状态码、薄 GraphQL 和 `Cache-Control`。GraphQL 镜像全部公共数据资源，委托同一 REST handler 与契约。
@@ -40,7 +40,7 @@ Free 计划不使用 Cloudflare Containers 等付费计算。
 
 - Worker 入口、Hono 路由、依赖方向：[ARCHITECTURE](docs/ARCHITECTURE.md)。跨服务变更：[共享架构](../docs/ARCHITECTURE.md)。
 - REST、GraphQL、MCP 契约，DM、东方财富网和中国货币网资源：[API](docs/API.md)。私有入口与访问边界：[ARCHITECTURE](docs/ARCHITECTURE.md#入口与访问边界)。
-- Choice 查询、行情快照和交易日历：[Choice RPC API](../choice/docs/API.md) 与[额度和限流](../docs/CHOICE.md)。代码入口为 `src/choice/`、`src/services/eastmoney-market.ts`、`src/trading-calendar.ts`。
+- Choice 原生会话与协议：[原生协议迁移](docs/modules/choice-native.md)。Choice 查询、行情快照和交易日历：[Choice RPC API](../choice/docs/API.md) 与[额度和限流](../docs/CHOICE.md)。代码入口为 `src/choice/`、`src/services/eastmoney-market.ts`、`src/trading-calendar.ts`。
 - CAMEL 与验证码识别：[CAMEL](docs/modules/camel.md) 与[共享 AI](../docs/AI.md)。
 - 验证、发布与 VPC smoke：[DEVELOPMENT](docs/DEVELOPMENT.md)。
 - EDB 与 Quant 原始输入的同步和回填：[经济指标同步](docs/modules/economic-indicator-sync.md)、[Quant 输入](docs/modules/quant-inputs.md)、[前瞻发行观察](docs/modules/issuance-observations.md)。存储所有权见[共享 DATABASE](../docs/DATABASE.md)。

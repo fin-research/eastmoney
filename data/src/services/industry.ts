@@ -102,7 +102,7 @@ function rowsByDate(table: ChoiceTable): Map<string, Map<string, Record<string, 
 }
 
 export async function collectChoiceMarket(
-  env: Pick<Cloudflare.Env, "CHOICE_RPC" | "CHOICE_RPC_TOKEN" | "CHOICE_FAST_LIMIT" | "CHOICE_OTHER_LIMIT">,
+  env: Pick<Cloudflare.Env, "CHOICE_SESSION" | "CHOICE_FAST_LIMIT" | "CHOICE_OTHER_LIMIT">,
   reportDate: string,
 ): Promise<ChoiceMarket> {
   const startDate = daysBefore(reportDate, 21);
