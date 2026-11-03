@@ -16,6 +16,13 @@ test("all recovered query table shapes map to the existing Choice table contract
   assert.deepEqual(decodeQuery("tradedates",{},fixture("tradedates")),{function:"TRADEDATES",fields:["date"],rows:[{date:"2026-10-30"}]});
   assert.deepEqual(decodeQuery("ctr",{},fixture("ctr")),{function:"CTR",fields:["NAME","COUNT"],rows:[{NAME:"example",COUNT:4}]});
 });
+test("row dates accept the unpadded Choice form and reject impossible dates",()=>{
+  const payload={codes:"000001.SH",indicators:"CLOSE"};
+  assert.deepEqual(decodeQuery("csd",payload,fixture("csd3"),["2026/10/30"]).rows,[{code:"000001.SH",date:"2026-10-30",CLOSE:12.5}]);
+  assert.deepEqual(decodeQuery("csd",payload,fixture("csd3"),["2026/1/5"]).rows.map(row=>row.date),["2026-01-05"]);
+  assert.throws(()=>decodeQuery("csd",payload,fixture("csd3"),["2026/13/45"]),/Unsupported Choice row date/);
+  assert.throws(()=>decodeQuery("csd",payload,fixture("csd3"),["2026/2/30"]),/Unsupported Choice row date/);
+});
 test("request framing matches recovered little-endian 14-byte SDK header",()=>{
   assert.deepEqual([...encodeChoiceFrame("X")],[0,15,0,0,0,1,250,0,0,0,0,0,0,5,88]);
   assert.equal(choiceCodesCommand(["000001.SH","600000.SH"]),"$secucode=000001.SH,600000.SH\r\n");
