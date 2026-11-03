@@ -6,7 +6,7 @@
 
 - Messenger 按 UTC `0 9 * * MON-FRI`（北京时间工作日 17:00）经 Dashboard 私有 `ScheduledTasks` 启动，Dashboard 不配置 Cron。调度所有权见 [共享架构](../../../docs/ARCHITECTURE.md#用户通知中台)。
 - `MARKET_BRIEFING` 绑定 `MarketBriefingWorkflow`，平台名 `market-briefing`，实例 ID 为 `market-briefing-YYYY-MM-DD`，同日重复调用不重复创建。
-- 创建实例前，按计划触发时间的上海日期检查周末，再经 DATA / InternalData 查 `/data/trading-days`（Choice 上交所日历）。只有日期一致且 `isTradingDay=true` 才创建。休市正常跳过。日历超时或 HTTP / Schema / 日期错误记录 `market_briefing_calendar_unavailable` 并停止本轮，不视为休市，服务恢复后须人工补发。
+- 创建实例前，按计划触发时间的上海日期检查周末，再经 DATA / InternalData 查 `/data/trading-days`（Choice 上交所日历）。只有日期一致且 `isTradingDay=true` 才创建，休市正常跳过。日历超时或 HTTP / Schema / 日期错误时记录 `market_briefing_calendar_unavailable`，改用本地休市表 `knownMarketClosure` 判定，并经 Messenger 发 Telegram 告警（幂等键 `calendar-unavailable/<日期>`，告警限时 5 秒，失败不影响判定，原因只记日志）：判定交易日则照常创建 Workflow，判定休市则跳过。本地表没有该年度数据时不猜测，抛错停止本轮，告警要求人工触发。工作流内各模块仍会重新核对日历，日历持续不可用时它们的重试耗尽后失败，由终态通知报告。此时同日实例已存在，重新调用调度不会再建，恢复后用 `wrangler workflows instances restart` 重启该实例。
 - 七个并行模块 step 写在 `worker/market-briefing-runner.ts` 的原生 `Promise.allSettled([...])` 中：今日聚焦 `collect-focus-news`、公开市场操作 `collect-open-market`、固收市场 `collect-fixed-income`、权益市场 `collect-equity`、一级发行 `collect-primary`、二级行情 `collect-secondary`、东财债券 `collect-inventory`。
 - 每个模块独立完成抓取、DTO 校验、解析、业务换算和结果组装，返回已校验的报告字段。模块之间不依赖输出，也不设跨模块缓存。
 - `collect-equity` 与 `collect-primary` 独立校验交易日与行情日期，行情滞后由 step 重试。一级发行独立读交易日期。二级与东财各自补全所需债券信息，东财另取今日成交作收益率回退。
