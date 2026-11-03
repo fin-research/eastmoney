@@ -37,7 +37,7 @@ interface SampleResult {
 
 const choiceHeaders = {
   "Content-Type": "application/json",
-  "X-Choice-Rpc-Version": "choice.rpc.v1",
+  "X-Choice-Native-Version": "choice.native.v1",
 };
 const allowRateLimit: RateLimit = { limit: async () => ({ success: true }) };
 
@@ -155,6 +155,10 @@ function cfetsHistoryPayload(rows: number): Uint8Array {
   return concat(...encoded);
 }
 
+function choiceSession(body: string): Cloudflare.Env['CHOICE_SESSION'] {
+  return { getByName: () => choiceRpc(body) } as unknown as Cloudflare.Env['CHOICE_SESSION'];
+}
+
 function choiceRpc(body: string): Fetcher {
   return {
     fetch: async () => new Response(body, { headers: choiceHeaders }),
@@ -190,19 +194,18 @@ const equityBody = JSON.stringify({
   })),
 });
 
-function choiceMarketEnv(): Pick<Cloudflare.Env, "CHOICE_RPC" | "CHOICE_RPC_TOKEN" | "CHOICE_FAST_LIMIT" | "CHOICE_OTHER_LIMIT"> {
+function choiceMarketEnv(): Pick<Cloudflare.Env, "CHOICE_SESSION" | "CHOICE_FAST_LIMIT" | "CHOICE_OTHER_LIMIT"> {
   let call = 0;
   return {
-    CHOICE_RPC_TOKEN: "benchmark",
     CHOICE_FAST_LIMIT: allowRateLimit,
     CHOICE_OTHER_LIMIT: allowRateLimit,
-    CHOICE_RPC: {
-      fetch: async () => {
+    CHOICE_SESSION: {
+      getByName: () => ({ fetch: async () => {
         const body = [industryBody, turnoverBody, equityBody][call % 3] ?? equityBody;
         call += 1;
         return new Response(body, { headers: choiceHeaders });
       },
-    } as unknown as Fetcher,
+    }) } as unknown as Cloudflare.Env['CHOICE_SESSION'],
   };
 }
 
@@ -275,7 +278,7 @@ const routeEnv: Cloudflare.Env = {
   ECONOMIC_INDICATOR_SYNC: {} as Workflow,
   DM_FUNDING_SYNC: {} as Workflow,
   DM: choiceRpc("{}"),
-  CHOICE_RPC: choiceRpc("{}"),
+  CHOICE_SESSION: choiceSession("{}"),
   CAMEL: choiceRpc("{}"),
   CHOICE_FAST_LIMIT: allowRateLimit,
   CHOICE_OTHER_LIMIT: allowRateLimit,
@@ -286,7 +289,7 @@ const routeEnv: Cloudflare.Env = {
   CLOUDFLARE_ACCOUNT_ID: "5cecc63c78acf8f5473f8745f4244448",
   AI_GATEWAY_ID: "default",
   DM_COOKIE: "device_id=benchmark",
-  CHOICE_RPC_TOKEN: "benchmark",
+  CHOICE_CREDENTIALS: "benchmark", CHOICE_SERVERS: "benchmark",
   CF_AIG_TOKEN: "benchmark",
   CAMEL_USERNAME: "benchmark",
   CAMEL_PASSWORD: "benchmark",
@@ -361,7 +364,7 @@ const choicePayload = JSON.stringify({
     CLOSE: index / 10,
   })),
 });
-const choiceEnv = { CHOICE_RPC: choiceRpc(choicePayload), CHOICE_RPC_TOKEN: "benchmark", CHOICE_FAST_LIMIT: allowRateLimit, CHOICE_OTHER_LIMIT: allowRateLimit };
+const choiceEnv = { CHOICE_SESSION: choiceSession(choicePayload), CHOICE_CREDENTIALS: "benchmark", CHOICE_SERVERS: "benchmark", CHOICE_FAST_LIMIT: allowRateLimit, CHOICE_OTHER_LIMIT: allowRateLimit };
 results.push(await sample("Choice shared DTO validation, 1000 rows", async () => {
   await fetchChoiceTable(choiceEnv, "csd", { codes: "000001.SH", indicators: "CLOSE" });
 }, { samples: 200 }));

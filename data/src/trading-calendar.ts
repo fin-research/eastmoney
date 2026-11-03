@@ -2,7 +2,7 @@ import { tradingDaySchema, parseObject, projectObject } from "./contracts";
 import { ApiError, jsonResponse, optionalDate, requireMethod, shanghaiToday } from "./http";
 import { fetchChoiceTable } from "./choice/client";
 
-export async function loadTradingDay(env: Pick<Cloudflare.Env, "CHOICE_RPC" | "CHOICE_RPC_TOKEN" | "CHOICE_FAST_LIMIT" | "CHOICE_OTHER_LIMIT">, date: string) {
+export async function loadTradingDay(env: Pick<Cloudflare.Env, "CHOICE_SESSION" | "CHOICE_FAST_LIMIT" | "CHOICE_OTHER_LIMIT">, date: string) {
   // Share validated calendar results across internal callers in the same edge location.
   const key = new Request(`https://eastmoney.hasbai.xyz/_cache/trading-days/CNSESH/${date}`);
   let cache: Cache | undefined;

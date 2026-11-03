@@ -1,19 +1,4 @@
-type SmokeEnv = Pick<Cloudflare.Env, "DM" | "CHOICE_RPC" | "CAMEL">;
-
-async function smokeChoice(env: SmokeEnv): Promise<Response> {
-  const upstream = await env.CHOICE_RPC.fetch(
-    new Request("http://choice-rpc.office.internal/health", {
-      signal: AbortSignal.timeout(10_000),
-    }),
-  );
-  const body = await upstream.text();
-  return Response.json({
-    reachable: true,
-    upstreamStatus: upstream.status,
-    contractVersion: upstream.headers.get("X-Choice-Rpc-Version"),
-    health: body.slice(0, 256),
-  }, { headers: { "Cache-Control": "no-store" } });
-}
+type SmokeEnv = Pick<Cloudflare.Env, "DM" | "CAMEL">;
 
 async function smokeDm(env: SmokeEnv): Promise<Response> {
   // A real DM application path returns promptly even without authentication;
@@ -51,14 +36,13 @@ async function smokeCamel(env: SmokeEnv): Promise<Response> {
 export default {
   async fetch(request: Request, env: SmokeEnv): Promise<Response> {
     const pathname = new URL(request.url).pathname;
-    if (pathname !== "/dm" && pathname !== "/choice" && pathname !== "/camel") {
-      return Response.json({ paths: ["/dm", "/choice", "/camel"] }, {
+    if (pathname !== "/dm" && pathname !== "/camel") {
+      return Response.json({ paths: ["/dm", "/camel"] }, {
         headers: { "Cache-Control": "no-store" },
       });
     }
     try {
       if (pathname === "/dm") return smokeDm(env);
-      if (pathname === "/choice") return smokeChoice(env);
       return smokeCamel(env);
     } catch (error) {
       return Response.json(

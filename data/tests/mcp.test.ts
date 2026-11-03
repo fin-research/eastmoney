@@ -10,7 +10,7 @@ import { allowRateLimits } from './rate-limit-bindings';
 
 function fixture() {
   const upstream = vi.fn(async () => new Response('unexpected upstream', { status: 500 }));
-  const env = { DM: { fetch: upstream }, DM_COOKIE: 'fixture', CHOICE_RPC: { fetch: upstream }, CHOICE_RPC_TOKEN: 'fixture', ...allowRateLimits() } as unknown as Cloudflare.Env;
+  const env = { DM: { fetch: upstream }, DM_COOKIE: 'fixture', CHOICE_SESSION: { getByName: () => ({ fetch: upstream }) } as unknown as Cloudflare.Env['CHOICE_SESSION'],  ...allowRateLimits() } as unknown as Cloudflare.Env;
   const client = new Client({ name: 'contract-test', version: '1' });
   const transport = new StreamableHTTPClientTransport(new URL('https://unit.test/data/mcp'), {
     fetch: async (url, init) => handleRequest(new Request(String(url), init), env),
@@ -42,7 +42,7 @@ describe('shared REST / OpenAPI / MCP contracts', () => {
       expect(list.tools).toHaveLength(22);
       expect(list.tools.map(tool => tool.name)).toContain('news_list');
       expect(list.tools.map(tool => tool.name)).not.toContain('news');
-      upstream.mockImplementation(async () => Response.json({ function: 'CSS', fields: ['RATE'], rows: [{ RATE: 1.5 }] }, { headers: { 'X-Choice-Rpc-Version': 'choice.rpc.v1' } }));
+      upstream.mockImplementation(async () => Response.json({ function: 'CSS', fields: ['RATE'], rows: [{ RATE: 1.5 }] }, { headers: { 'X-Choice-Native-Version': 'choice.native.v1' } }));
       for (let i = 0; i < 2; i++) {
         const result = await client.callTool({ name: 'choice_css', arguments: {codes:'000001.SH',indicators:'RATE'} });
         expect(result.isError).not.toBe(true);
@@ -69,7 +69,7 @@ describe('shared REST / OpenAPI / MCP contracts', () => {
   });
   it('executes Choice tools through the existing private RPC client and validates its DTO', async () => {
     const { client, transport, upstream } = fixture();
-    upstream.mockImplementation(async () => Response.json({ function: 'CSS', fields: ['RATE'], rows: [{ RATE: 1.5 }] }, { headers: { 'X-Choice-Rpc-Version': 'choice.rpc.v1' } }));
+    upstream.mockImplementation(async () => Response.json({ function: 'CSS', fields: ['RATE'], rows: [{ RATE: 1.5 }] }, { headers: { 'X-Choice-Native-Version': 'choice.native.v1' } }));
     try {
       await client.connect(transport);
       const result = await client.callTool({ name: 'choice_css', arguments: { codes: '000001.SH', indicators: 'RATE' } });
@@ -79,7 +79,7 @@ describe('shared REST / OpenAPI / MCP contracts', () => {
   });
   it('dispatches the calendar tool to the same validated Choice calendar as REST', async () => {
     const {client,transport,upstream}=fixture();
-    upstream.mockImplementation(async()=>Response.json({function:'TRADEDATES',fields:['date'],rows:[{date:'2026-09-30'}]}, {headers:{'X-Choice-Rpc-Version':'choice.rpc.v1'}}));
+    upstream.mockImplementation(async()=>Response.json({function:'TRADEDATES',fields:['date'],rows:[{date:'2026-09-30'}]}, {headers:{'X-Choice-Native-Version':'choice.native.v1'}}));
     try {
       await client.connect(transport);
       const result=await client.callTool({name:'trading_days',arguments:{date:'2026-10-01'}});

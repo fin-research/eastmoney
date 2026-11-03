@@ -24,7 +24,7 @@ function graphqlRequest(query: string, cookie = '', extra: Record<string, unknow
 
 it('GraphQL exposes public reads while aliases, fragments and mixed queries cannot bypass Choice login', async () => {
   const rpc = vi.fn();
-  const configEnv = { ...env(), CHOICE_RPC: { fetch: rpc } } as unknown as Cloudflare.Env;
+  const configEnv = { ...env(), CHOICE_SESSION: { getByName: () => ({ fetch: rpc }) } as unknown as Cloudflare.Env['CHOICE_SESSION'] } as unknown as Cloudflare.Env;
   const queries = [
     '{ health private: choiceCtr(reportName: "fixture") { rows } }',
     'query { ...Limited } fragment Limited on Query { choiceEdb(edbIds: "1", startDate: "2026-01-01", endDate: "2026-01-02") { rows } }',
@@ -53,7 +53,7 @@ it('GraphQL exposes public reads while aliases, fragments and mixed queries cann
 it('Gateway-authorized GraphQL Choice reads use the verdict and preserve the original POST body', async () => {
   const rpc = vi.fn();
   const authorize = vi.fn();
-  const configEnv = { ...env(), CHOICE_RPC: { fetch: rpc }, AUTHORIZATION: { fetch: authorize } } as unknown as Cloudflare.Env;
+  const configEnv = { ...env(), CHOICE_SESSION: { getByName: () => ({ fetch: rpc }) } as unknown as Cloudflare.Env['CHOICE_SESSION'], AUTHORIZATION: { fetch: authorize } } as unknown as Cloudflare.Env;
   try {
     const cookie = 'gateway-verified-test-account';
     // Empty required value reaches normal validation (no paid upstream call).

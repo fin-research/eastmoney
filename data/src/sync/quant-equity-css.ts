@@ -8,7 +8,7 @@ import { economicIndicatorErrorDetails } from './economic-indicator-request.ts';
 import { fetchChoiceTable } from '../choice/client.ts';
 import { requestCssQuota } from './choice-css-quota.ts';
 
-type ChoiceEnv = Pick<Cloudflare.Env, 'CHOICE_RPC' | 'CHOICE_RPC_TOKEN' | 'CHOICE_FAST_LIMIT' | 'CHOICE_OTHER_LIMIT'>;
+type ChoiceEnv = Pick<Cloudflare.Env, 'CHOICE_SESSION' | 'CHOICE_FAST_LIMIT' | 'CHOICE_OTHER_LIMIT'>;
 type Env = ChoiceEnv & Pick<Cloudflare.Env, 'HYPERDRIVE'>;
 type CssSpec = { id: string; date: string; codes: string[]; indicators: string[]; options: string; targets: string[] };
 type FetchResult = { spec: CssSpec; rows: QuantInput[]; detail: string; status: 'complete' | 'partial' | 'failed' };

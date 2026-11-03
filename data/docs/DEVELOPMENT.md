@@ -14,17 +14,16 @@ pnpm check:startup
 pnpm deploy:dry
 ```
 
-三条 VPC 连通性测试必须部署到 Cloudflare edge：
+DM 和 CAMEL 的 VPC 连通性测试必须部署到 Cloudflare edge：
 
 ```bash
 pnpm exec wrangler deploy --config wrangler.vpc-smoke.jsonc
 curl https://eastmoney-data-vpc-smoke.hasbai.workers.dev/dm
-curl https://eastmoney-data-vpc-smoke.hasbai.workers.dev/choice
 curl https://eastmoney-data-vpc-smoke.hasbai.workers.dev/camel
 pnpm exec wrangler delete --config wrangler.vpc-smoke.jsonc
 ```
 
-Smoke 只返回连通性、HTTP 状态和 RPC 契约版本，不返回 DM 正文或凭据。Wrangler
+Smoke 只返回连通性、HTTP 状态，不返回 DM 正文或凭据。Wrangler
 `dev --remote` 的 VPC remote binding 在历史排查中曾出现本地超时，不能据此判定生产 VPC
 故障。以部署后的 edge smoke 为准。
 
@@ -36,7 +35,7 @@ Smoke 只返回连通性、HTTP 状态和 RPC 契约版本，不返回 DM 正文
 
 ## Office 运维所有权
 
-Choice 镜像、SDK、受限 env file 与容器恢复只按 [Choice 开发文档](../../choice/docs/DEVELOPMENT.md) 操作。Data 只维护 VPC 客户端和 Worker binding。不要在本仓库维护第二套 office 安装命令。
+Choice 镜像、SDK、受限 env file 与容器恢复只按 [Choice 开发文档](../../choice/docs/DEVELOPMENT.md) 操作。本分支的原生会话迁移见 [Choice 原生协议](modules/choice-native.md)。生产办公室服务尚未退役。不要在本仓库维护第二套 office 安装命令。
 
 历史版本、切换与故障证据见 [MIGRATION](MIGRATION.md)。宿主 cloudflared / 容器状态与 WUD 运行状态必须实时核验，不能把历史 SSH 记录当成现状。
 
@@ -46,13 +45,14 @@ Worker 生产 Secret：
 
 ```bash
 pnpm exec wrangler secret put DM_COOKIE
-pnpm exec wrangler secret put CHOICE_RPC_TOKEN
+pnpm exec wrangler secret put CHOICE_CREDENTIALS
+pnpm exec wrangler secret put CHOICE_SERVERS
 pnpm exec wrangler secret put CF_AIG_TOKEN
 pnpm exec wrangler secret put CAMEL_USERNAME
 pnpm exec wrangler secret put CAMEL_PASSWORD
 ```
 
-office 主机的 `CHOICE_AUTH` 只存在受限 env file。Worker 不持有 Choice 账号。
+office 主机的 `CHOICE_AUTH` 只存在受限 env file。本分支的 Worker Secrets 持有原生协议凭据；尚未部署。
 `.dev.vars`、`.env` 和所有真实凭据均不得提交。
 
 ## 文档维护

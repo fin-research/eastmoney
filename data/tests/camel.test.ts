@@ -62,12 +62,12 @@ function testEnv(camelFetch: typeof fetch): Cloudflare.Env {
   const unavailable = { fetch: vi.fn(async () => new Response(null, { status: 503 })) };
   return {
     DM: unavailable,
-    CHOICE_RPC: unavailable,
+    CHOICE_SESSION: { getByName: () => unavailable } as unknown as Cloudflare.Env['CHOICE_SESSION'],
     CAMEL: { fetch: camelFetch },
     CLOUDFLARE_ACCOUNT_ID: "5cecc63c78acf8f5473f8745f4244448",
     AI_GATEWAY_ID: "default",
     DM_COOKIE: "test",
-    CHOICE_RPC_TOKEN: "test",
+
     CF_AIG_TOKEN: "ai-token",
     CAMEL_USERNAME: "test-user",
     CAMEL_PASSWORD: TEST_PASSWORD,

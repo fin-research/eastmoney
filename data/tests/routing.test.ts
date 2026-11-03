@@ -10,7 +10,7 @@ import { allowRateLimits } from "./rate-limit-bindings";
 
 function tableResponse(value: unknown): Response {
   return Response.json(value, {
-    headers: { "X-Choice-Rpc-Version": "choice.rpc.v1" },
+    headers: { "X-Choice-Native-Version": "choice.native.v1" },
   });
 }
 
@@ -18,9 +18,9 @@ function env(overrides: Partial<Cloudflare.Env> = {}): Cloudflare.Env {
   const unavailable = { fetch: vi.fn(async () => new Response("unavailable", { status: 503 })) };
   return {
     DM: unavailable,
-    CHOICE_RPC: unavailable,
+    CHOICE_SESSION: { getByName: () => unavailable } as unknown as Cloudflare.Env['CHOICE_SESSION'],
     DM_COOKIE: "device_id=test-device; session=test",
-    CHOICE_RPC_TOKEN: "rpc-test-token",
+
     ...allowRateLimits(),
     ...overrides,
   } as Cloudflare.Env;
@@ -184,12 +184,12 @@ describe("Worker boundary", () => {
   });
 });
 
-describe("Choice office RPC", () => {
+describe("Choice session binding", () => {
   it("maps the public GET contract to the allowlisted CSD RPC", async () => {
     const bindingFetch = vi.fn(async (request: Request) => {
-      expect(new URL(request.url).pathname).toBe("/rpc/v1/choice/csd");
+      expect(new URL(request.url).pathname).toBe("/query/csd");
       expect(request.method).toBe("POST");
-      expect(request.headers.get("Authorization")).toBe("Bearer rpc-test-token");
+      expect(request.headers.get("Authorization")).toBeNull();
       expect(await request.json()).toEqual({
         codes: "000001.SH",
         indicators: "CLOSE",
@@ -207,7 +207,7 @@ describe("Choice office RPC", () => {
       new Request(
         "https://eastmoney.hasbai.xyz/data/choice/csd?codes=000001.SH&indicators=CLOSE&startDate=2026-08-25&endDate=2026-08-25&options=Period%3D1",
       ),
-      env({ CHOICE_RPC: { fetch: bindingFetch } as unknown as Fetcher }),
+      env({ CHOICE_SESSION: { getByName: () => ({ fetch: bindingFetch }) } as unknown as Cloudflare.Env['CHOICE_SESSION'] }),
     );
     expect(response.status).toBe(200);
     expect((await response.json()) as object).toHaveProperty("function", "CSD");
@@ -220,7 +220,7 @@ describe("Choice office RPC", () => {
       new Request(
         "https://example.test/choice/csd?codes=000001.SH&indicators=CLOSE&startDate=2026-08-26&endDate=2026-08-25",
       ),
-      env({ CHOICE_RPC: { fetch: bindingFetch } as unknown as Fetcher }),
+      env({ CHOICE_SESSION: { getByName: () => ({ fetch: bindingFetch }) } as unknown as Cloudflare.Env['CHOICE_SESSION'] }),
     );
     expect(response.status).toBe(422);
     expect(await response.json()).toEqual({ detail: "startDate 不能晚于 endDate" });
@@ -237,17 +237,17 @@ describe("Choice office RPC", () => {
       new Request(
         "https://example.test/choice/css?codes=000001.SH&indicators=NAME",
       ),
-      env({ CHOICE_RPC: { fetch: bindingFetch } as unknown as Fetcher }),
+      env({ CHOICE_SESSION: { getByName: () => ({ fetch: bindingFetch }) } as unknown as Cloudflare.Env['CHOICE_SESSION'] }),
     );
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({
-      detail: "Choice RPC version mismatch",
+      detail: "Choice native version mismatch",
       error: {
         code: "UPSTREAM_VERSION_MISMATCH",
-        source: "Choice RPC",
+        source: "Choice native",
         stage: "response_headers",
         upstreamStatus: 200,
-        upstreamPath: "/rpc/v1/choice/css",
+        upstreamPath: "/query/css",
       },
     });
   });
@@ -258,7 +258,7 @@ describe("Choice office RPC", () => {
       fields: ["code"],
       rows: "not-an-array",
     }));
-    const testEnv = env({ CHOICE_RPC: { fetch: bindingFetch } as unknown as Fetcher });
+    const testEnv = env({ CHOICE_SESSION: { getByName: () => ({ fetch: bindingFetch }) } as unknown as Cloudflare.Env['CHOICE_SESSION'] });
 
     const restResponse = await handleRequest(
       new Request("https://example.test/choice/css?codes=000001.SH&indicators=NAME"),
@@ -266,10 +266,10 @@ describe("Choice office RPC", () => {
     );
     expect(restResponse.status).toBe(503);
     expect(await restResponse.json()).toMatchObject({
-      detail: "Choice RPC returned an invalid table",
+      detail: "Choice native returned an invalid table",
       error: {
         code: "UPSTREAM_SCHEMA_MISMATCH",
-        source: "Choice RPC",
+        source: "Choice native",
         stage: "response_validation",
       },
     });
@@ -291,7 +291,7 @@ describe("Choice office RPC", () => {
     expect(body.data.config.defaultDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(body.data.choiceCss).toBeNull();
     expect(body.errors[0]).toMatchObject({
-      message: "Choice RPC returned an invalid table",
+      message: "Choice native returned an invalid table",
       path: ["choiceCss"],
     });
     expect(bindingFetch).toHaveBeenCalledTimes(2);
@@ -309,14 +309,14 @@ describe("Choice office RPC", () => {
     try {
       response = await handleRequest(
         new Request("https://example.test/industry?date=2026-09-11"),
-        env({ CHOICE_RPC: { fetch: choiceFetch } as unknown as Fetcher }),
+        env({ CHOICE_SESSION: { getByName: () => ({ fetch: choiceFetch }) } as unknown as Cloudflare.Env['CHOICE_SESSION'] }),
       );
     } finally { publicFetch.mockRestore(); }
     expect(response.status).toBe(503);
     expect(publicFetch).not.toHaveBeenCalled();
     expect(choiceFetch).toHaveBeenCalledTimes(2);
-    expect(new URL(choiceFetch.mock.calls[0]![0].url).pathname).toBe("/rpc/v1/choice/tradedates");
-    expect(new URL(choiceFetch.mock.calls[1]![0].url).pathname).toBe("/rpc/v1/choice/css");
+    expect(new URL(choiceFetch.mock.calls[0]![0].url).pathname).toBe("/query/tradedates");
+    expect(new URL(choiceFetch.mock.calls[1]![0].url).pathname).toBe("/query/css");
   });
 
   it("serves an independent exchange trading calendar", async () => {
@@ -326,13 +326,13 @@ describe("Choice office RPC", () => {
         ? [{ date: "2026-09-22" }, { date: "2026-09-23" }]
         : [{ date: "2026-09-23" }, { date: "2026-09-24" }, { date: "2026-09-28" }] });
     });
-    const bindings = env({ CHOICE_RPC: { fetch: bindingFetch } as unknown as Fetcher });
+    const bindings = env({ CHOICE_SESSION: { getByName: () => ({ fetch: bindingFetch }) } as unknown as Cloudflare.Env['CHOICE_SESSION'] });
     const response = await handleRequest(new Request("https://example.test/trading-days?date=2026-09-23"), bindings);
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ date: "2026-09-23", isTradingDay: true, previousTradingDate: "2026-09-22" });
     const closure = await handleRequest(new Request("https://example.test/trading-days?date=2026-09-28"), bindings);
     expect(await closure.json()).toMatchObject({ isTradingDay: true, previousTradingDate: "2026-09-24" });
-    expect(bindingFetch.mock.calls.every(([request]) => new URL(request.url).pathname === "/rpc/v1/choice/tradedates")).toBe(true);
+    expect(bindingFetch.mock.calls.every(([request]) => new URL(request.url).pathname === "/query/tradedates")).toBe(true);
   });
 
   it("fills all 31 industries from CSS and gets turnover comparison from the calendar", async () => {
@@ -347,7 +347,7 @@ describe("Choice office RPC", () => {
           : payload.codes!.split(",").map(code => ({ code, CLOSE: 101, PRECLOSE: 100, MV: 1e12 })) });
     });
     const response = await handleRequest(new Request("https://example.test/industry?date=2026-09-23"),
-      env({ CHOICE_RPC: { fetch: bindingFetch } as unknown as Fetcher }));
+      env({ CHOICE_SESSION: { getByName: () => ({ fetch: bindingFetch }) } as unknown as Cloudflare.Env['CHOICE_SESSION'] }));
     const body = await response.json() as { industries: unknown[]; equities: unknown[]; turnoverYi: number; turnoverChangeYi: number };
     expect(response.status).toBe(200);
     expect(body.industries).toHaveLength(31);
@@ -355,7 +355,7 @@ describe("Choice office RPC", () => {
     expect(body.turnoverYi).toBe(21_000);
     expect(body.turnoverChangeYi).toBe(1_000);
     expect(bindingFetch.mock.calls.map(([request]) => new URL(request.url).pathname)).toEqual([
-      "/rpc/v1/choice/tradedates", "/rpc/v1/choice/css", "/rpc/v1/choice/css", "/rpc/v1/choice/css",
+      "/query/tradedates", "/query/css", "/query/css", "/query/css",
     ]);
   });
 
@@ -373,7 +373,7 @@ describe("Choice office RPC", () => {
           query: "{ choiceCss(codes: \"000001.SH\", indicators: \"NAME\") { function fields rows } }",
         }),
       }),
-      env({ CHOICE_RPC: { fetch: bindingFetch } as unknown as Fetcher }),
+      env({ CHOICE_SESSION: { getByName: () => ({ fetch: bindingFetch }) } as unknown as Cloudflare.Env['CHOICE_SESSION'] }),
     );
     const body = (await response.json()) as { data?: { choiceCss?: { function: string } } };
     expect(response.status).toBe(200);
@@ -392,7 +392,7 @@ describe("Choice office RPC", () => {
       }),
       env({
         DM: { fetch: bindingFetch } as unknown as Fetcher,
-        CHOICE_RPC: { fetch: bindingFetch } as unknown as Fetcher,
+        CHOICE_SESSION: { getByName: () => ({ fetch: bindingFetch }) } as unknown as Cloudflare.Env['CHOICE_SESSION'],
       }),
     );
     const body = (await response.json()) as { errors?: Array<{ message: string }> };

@@ -10,7 +10,7 @@ function numeric(value: unknown): number | null {
 }
 
 /** Daily market snapshot for the report: Choice CSS prices and a dedicated exchange calendar. */
-export async function collectMarketSnapshot(env: Pick<Cloudflare.Env, "CHOICE_RPC" | "CHOICE_RPC_TOKEN" | "CHOICE_FAST_LIMIT" | "CHOICE_OTHER_LIMIT">, reportDate: string) {
+export async function collectMarketSnapshot(env: Pick<Cloudflare.Env, "CHOICE_SESSION" | "CHOICE_FAST_LIMIT" | "CHOICE_OTHER_LIMIT">, reportDate: string) {
   const calendar = await loadTradingDay(env, reportDate);
   if (!calendar.isTradingDay) throw new ApiError(503, "非交易日无当日行情", { code: "MARKET_CLOSED" });
 

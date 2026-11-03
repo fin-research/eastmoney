@@ -3,10 +3,11 @@
 ## Project Overview
 
 Private Cloudflare data API. A Hono TypeScript Worker serves `/data` resources
-behind the Gateway through named Service Bindings. DM uses the `DM` Workers VPC binding. Choice uses `CHOICE_RPC` to call the small C++ SDK service on the office host.
-CAMEL funding-system calls use the `CAMEL` VPC binding, Cloudflare Secrets for
-the source credentials, AI Gateway for CAPTCHA recognition, and a named Cache
-API cache for the short-lived login session. Do not use Cloudflare Containers or other paid compute.
+behind the Gateway through named Service Bindings. DM uses the `DM` Workers VPC binding. This branch migrates Choice to the private `CHOICE_SESSION` Durable Object and native TCP/HTTPS adapters; see `docs/modules/choice-native.md`. Do not deploy this migration yet.
+
+
+CAMEL calls use the `CAMEL` VPC binding and Worker Secrets.
+AI Gateway recognizes CAPTCHA. A named Cache API cache stores the short-lived login session. Do not use Cloudflare Containers or other paid compute.
 
 ## Mandatory Rules
 
@@ -14,11 +15,13 @@ API cache for the short-lived login session. Do not use Cloudflare Containers or
   historical prefix-free paths. No origin is publicly reachable.
 - Every request to `rest.innodealing.com` must use `env.DM.fetch`; never fall
   back to global `fetch` for this host.
-- Every Choice request must use `env.CHOICE_RPC.fetch`; do not expose the office
-  RPC service publicly or call it through ordinary Internet fetch.
+- Choice queries use `CHOICE_SESSION`; keep one session owner per licensed account.
+  Preserve vendor permission/accounting hooks. Do not add an office RPC fallback.
+  The user approved Durable Object costs for this migration, with offline validation
+  first. Do not deploy until the documented protocol and cost review is complete.
 - Every CAMEL request must use `env.CAMEL.fetch`; never expose the office
   funding system publicly or call it through ordinary Internet fetch.
-- `DM_COOKIE`, `CHOICE_RPC_TOKEN`, `CF_AIG_TOKEN`, `CAMEL_USERNAME`, and
+- `DM_COOKIE`, `CHOICE_CREDENTIALS`, `CHOICE_SERVERS`, `CF_AIG_TOKEN`, `CAMEL_USERNAME`, and
   `CAMEL_PASSWORD` are Worker secrets. `CHOICE_AUTH` exists only on the office
   Docker host. Never place them in source, Wrangler vars, logs, fixtures, image
   layers, or docs. CAMEL session cache entries may contain only the access
@@ -63,7 +66,7 @@ Cross-project execution and worktree rules: [project AGENTS](../AGENTS.md), read
 
 - Worker entrypoints, Hono routing and local dependencies: [ARCHITECTURE](docs/ARCHITECTURE.md); cross-service changes: [shared architecture](../docs/ARCHITECTURE.md).
 - REST/GraphQL/MCP contracts, DM, Eastmoney web and ChinaMoney resources: [API](docs/API.md); login and authorization: [access protection](docs/access-migration.md).
-- Choice queries, market snapshots and trading calendar: [Choice RPC API](../choice/docs/API.md) and [quota and rate-limit planning](../docs/CHOICE.md); implementation begins in `src/choice/`, `src/services/eastmoney-market.ts` and `src/trading-calendar.ts`.
+- Choice native session/protocol: [native migration](docs/modules/choice-native.md). Choice queries, market snapshots and trading calendar: [Choice RPC API](../choice/docs/API.md) and [quota and rate-limit planning](../docs/CHOICE.md); implementation begins in `src/choice/`, `src/services/eastmoney-market.ts` and `src/trading-calendar.ts`.
 - AI/CAPTCHA: [CAMEL](docs/modules/camel.md) and [shared AI](../docs/AI.md).
 - Validation, publishing and VPC smoke: [DEVELOPMENT](docs/DEVELOPMENT.md).
 - EDB and raw Quant input sync/backfill: [economic sync](docs/modules/economic-indicator-sync.md) and [Quant inputs](docs/modules/quant-inputs.md) and [prospective issuance observations](docs/modules/issuance-observations.md); storage ownership is in [shared DATABASE](../docs/DATABASE.md).

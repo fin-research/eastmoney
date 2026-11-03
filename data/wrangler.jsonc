@@ -27,20 +27,20 @@
       "remote": true
     },
     {
-      "binding": "CHOICE_RPC",
-      "service_id": "01a04e4c-db9a-74e0-92f5-09c19c03adc4",
-      "remote": true
-    },
-    {
       "binding": "CAMEL",
       "service_id": "01a06116-3a02-77f3-9405-cea8b5c950c9",
       "remote": true
     }
   ],
+  "durable_objects": {
+    "bindings": [{ "name": "CHOICE_SESSION", "class_name": "ChoiceSession" }]
+  },
+  "migrations": [{ "tag": "choice-native-v1", "new_sqlite_classes": ["ChoiceSession"] }],
   "secrets": {
     "required": [
       "DM_COOKIE",
-      "CHOICE_RPC_TOKEN",
+      "CHOICE_CREDENTIALS",
+      "CHOICE_SERVERS",
       "CF_AIG_TOKEN",
       "CAMEL_USERNAME",
       "CAMEL_PASSWORD"
