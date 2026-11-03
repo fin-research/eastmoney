@@ -82,6 +82,15 @@ Gateway 的通用 Responses 转发不自动重试，由调用方按业务幂等�
 - 从 `output` 中提取 `output_text`，不按 `choices[0].message.content` 解析。
 - 成功日志只记录元数据：任务类型、effort、reasoning summary/context 模式、摘要条数与字符数、Prompt Cache token 数、`encrypted_content` 是否存在、`output_text` 长度、Gateway log ID。不记录 Prompt、推理摘要或业务输出正文。
 
+## Decisions API
+
+OpenAI Decisions API（`POST /v1/decisions`，仅 `gpt-6-luna`）当前不能经 `custom-codex` 调用，业务代码不要接入。
+
+- `custom-codex` 的上游是 CLIProxyAPI，凭证为 Codex OAuth 账号。Gateway 对 `custom-codex/decisions` 和 `custom-codex/v1/decisions` 都返回 404 空正文，同一 token 调 `custom-codex/responses` 返回 200。
+- CLIProxyAPI 最新版（v8.0.52）及 `main` 未注册 `/v1/decisions`，升级上游无效。透传请求见上游 issue #6586，仍未实现。
+- OpenAI 不允许 ChatGPT 订阅或 Codex OAuth 凭证调用该端点，订阅账号上的 `gpt-6-luna` 只能走 Responses API（上游 issue #6917，维护者不计划支持）。
+- 需要时，新建指向 `https://api.openai.com/v1` 的自定义 Provider，用 BYOK 存付费 API Key，调用 `…/{provider}/decisions`。
+
 ## AI Search
 
 - 研究检索工具是 MCP 工具 `research_search`，由 Gateway `/mcp` 经 Dashboard 提供，上游为 `https://research.hasbai.xyz/mcp` 的 `search`。见 [Dashboard MCP](../dashboard/docs/MCP.md) 和[实现](../dashboard/src/lib/server/research-search.ts)。
