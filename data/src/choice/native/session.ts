@@ -1,9 +1,9 @@
 import { ApiError, errorResponse } from '../../http';
 import { DurableObject } from 'cloudflare:workers';
 import { z } from 'zod';
-import { ChoiceLoginError, encodeAutoLogin, encodePasswordLogin, decodeLoginResponse, encodeHeartbeatRegistration, encodeHeartbeat, heartbeatControl, type NativeSession } from './auth';
+import { ChoiceLoginError, encodeAutoLogin, encodePasswordLogin, decodeLoginResponse } from './auth';
 import { parseNativeConfig, type ChoiceCredentials } from './config';
-import { ChoiceConnection, ChoiceTransportError, exchange } from './transport';
+import { ChoiceTransportError, exchange } from './transport';
 import { fetchNativeStatistics } from './statistics';
 import { ChoiceQuotaError, executeAccountedEdb } from './quota';
 import { readUpstreamJson } from '../../upstream-diagnostics';
@@ -15,15 +15,17 @@ import { choiceTableSchema, type ChoiceTable } from '../client';
 
 const querySchema = z.object({ function: z.enum(['csd','css','edb','ctr','tradedates','datastatistics']), payload: z.record(z.string(), z.unknown()) });
 interface StoredActivation { uid: string; ctoken: string; utoken: string }
+interface LiveSession { uid: string; token: string; at: number }
 
-/** One actor per licensed account. Outbound TCP requires active-duration billing. */
+// Live probe 2026-11-03: a login token stayed valid for 30+ minutes with no heartbeat registered,
+// and the heartbeat server drops idle sockets within 58 s. Hold no socket; refresh well inside the tested span.
+const SESSION_TTL_MS = 20 * 60_000;
+
+/** One actor per licensed account. Each query is a short-lived exchange; the login token is stored, not kept alive. */
 export class ChoiceSession extends DurableObject<Cloudflare.Env> {
-  private active?: NativeSession;
-  private heartbeat?: ChoiceConnection;
+  private active?: LiveSession;
   private pending: Promise<unknown> = Promise.resolve();
-  private suspended = false;
   private cooldown = 0;
-  private lastHeartbeatAt = 0;
   private percentCache?: { value: PercentMetadata; expires: number };
   private readonly securityTypes = new Map<string, { type: number; expires: number }>();
   private readonly config: ReturnType<typeof parseNativeConfig>;
@@ -140,12 +142,7 @@ export class ChoiceSession extends DurableObject<Cloudflare.Env> {
     const previous = await this.ctx.storage.get<string>('identity');
     if (previous && previous !== fingerprint) throw new Error('Choice credential identity changed; operator reset required');
     if (!previous) await this.ctx.storage.put('identity', fingerprint);
-    if (this.suspended || await this.ctx.storage.get<boolean>('suspended')) throw new Error('Choice session was evicted; operator recovery required');
-    if (this.active && this.heartbeat) {
-      if (Date.now() - this.lastHeartbeatAt <= 32_000) return;
-      await this.invalidate();
-      throw new Error('Choice heartbeat expired');
-    }
+    if (await this.currentSession()) return;
     if (Date.now() < this.cooldown) throw new Error('Choice login is cooling down');
     // Store before attempting I/O so object eviction cannot cause a tight relogin loop.
     const last = await this.ctx.storage.get<number>('lastLoginAt') ?? 0;
@@ -157,51 +154,29 @@ export class ChoiceSession extends DurableObject<Cloudflare.Env> {
     const request = 'uid' in auto ? encodeAutoLogin(auto) : encodePasswordLogin(auto.account, auto.password, auto);
     try {
       const reply = await exchange(this.config.servers['19'], request, remaining(deadline));
-      const session = decodeLoginResponse(reply.body);
-      await this.ctx.storage.put('activation', { uid: session.uid, ctoken: session.ctoken, utoken: session.utoken } satisfies StoredActivation);
-      const heartbeat = new ChoiceConnection(this.config.servers['2']);
-      this.heartbeat = heartbeat;
-      await heartbeat.deadline(async () => {
-        await heartbeat.send(encodeHeartbeatRegistration(session));
-        await heartbeat.send(encodeHeartbeat());
-        await this.receiveHeartbeat(heartbeat);
-      }, Math.min(15_000, remaining(deadline)));
-      // Persist rolled activation before publishing the in-memory login as usable.
-      this.active = session;
-      await this.ctx.storage.setAlarm(Date.now() + 15_000);
+      const login = decodeLoginResponse(reply.body);
+      // Persist the rolled activation and the token before publishing the login as usable.
+      await this.ctx.storage.put('activation', { uid: login.uid, ctoken: login.ctoken, utoken: login.utoken } satisfies StoredActivation);
+      const live: LiveSession = { uid: login.uid, token: login.token, at: Date.now() };
+      await this.ctx.storage.put('session', live);
+      this.active = live;
     } catch (error) { await this.invalidate(); throw error; }
   }
 
-  private async receiveHeartbeat(connection: ChoiceConnection): Promise<void> {
-    for (let messages = 0; messages < 16; messages++) {
-      const frame = await connection.receive();
-      if (this.heartbeat !== connection) throw new Error('Choice heartbeat generation changed');
-      const action = heartbeatControl(frame.header, frame.body);
-      if (action === 'heartbeat') { this.lastHeartbeatAt = Date.now(); return; }
-      if (action === 'evicted' || action === 'disconnected') {
-        this.suspended = true;
-        await this.ctx.storage.put('suspended', true);
-        throw new Error('Choice upstream session was invalidated');
-      }
-    }
-    throw new Error('Choice heartbeat response not received');
-  }
-
-  override async alarm(): Promise<void> {
-    const heartbeat = this.heartbeat;
-    if (!heartbeat || !this.active) return; // Eviction: the next query logs in once, after cooldown.
-    try {
-      await heartbeat.deadline(async () => { await heartbeat.send(encodeHeartbeat()); await this.receiveHeartbeat(heartbeat); }, 15_000);
-      if (this.heartbeat === heartbeat) await this.ctx.storage.setAlarm(Date.now() + 15_000);
-    } catch { if (this.heartbeat === heartbeat) await this.invalidate(); }
+  private async currentSession(): Promise<LiveSession | undefined> {
+    const saved = this.active ?? await this.ctx.storage.get<LiveSession>('session');
+    if (saved && Date.now() - saved.at < SESSION_TTL_MS) return this.active = saved;
+    this.active = undefined;
+    if (saved) await this.ctx.storage.delete('session');
+    return undefined;
   }
 
   /** Administrative binding RPC only; no public HTTP route exposes recovery. */
   async reset(): Promise<void> {
     const operation = this.pending.then(async () => {
       await this.invalidate();
-      for (const key of ['identity', 'activation', 'suspended', 'lastLoginAt']) await this.ctx.storage.delete(key);
-      this.suspended = false; this.cooldown = 0; this.percentCache = undefined; this.securityTypes.clear();
+      for (const key of ['identity', 'activation', 'lastLoginAt']) await this.ctx.storage.delete(key);
+      this.cooldown = 0; this.percentCache = undefined; this.securityTypes.clear();
     });
     this.pending = operation.catch(() => undefined);
     await operation;
@@ -210,10 +185,7 @@ export class ChoiceSession extends DurableObject<Cloudflare.Env> {
   private async invalidate(): Promise<void> {
     this.active = undefined;
     this.cooldown = Date.now() + 60_000;
-    const heartbeat = this.heartbeat;
-    this.heartbeat = undefined;
-    await heartbeat?.close();
-    await this.ctx.storage.deleteAlarm();
+    await this.ctx.storage.delete('session');
   }
 }
 

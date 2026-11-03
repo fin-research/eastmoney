@@ -12,7 +12,6 @@ export interface NativeCredentials {
 export interface NativeSession {
   uid: string;
   token: string;
-  sessionId: string;
   ctoken: string;
   utoken: string;
 }
@@ -94,7 +93,6 @@ export function decodeLoginResponse(body: Uint8Array): NativeSession {
   return {
     uid: required(base.UniqueId, 'response UID'),
     token: required(base.Token, 'response token'),
-    sessionId: required(base.SessionID, 'response session ID'),
     ctoken: required(base.Ctoken, 'response CToken'),
     utoken: required(base.Utoken, 'response UToken'),
   };
@@ -102,28 +100,4 @@ export function decodeLoginResponse(body: Uint8Array): NativeSession {
 /** Exchange owns connect, timeout, exact 13-byte response header, bounds and gzip. */
 export async function authenticate(credentials: NativeCredentials, exchange: (request: Uint8Array) => Promise<Uint8Array>): Promise<NativeSession> {
   return decodeLoginResponse(await exchange(encodeAutoLogin(credentials)));
-}
-export function encodeHeartbeatRegistration(session: Pick<NativeSession, 'uid'|'sessionId'>): Uint8Array {
-  const uid = required(session.uid, 'UID');
-  const sid = required(session.sessionId, 'session ID');
-  if (uid.includes(',') || sid.includes(',')) throw new Error('Invalid Choice heartbeat identifier');
-  return encodeSendFrame(encoder.encode(`${uid},1,1,2,${sid},${productId}`), 250, 5);
-}
-export function encodeHeartbeat(): Uint8Array {
-  return encodeSendFrame(new Uint8Array(4), 100, 5);
-}
-export function parseReceiveHeader(header: Uint8Array): {length: number; type: number; compression: number; status: number; extra: number} {
-  if (header.length !== 13) throw new Error('Invalid Choice receive header length');
-  const length = new DataView(header.buffer, header.byteOffset, header.byteLength).getUint32(1, true);
-  if (length < 13 || length > 1024 * 1024 + 13) throw new Error('Invalid Choice auth frame length');
-  return { length, type: header[6]!, compression: header[7]!, status: header[9]!, extra: header[12]! };
-}
-/** Heartbeat DoThreadProc reads raw type6 / qualifier12; control effects only. */
-export function heartbeatControl(header: Uint8Array, body: Uint8Array): 'heartbeat'|'registration'|'evicted'|'disconnected'|'other' {
-  parseReceiveHeader(header);
-  if (header[6] === 100) return 'heartbeat';
-  if (header[6] === 2 && header[12] === 4 && body[0] === 2) return 'evicted';
-  if (header[6] === 5 && header[12] === 4) return 'disconnected';
-  // Unknown registration acknowledgments stay unknown until semantics confirmed.
-  return 'other';
 }

@@ -24,7 +24,7 @@ CAMEL 内部 client → 会话缓存 / CAPTCHA → AI adapter
 - REST 与 GraphQL 复用通过契约校验后的 DTO，不在 GraphQL 复制上游读取或增加市场报告聚合。字段投影、分页和错误见 [API](API.md)。
 - CAMEL 会话和验证码只在 [CAMEL 模块](modules/camel.md) 管理。生成式请求统一经 `src/ai-gateway.ts`。
 - Data 的 `EconomicIndicatorSyncWorkflow` 通过 Hyperdrive 写入 EDB 与 Quant 原始输入，通过 R2 读取资金日报并在 Data 自有目录归档有限发行响应。`edb-migrations/` 维护其结构。页面仍由 Dashboard 持有。存储边界引用 [共享数据库](../../docs/DATABASE.md#r2-与检索边界)。
-- Choice 会话、心跳、费用与离线验证边界见 [原生协议迁移](modules/choice-native.md)。该迁移尚未部署。
+- Choice 会话、令牌有效期、费用与离线验证边界见 [原生协议迁移](modules/choice-native.md)。该迁移尚未部署。
 - 资源和请求预算是架构边界，CPU 与生产证据见 [CPU_BUDGET](CPU_BUDGET.md)，旧切换记录不作为当前实现规范。
 
 Messenger 私有定时调用 → 上海计划日期交易日检查 → EconomicIndicatorSyncWorkflow → 本地 REST adapter / VPC → Hyperdrive 入库。R2 读取当天资金日报，发行原响应在合并数据库前按[前瞻观察](modules/issuance-observations.md)归档。显式replay只读该目录恢复数据库，不调用上游。详细步骤、回填和发布切换见 [经济指标同步](modules/economic-indicator-sync.md)。

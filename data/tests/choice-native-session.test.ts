@@ -4,10 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // Absolute imports let this draft run outside the repository; use ../src/... when copied.
 const offline = vi.hoisted(() => ({
   exchange: vi.fn(),
-  receive: vi.fn(),
-  send: vi.fn(),
-  close: vi.fn(),
-  deadlines: vi.fn(),
   encodeQuery: vi.fn(),
   decodeQuery: vi.fn(),
   statistics: vi.fn(),
@@ -29,15 +25,8 @@ vi.mock('../src/choice/native/transport.ts', () => {
   return {
     ChoiceTransportError,
     exchange: offline.exchange,
-    ChoiceConnection: class {
-      send = offline.send;
-      receive = offline.receive;
-      close = offline.close;
-      async deadline<T>(operation: () => Promise<T>, timeout: number): Promise<T> {
-        offline.deadlines(timeout);
-        return operation();
-      }
-    },
+    // The session holds no socket of its own; constructing one means a heartbeat came back.
+    ChoiceConnection: class { constructor() { throw new Error('No Choice socket expected in session tests'); } },
     async readBounded(stream: ReadableStream<Uint8Array>, limit: number): Promise<Uint8Array> {
       const reader = stream.getReader();
       const chunks: Uint8Array[] = [];
@@ -78,7 +67,7 @@ const encoder = new TextEncoder();
 const table = { function: 'CSS', fields: ['code', 'RATE'], rows: [{ code: 'TEST.IB', RATE: 1.5 }] };
 let now = BASE_TIME;
 
-function frame(type = 100, extra = 0, body = new Uint8Array()): NativeFrame {
+function frame(type = 1, extra = 0, body = new Uint8Array()): NativeFrame {
   const header = new Uint8Array(13);
   new DataView(header.buffer).setUint32(1, 13 + body.length, true);
   header[6] = type;
@@ -108,12 +97,10 @@ class MemoryStorage {
   readonly get = vi.fn(async <T>(key: string): Promise<T | undefined> => this.values.get(key) as T | undefined);
   readonly put = vi.fn(async (key: string, value: unknown) => { this.values.set(key, value); });
   readonly delete = vi.fn(async (key: string) => this.values.delete(key));
-  readonly setAlarm = vi.fn(async (_time: number) => undefined);
-  readonly deleteAlarm = vi.fn(async () => undefined);
 }
 
 function createSession(storage = new MemoryStorage(), account = 'fixture-account'): { session: ChoiceSession; storage: MemoryStorage } {
-  const servers = Object.fromEntries(['2', '3', '6', '19', '20'].map(type => [type, { hostname: 'fixture.invalid', port: Number(type) }]));
+  const servers = Object.fromEntries(['3', '6', '19', '20'].map(type => [type, { hostname: 'fixture.invalid', port: Number(type) }]));
   const env = {
     CHOICE_SERVERS: JSON.stringify({ ...servers, statisticsOrigin: 'https://fixture.invalid/' }),
     CHOICE_CREDENTIALS: JSON.stringify({ mode: 'password', account, password: 'fixture-password', deviceId: 'fixture-device', deviceModel: 'MACMD5' }),
@@ -136,9 +123,6 @@ beforeEach(() => {
   vi.spyOn(Date, 'now').mockImplementation(() => now);
   vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('Real network forbidden in offline native session tests'); }));
   offline.exchange.mockImplementation(async (endpoint: { port: number }) => endpoint.port === 19 ? loginFrame() : frame(250));
-  offline.receive.mockResolvedValue(frame());
-  offline.send.mockResolvedValue(undefined);
-  offline.close.mockResolvedValue(undefined);
   offline.encodeQuery.mockReturnValue({ serverType: 3, frame: new Uint8Array([1]) });
   offline.decodeQuery.mockReturnValue(table);
   offline.statistics.mockResolvedValue({ function: 'DATASTATISTICS', fields: [], rows: [] });
@@ -150,35 +134,65 @@ afterEach(() => {
 });
 
 describe('Choice native offline session lifecycle', () => {
-  it('persists rolled activation before a failed heartbeat and reuses it after object restart', async () => {
+  it('logs in once per token lifetime without opening a heartbeat socket, even across object restarts', async () => {
     const { session, storage } = createSession();
-    offline.receive.mockImplementationOnce(async () => {
-      expect(storage.values.get('activation')).toEqual({ uid: 'fixture-uid', ctoken: 'fixture-rolled-ctoken', utoken: 'fixture-rolled-utoken' });
-      throw new ChoiceTransportError('Synthetic heartbeat failure');
-    });
-    expect((await session.fetch(request())).status).toBe(503);
-    expect(dataCalls()).toBe(0);
-    expect(offline.close).toHaveBeenCalledOnce();
-
-    now += 60_001;
+    expect((await session.fetch(request())).status).toBe(200);
+    expect(storage.values.get('session')).toEqual({ uid: 'fixture-uid', token: 'fixture-live-token', at: now });
+    now += 19 * 60_000;
     const restarted = createSession(storage).session;
     expect((await restarted.fetch(request())).status).toBe(200);
+    expect((await session.fetch(request())).status).toBe(200);
+    expect(offline.exchange.mock.calls.filter(([endpoint]) => endpoint.port === 19)).toHaveLength(1);
+    expect(offline.exchange.mock.calls.some(([endpoint]) => endpoint.port === 2)).toBe(false);
+    expect(dataCalls()).toBe(3);
+  });
+
+  it('logs in again after the token lifetime using the rolled activation', async () => {
+    const { session, storage } = createSession();
+    expect((await session.fetch(request())).status).toBe(200);
+    expect(storage.values.get('activation')).toEqual({ uid: 'fixture-uid', ctoken: 'fixture-rolled-ctoken', utoken: 'fixture-rolled-utoken' });
+    now += 20 * 60_000 + 1;
+    expect((await createSession(storage).session.fetch(request())).status).toBe(200);
     const secondLogin = offline.exchange.mock.calls.filter(([endpoint]) => endpoint.port === 19)[1];
     const loginBody = new TextDecoder().decode((secondLogin?.[1] as Uint8Array).subarray(14));
     expect(loginBody).toContain('fixture-rolled-ctoken');
     expect(loginBody).toContain('fixture-rolled-utoken');
     expect(loginBody).not.toContain('fixture-password');
-    expect(dataCalls()).toBe(1);
   });
 
-  it('rejects a heartbeat older than 32 seconds before sending another data query', async () => {
-    const { session } = createSession();
+  it('keeps the stored token after a failed query so the next query needs no login', async () => {
+    const { session, storage } = createSession();
     expect((await session.fetch(request())).status).toBe(200);
-    now += 32_001;
+    const stored = storage.values.get('session');
+    offline.exchange.mockRejectedValueOnce(new ChoiceTransportError('Synthetic query failure'));
     expect((await session.fetch(request())).status).toBe(503);
-    expect(dataCalls()).toBe(1);
-    expect(offline.encodeQuery).toHaveBeenCalledOnce();
-    expect(offline.close).toHaveBeenCalledOnce();
+    expect(storage.values.get('session')).toBe(stored);
+    expect((await createSession(storage).session.fetch(request())).status).toBe(200);
+    expect(offline.exchange.mock.calls.filter(([endpoint]) => endpoint.port === 19)).toHaveLength(1);
+  });
+
+  it('deletes an expired token, and a failed relogin cools down across object restarts', async () => {
+    const { session, storage } = createSession();
+    expect((await session.fetch(request())).status).toBe(200);
+    now += 20 * 60_000 + 1;
+    offline.exchange.mockResolvedValueOnce(loginFrame('10001020'));
+    expect((await session.fetch(request())).status).toBe(503);
+    expect(storage.values.has('session')).toBe(false);
+    const logins = () => offline.exchange.mock.calls.filter(([endpoint]) => endpoint.port === 19).length;
+    expect(logins()).toBe(2);
+    now += 30_000;
+    expect((await createSession(storage).session.fetch(request())).status).toBe(503);
+    expect(logins()).toBe(2);
+    now += 31_000;
+    expect((await createSession(storage).session.fetch(request())).status).toBe(200);
+    expect(logins()).toBe(3);
+  });
+
+  it('clears the token, activation and identity on reset', async () => {
+    const { session, storage } = createSession();
+    expect((await session.fetch(request())).status).toBe(200);
+    await session.reset();
+    for (const key of ['session', 'activation', 'identity', 'lastLoginAt']) expect(storage.values.has(key)).toBe(false);
   });
 
   it('rejects a durable identity mismatch until administrative reset', async () => {
@@ -214,19 +228,6 @@ describe('Choice native offline session lifecycle', () => {
     expect(offline.exchange).not.toHaveBeenCalled();
   });
 
-  it('persists eviction and blocks login attempts across object restart', async () => {
-    const { session, storage } = createSession();
-    expect((await session.fetch(request())).status).toBe(200);
-    offline.receive.mockResolvedValueOnce(frame(2, 4, new Uint8Array([2])));
-    await session.alarm();
-    expect(storage.values.get('suspended')).toBe(true);
-    const networkBefore = offline.exchange.mock.calls.length;
-    now += 120_000;
-    expect((await session.fetch(request())).status).toBe(503);
-    expect((await createSession(storage).session.fetch(request())).status).toBe(503);
-    expect(offline.exchange).toHaveBeenCalledTimes(networkBefore);
-  });
-
   it('drops an expired queued request without a second data query', async () => {
     const { session } = createSession();
     const entered = deferred<void>();
@@ -257,23 +258,4 @@ describe('Choice native offline session lifecycle', () => {
     expect(dataCalls()).toBe(0);
   });
 
-  it('ignores an old heartbeat eviction arriving after reset and replacement login', async () => {
-    const { session, storage } = createSession();
-    expect((await session.fetch(request())).status).toBe(200);
-    const entered = deferred<void>();
-    const oldReply = deferred<NativeFrame>();
-    offline.receive.mockImplementationOnce(async () => {
-      entered.resolve();
-      return oldReply.promise;
-    });
-    const oldAlarm = session.alarm();
-    await entered.promise;
-    await session.reset();
-    expect((await session.fetch(request())).status).toBe(200);
-    oldReply.resolve(frame(2, 4, new Uint8Array([2])));
-    await oldAlarm;
-    expect(storage.values.has('suspended')).toBe(false);
-    expect((await session.fetch(request())).status).toBe(200);
-    expect(dataCalls()).toBe(3);
-  });
 });

@@ -4,12 +4,7 @@ const network = vi.hoisted(() => ({ exchange: vi.fn() }));
 vi.mock('cloudflare:workers', () => ({ DurableObject: class { constructor(protected ctx: unknown, protected env: unknown) {} } }));
 vi.mock('../src/choice/native/transport', async importOriginal => {
   const original = await importOriginal<typeof import('../src/choice/native/transport')>();
-  return { ...original, exchange: network.exchange, ChoiceConnection: class {
-    async deadline<T>(operation: () => Promise<T>) { return operation(); }
-    async send() {}
-    async close() {}
-    async receive() { const header = new Uint8Array(13); new DataView(header.buffer).setUint32(1,13,true); header[6] = 100; return {header, body: new Uint8Array()}; }
-  } };
+  return { ...original, exchange: network.exchange };
 });
 vi.mock('cloudflare:sockets', () => ({ connect: () => { throw new Error('Real sockets forbidden'); } }));
 import { ChoiceSession } from '../src/choice/native/session';
@@ -20,8 +15,8 @@ afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 beforeEach(() => vi.clearAllMocks());
 function createActor(): ChoiceSession {
   const values = new Map<string,unknown>();
-  const storage = {get:async(key:string)=>values.get(key), put:async(key:string,value:unknown)=>{values.set(key,value);},delete:async(key:string)=>values.delete(key),setAlarm:async()=>{},deleteAlarm:async()=>{}};
-  const servers = Object.fromEntries(['2','3','6','19','20'].map(type=>[type,{hostname:'synthetic.invalid',port:Number(type)}]));
+  const storage = {get:async(key:string)=>values.get(key), put:async(key:string,value:unknown)=>{values.set(key,value);},delete:async(key:string)=>values.delete(key)};
+  const servers = Object.fromEntries(['3','6','19','20'].map(type=>[type,{hostname:'synthetic.invalid',port:Number(type)}]));
   const env = {CHOICE_SERVERS:JSON.stringify({...servers,statisticsOrigin:'https://synthetic.invalid/'}),CHOICE_CREDENTIALS:JSON.stringify({mode:'auto',uid:'fixture',ctoken:'synthetic',utoken:'synthetic',deviceId:'synthetic',deviceModel:'MACMD5'}),CHOICE_OTHER_LIMIT:{limit:async()=>({success:true})}} as unknown as Cloudflare.Env;
   return new ChoiceSession({storage} as unknown as DurableObjectState,env);
 }
