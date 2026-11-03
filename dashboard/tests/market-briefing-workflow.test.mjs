@@ -169,13 +169,36 @@ test('成功结果携带归档时间与聚焦正文供事件消费者通知，�
   assert.equal(h.steps.length, steps);
 });
 
-test('跨日的未完成实时采集失败，不保存错日行情', async t => {
+test('指定其他日期的运行照常完成，不再要求等于当天', async t => {
   clock(t);
   const h = harness();
   t.mock.timers.setTime(new Date('2026-08-26T09:00:00Z').valueOf());
-  await assert.rejects(h.run(), /采集已跨日/);
+  const result = await h.run();
+  assert.equal(result.status, 'complete');
+  assert.equal(result.reportDate, date);
+  assert.ok(h.objects.has(`market-briefing/${date}.json`));
+  assert.ok(!h.steps.some(step => step.name === 'resolve-report-date'));
+});
+
+test('不带参数的运行默认为上海当天，且日期在重放中保持不变', async t => {
+  clock(t);
+  const h = harness();
+  const run = () => runMarketBriefing(h.env, h.step, {}, h.dependencies);
+  const result = await run();
+  assert.equal(result.reportDate, date);
+  assert.equal(h.steps[0].name, 'resolve-report-date');
+  t.mock.timers.setTime(new Date('2026-08-26T09:00:00Z').valueOf());
+  assert.equal((await run()).reportDate, date);
+  assert.equal((await runMarketBriefing(h.env, h.step, undefined, h.dependencies)).reportDate, date);
+});
+
+test('无效的报告日期在采集前失败', async t => {
+  clock(t);
+  const h = harness();
+  for (const reportDate of ['2026-02-30', '26-08-25', 'today']) {
+    await assert.rejects(runMarketBriefing(h.env, h.step, { reportDate }, h.dependencies));
+  }
   assert.equal(h.calls.length, 0);
-  assert.equal(h.objects.size, 0);
 });
 
 test('重复Cron使用上海日确定性ID且只确认真实存在的实例', async () => {

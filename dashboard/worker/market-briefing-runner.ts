@@ -38,7 +38,11 @@ export async function runMarketBriefing(
   params: MarketBriefingParams,
   dependencies = { generateMarketBriefingFromNews, saveMarketReport },
 ) {
-  const { reportDate } = params;
+  // Resolve once in a step so a replay after midnight keeps the date this run started with.
+  const reportDate = params?.reportDate ?? await step.do("resolve-report-date", { retries: { limit: 1, delay: "1 second" }, timeout: "30 seconds" }, async () => currentReportDate());
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(reportDate) || new Date(`${reportDate}T00:00:00Z`).toISOString().slice(0, 10) !== reportDate) {
+    throw new Error(`Invalid report date: ${reportDate}`);
+  }
 
   try {
     const modules = await Promise.allSettled([
