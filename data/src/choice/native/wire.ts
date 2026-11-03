@@ -116,6 +116,10 @@ function lineAtom(value: string): string {
   if (/[\r\n\0]/.test(value)) throw new ChoiceWireError("Control character in Choice command");
   return value;
 }
+/** The comma also separates options on the wire, so several indicators are joined with a pipe. */
+function indicatorList(indicators: string): string {
+  return lineAtom(indicators.split(",").map(item => item.trim()).filter(Boolean).join("|"));
+}
 /** cquantstaticfunc::makecodescommand @0x2632f0. */
 export function choiceCodesCommand(codes: readonly string[]): string {
   if (codes.some(code => /[,\r\n\0]/.test(code))) throw new ChoiceWireError("Invalid Choice code");
@@ -131,12 +135,12 @@ export interface ChoiceQueryCommand {
 /** After SDK-equivalent parameter/date normalization. SessionId is a request GUID. */
 export function choiceCssCommand(query: ChoiceQueryCommand): string {
   return "$-api\r\n$name=em_css\r\n" + choiceCodesCommand(query.codes)
-    + "$subfname=" + lineAtom(query.indicators) + "," + lineAtom(query.options)
+    + "$subfname=" + indicatorList(query.indicators) + "," + lineAtom(query.options)
     + ",token=" + lineAtom(query.token) + ",SessionId=" + lineAtom(query.requestId);
 }
 export function choiceCsdCommand(query: ChoiceQueryCommand & { startDate: string; endDate: string }): string {
   return "$-api\r\n$name=em_csd_2\r\n" + choiceCodesCommand(query.codes)
-    + "$subfname=" + lineAtom(query.indicators) + ",StartDate=" + lineAtom(query.startDate)
+    + "$subfname=" + indicatorList(query.indicators) + ",StartDate=" + lineAtom(query.startDate)
     + ",EndDate=" + lineAtom(query.endDate) + "," + lineAtom(query.options)
     + ",token=" + lineAtom(query.token) + ",SessionId=" + lineAtom(query.requestId);
 }

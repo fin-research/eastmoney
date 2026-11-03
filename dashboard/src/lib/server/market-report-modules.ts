@@ -9,7 +9,6 @@ import {
   buildSecondaryModule, buildInventoryModule, dayOffset, referencedBondCodes,
 } from "../../market-report-resources.ts";
 import { reportDataSchema } from "../../market-report.ts";
-import { currentReportDate } from "../../report-date.ts";
 import { completeAll, fetchBriefingNewsDetails, fetchDataJson, prepareBriefingNews } from "./market-briefing.ts";
 
 const todayTradesPath = "today-trades?limit=300&fields=bondUniCode,remainingTenor,cbYte,tradeYield,tradeYieldSubCb";
@@ -18,7 +17,6 @@ const favoriteQuotesPath = "favorite-quotes?limit=100&fields=bondUniCode,bondSho
 // Each function owns fetching, normalization and validation for one report module.
 // None creates Workflow steps or retries requests.
 export async function collectFocusNews(env: Env, reportDate: string) {
-  assertCurrentDate(reportDate);
   const items = await fetchBriefingNewsDetails(env, reportDate);
   return checkpoint(reportDate, prepareBriefingNews(items));
 }
@@ -97,17 +95,11 @@ function assertTradingDate(calendar: { date: string; isTradingDay: boolean }, re
   if (calendar.date !== reportDate || !calendar.isTradingDay) throw new Error("交易日历未确认当日为交易日，请重试");
 }
 
-function assertCurrentDate(reportDate: string) {
-  if (currentReportDate() !== reportDate) throw new Error("采集已跨日，不能混入其他日期的实时行情");
-}
-
 async function fetchModuleData<T>(env: Env, reportDate: string, path: string, schema: z.ZodType<T>): Promise<T> {
-  assertCurrentDate(reportDate);
   return fetchDataJson(env, `https://data.internal/data/${path}`, schema);
 }
 
 function checkpoint<T>(reportDate: string, data: T): T {
-  assertCurrentDate(reportDate);
   if (new TextEncoder().encode(JSON.stringify(data)).byteLength > 900 * 1024) throw new Error("模块数据超过步骤大小限制");
   return data;
 }

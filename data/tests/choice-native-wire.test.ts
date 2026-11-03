@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { readFileSync } from "node:fs";
-import { ChoiceReader, ChoiceWireError, ChoiceServerError, assertQueryFrame, decodeChoiceScalar, decodeChoiceSheets, encodeChoiceFrame, decodeChoiceHeader, choiceCodesCommand, choiceTradeDatesCommand } from "../src/choice/native/wire.ts";
+import { ChoiceReader, ChoiceWireError, ChoiceServerError, assertQueryFrame, decodeChoiceScalar, decodeChoiceSheets, encodeChoiceFrame, decodeChoiceHeader, choiceCodesCommand, choiceTradeDatesCommand, choiceCssCommand, choiceCsdCommand } from "../src/choice/native/wire.ts";
 import { applyPercent, calendarQueryForCsd, publishDateQueryForEdb, decodeQuery, encodeQuery } from "../src/choice/native/query.ts";
 const hexFixtures:Record<string,string> = JSON.parse(readFileSync(new URL("./fixtures/choice-native/sdk-table-fixtures.json",import.meta.url),"utf8"));
 const fixture=(name:string)=>new Uint8Array(Buffer.from(hexFixtures[name]!,"hex"));
@@ -22,6 +22,12 @@ test("row dates accept the unpadded Choice form and reject impossible dates",()=
   assert.deepEqual(decodeQuery("csd",payload,fixture("csd3"),["2026/1/5"]).rows.map(row=>row.date),["2026-01-05"]);
   assert.throws(()=>decodeQuery("csd",payload,fixture("csd3"),["2026/13/45"]),/Unsupported Choice row date/);
   assert.throws(()=>decodeQuery("csd",payload,fixture("csd3"),["2026/2/30"]),/Unsupported Choice row date/);
+});
+test("several indicators are pipe separated because the comma separates options",()=>{
+  const base={codes:["000001.SH"],options:"TradeDate=2026-11-03,EndDate=2026-11-03",token:"token",requestId:"id"};
+  assert.equal(choiceCssCommand({...base,indicators:"CLOSE, PRECLOSE,MV"}),"$-api\r\n$name=em_css\r\n$secucode=000001.SH\r\n$subfname=CLOSE|PRECLOSE|MV,TradeDate=2026-11-03,EndDate=2026-11-03,token=token,SessionId=id");
+  assert.equal(choiceCssCommand({...base,indicators:"CLOSE"}).includes("$subfname=CLOSE,TradeDate"),true);
+  assert.equal(choiceCsdCommand({...base,indicators:"CLOSE,OPEN",startDate:"2026-11-02",endDate:"2026-11-03"}).includes("$subfname=CLOSE|OPEN,StartDate=2026-11-02,EndDate=2026-11-03,"),true);
 });
 test("request framing matches recovered little-endian 14-byte SDK header",()=>{
   assert.deepEqual([...encodeChoiceFrame("X")],[0,15,0,0,0,1,250,0,0,0,0,0,0,5,88]);

@@ -14,7 +14,7 @@
 - 新闻采集最多四次 Data 批量调用。六个行情模块的调用预算须独立核查，不能靠调大 step 并发或重试来绕开请求额度。
 - 七个模块结束后依次 `await generate-focus → archive-report`。归档只合并已解析的模块字段，校验完整报告并保存到 `market-briefing/YYYY-MM-DD.json`，不再解析上游数据。任一必需模块失败不影响其他模块完成，但不生成也不归档残缺报告。
 - 重试：模块 step 最多 3 次、30 秒起指数退避，行情模块单步超时 3 分钟，聚焦采集 10 分钟。AI step 最多 2 次、1 分钟起指数退避，超时 15 分钟。采集 adapter 不做业务重试，任一批次失败则整个模块失败，由 step 重试。
-- 当日成交、期货和报价不支持历史重放。未完成的采集 step 会校验上海当天，跨日恢复会失败，不能用当前行情冒充历史报告。已完成的数据步骤和归档步骤可由平台恢复。
+- 可以指定任意日期运行，采集不再校验上海当天。当日成交、期货和报价没有历史接口，其他日期的运行读到的是运行时的实时行情，历史日期的这些部分不能当作该日数据。已完成的数据步骤和归档步骤可由平台恢复。
 - Workflow 只生成并归档报告，成功返回 `reportDate`、`finalizedAt`、`focus`，失败保留原错误。终态由 Cloudflare Event Subscriptions → Messenger 统一发 email + Telegram，接收人、幂等和渠道重试见 [通知管理](messenger.md)。
 
 ## 读取与页面
@@ -45,4 +45,4 @@
 - 休市表在新年度交易所公告发布后更新 `src/market-calendar.ts`，来源：[上交所 2026 年休市安排](https://www.sse.com.cn/disclosure/dealinstruc/closed/c/c_20251222_10802510.shtml)。
 - 发布后须程序化请求生产 `/api/market-report` 及显式日期接口，核对 HTTP 状态和 `report_date`。
 - Cloudflare 流程图由静态语法分析生成。`completeAll(...).then(...)` 会让解析器把依赖步骤全标为 `starts=1`，所以编排用原生 Promise 批次和直接 `await`。发布后通过 `GET /accounts/{account}/workflows/market-briefing/versions/{version}/graph` 核对：唯一并行组恰有七个模块 step，其后是 AI、归档两个串行 step。见 [Cloudflare 流程图文档](https://developers.cloudflare.com/workflows/build/visualizer/)。
-- 手动触发：`pnpm exec wrangler workflows trigger market-briefing '{"reportDate":"YYYY-MM-DD"}' --id market-briefing-YYYY-MM-DD`。失败时先看失败步骤，同日可 `pnpm exec wrangler workflows instances restart market-briefing <id>`。通知投递失败在 Messenger 管理页重试，不重启业务 Workflow。跨日不能补跑实时行情。
+- 手动触发：`pnpm exec wrangler workflows trigger market-briefing '{"reportDate":"YYYY-MM-DD"}' --id market-briefing-YYYY-MM-DD`。不带参数（`'{}'`）默认为运行当天的上海日期，该日期在第一个 step 固定，重放不变。失败时先看失败步骤，用 `pnpm exec wrangler workflows instances restart market-briefing <id>` 重启。通知投递失败在 Messenger 管理页重试，不重启业务 Workflow。
