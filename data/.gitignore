@@ -4,13 +4,9 @@ dist/
 .dev.vars*
 .env*
 !.dev.vars.example
-!choice-rpc/.env.example
 *.log
 *.cpuprofile
 .DS_Store
-choice-rpc/build/
-choice-rpc/vendor/linux-x64/userInfo
-choice-rpc/vendor/linux-x64/*.log
 
 node_modules
 

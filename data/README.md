@@ -4,7 +4,7 @@
 
 为 Eastmoney 站点提供统一的 `/data/*` 数据 API，覆盖 DM、Choice 与东方财富网页/行情。公共 REST、OpenAPI、Swagger/ReDoc、薄 GraphQL 和 MCP 由 TypeScript Hono Worker 承载。CAMEL 资金系统经 Gateway 授权的 `/data/camel/*` 和内部客户端调用。
 
-DM、Choice、CAMEL 经 office 私网访问。Choice SDK 由 [Choice](../choice/README.md) 项目运行。Data 输出单资源契约，Dashboard 负责报告业务加工。
+DM、CAMEL 经 office 私网访问，Choice 由 Durable Object 直连厂商。Data 输出单资源契约，Dashboard 负责报告业务加工。
 
 ## 使用与开发
 

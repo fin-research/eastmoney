@@ -31,7 +31,6 @@ def main():
                 for part in path.parts
             )
             or ((path.name.startswith(".env") or path.name.startswith(".dev.vars")) and not path.name.endswith(".example"))
-            or name.startswith("choice/vendor/linux-x64/")
             or (
                 name.startswith("quant/")
                 and path.suffix.lower()

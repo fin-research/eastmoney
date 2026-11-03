@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
-export const projects = ['gateway', 'dashboard', 'data', 'choice', 'messenger', 'ingest', 'quant'];
+export const projects = ['gateway', 'dashboard', 'data', 'messenger', 'ingest', 'quant'];
 
 const infrastructure = /^(\.github\/|scripts\/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|\.npmrc$)/;
 
@@ -32,7 +32,6 @@ export function affected(paths, all = false, scope = null) {
     if (/^dashboard\/(src\/data-contracts|src\/lib\/(?:permissions|route-permissions)\.ts|worker|wrangler)/.test(path)) selected.add('gateway');
     if (/^messenger\/(src|wrangler)/.test(path)) ['dashboard', 'data', 'ingest', 'quant'].forEach(p => selected.add(p));
     if (/^quant\/(online|model|data)/.test(path)) selected.add('dashboard');
-    if (owner === 'choice') selected.add('data');
     if (/^(dashboard|ingest)\/migrations\//.test(path)) ['dashboard', 'ingest'].forEach(p => selected.add(p));
     if (/^dashboard\/financing-model-migrations\//.test(path)) selected.add('quant');
     if (/^docs\/(AUTH|ARCHITECTURE|DATABASE|AI|TESTING)\.md$/.test(path)) projects.forEach(p => selected.add(p));
