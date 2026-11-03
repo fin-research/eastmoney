@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 
 from artifacts import write_json
-from research_sources import source_hashes, runtime_identity
 from .curve_projection import (
     curve_forecast_data,
     fit_curve_forecast,
@@ -186,8 +185,6 @@ def evaluate_curve_forecasts(panel, as_of, directory, input_sha256):
     protocol = {
         "as_of": as_of,
         "input_sha256": input_sha256,
-        "sources": source_hashes(),
-        "runtime": runtime_identity(),
         "expected_sha256": digest(expected_path),
         "data_sha256": {
             name: hashlib.sha256(

@@ -5,7 +5,7 @@ import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 import type { Bindings, MessageRow } from './contracts';
 import { receiveWorkflowEvent, recoverWorkflowEvents } from './workflow-events';
-import { notify, settings, saveSettings, savePush, recoverNotifications, scanNotifications, migrateLegacyWorkflowSubscriber } from './notifications';
+import { notify, settings, saveSettings, savePush, recoverNotifications, scanNotifications } from './notifications';
 import { dto, enqueue, getMessage, recover, retryMessage } from './service';
 import { processDeliveryBatch } from './queue';
 import { sendTestMessages, recoverTestBatches } from './admin-tests';
@@ -75,7 +75,6 @@ export default {
   async scheduled(event:ScheduledController,env:Bindings){
     await settleScheduledJobs([
       { name: 'dispatch', run: () => dispatchScheduledTasks(env,event.scheduledTime) },
-      { name: 'legacy-subscriber', run: () => migrateLegacyWorkflowSubscriber(env) },
       { name: 'deliveries', run: () => recover(env) },
       { name: 'workflow-events', run: () => recoverWorkflowEvents(env) },
       { name: 'notifications', run: () => recoverNotifications(env) },

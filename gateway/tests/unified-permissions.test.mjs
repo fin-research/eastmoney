@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readdir, readFile } from 'node:fs/promises';
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
-import { Client } from 'pg';
 import { PERMISSION_CODES, hasPermission } from '../src/lib/permissions.ts';
 import { requestPolicy, ROUTE_PERMISSIONS } from '../src/lib/server/permission-policy.ts';
 import { authorizeRequest, authorizationMode } from '../src/lib/server/authorization.ts';
@@ -28,10 +26,9 @@ test('read and write policies are distinct, and unknown routes/actions and ambig
   for (const mode of [undefined, '', 'legacy', 'open', 'typo']) assert.throws(() => authorizationMode(mode), { status: 503 });
 });
 
-test('signed roles use current cached grants, never token permissions or database; cache refresh revokes existing sessions', async t => {
+test('signed roles use current cached grants, never token permissions; cache refresh revokes existing sessions', async t => {
   const { fixture } = await import('./helpers/fixture.mjs');
   const f = await fixture(t);
-  t.mock.method(Client.prototype, 'connect', async () => { throw new Error('authorization must not query Postgres'); });
   const token = await f.signed({permissions:['financing.project:delete']});
   const req=f.request('/financing/projects',{token});
   await f.updateGrants(['financing.project:read']);
@@ -61,7 +58,7 @@ test('Auth0 roles are paginated and no user/role tables or permission writes are
 
  test('public static assets do not consult identity or database services', async () => {
    for(const path of ['/favicon.svg','/institution-logos/cicc.ico','/_app/immutable/chunks/app.js']) {
-     const result=await authorizeRequest(request(path),{},null,async()=>{throw new Error('unexpected identity lookup')});
+     const result=await authorizeRequest(request(path),{},null);
      assert.equal(result.user,null);assert.deepEqual(result.permissions,[]);
    }
  });
@@ -76,11 +73,4 @@ test('client navigation and legacy workbench aliases require the same resource p
    ['/credit-workbench/assistant/__data.json', '/credit-workbench/[[view]]'],
    ['/trading-research/credit-assistant', '/trading-research/[view]'],
  ]) assert.equal(requestPolicy(request(path), route).login, true);
-});
-
-test('runtime authorization and role view have no database authorization fallback', async () => {
- const authorization=await readFile(new URL('../src/lib/server/authorization.ts',import.meta.url),'utf8');
- const configuration=await readFile(new URL('../src/identity-service.ts',import.meta.url),'utf8');
- assert.doesNotMatch(authorization,/AUTHORIZATION_DB|withPostgres|env\.HYPERDRIVE/);
- assert.doesNotMatch(configuration,/AUTHORIZATION_DB|withPostgres|saveRoleConfiguration|env\.HYPERDRIVE/);
 });

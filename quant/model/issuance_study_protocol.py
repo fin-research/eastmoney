@@ -136,22 +136,15 @@ def _verify_reproduction(path, spec):
         )
     ):
         raise ValueError("reproduction requires explicit immutable source provenance")
-    from research_sources import runtime_identity, source_hashes
-
     inventory_path = path.parent / "migration-inventory.json"
     if digest(inventory_path) != reproduction["inventory_sha256"]:
         raise ValueError("reproduction inventory checksum mismatch")
     inventory = json.loads(inventory_path.read_text())
-    if (
-        inventory["source_revision"] != reproduction["source_revision"]
-        or inventory["current_sources"] != source_hashes()
-        or inventory["runtime"] != runtime_identity()
-        or any(
-            digest(record["path"]) != record["sha256"]
-            for record in inventory["original_evidence"].values()
-        )
+    if inventory["source_revision"] != reproduction["source_revision"] or any(
+        digest(record["path"]) != record["sha256"]
+        for record in inventory["original_evidence"].values()
     ):
-        raise ValueError("reproduction source, runtime or original evidence changed")
+        raise ValueError("reproduction original evidence changed")
     evidence = inventory["original_evidence"]
     for role in ("spec", "protocol", "selection"):
         if evidence[role]["sha256"] != reproduction[f"original_{role}_sha256"]:

@@ -3,7 +3,6 @@
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
 
 import pandas as pd
 
@@ -81,11 +80,7 @@ class ShortCouponTests(unittest.TestCase):
         write_json(self.path, self.result)
 
     def load(self):
-        with (
-            patch("model.short_coupon.source_hashes", return_value={}),
-            patch("model.short_coupon.runtime_identity", return_value={}),
-        ):
-            return load_short_release(self.path)
+        return load_short_release(self.path)
 
     def test_fresh_result_loads_and_selects_history(self):
         self.assertEqual(self.result, self.load())

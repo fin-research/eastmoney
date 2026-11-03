@@ -1,5 +1,7 @@
 # Gateway 测试
 
-测试取舍遵循[项目组测试规范](../../docs/TESTING.md)。本地覆盖率执行 `pnpm test:coverage`。Node 内置 coverage 只统计已加载的 `src/**/*.ts/js`，未加载入口和 repository 不在分母内，不能把结果称为全部源码覆盖。
+测试取舍遵循[项目组测试规范](../../docs/TESTING.md)。`pnpm test` 运行全部测试，`pnpm test:coverage` 生成覆盖率，统计范围为已加载的 `src/**/*.ts/js`。
 
-安全边界包括路由权限、匿名与登录身份、组织隔离、机器 scope、JWT、客户端 PKCE、退役 Cookie 拒绝和清理路径。合并测试不能削弱这些行为。真实 Auth0 登录和生产路由绕过仍按 [共享 AUTH](../../docs/AUTH.md#程序化权限测试) 单独用程序化 HTTP 验收。
+安全边界必须由测试保护：路由权限、匿名与登录身份、组织隔离、机器 scope、JWT、客户端 PKCE、遗留 Cookie 的拒绝与清理。合并测试时不削弱这些行为。
+
+真实 Auth0 登录和生产路由绕过按 [AUTH](../../docs/AUTH.md#程序化权限测试)用程序化 HTTP 验收。

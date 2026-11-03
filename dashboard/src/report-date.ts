@@ -34,9 +34,3 @@ export function defaultWeekdayReportDate(now = new Date()): string {
   while (knownMarketClosure(cursor.toISOString().slice(0, 10)) === true) cursor.setUTCDate(cursor.getUTCDate() - 1);
   return cursor.toISOString().slice(0, 10);
 }
-
-export function previousReportTradingDate(tradingDates: string[], today: string): string {
-  const date = tradingDates.filter(date => date < today).sort().at(-1);
-  if (!date) throw new Error("无法确定上一交易日，请稍后重试");
-  return date;
-}

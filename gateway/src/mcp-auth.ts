@@ -1,4 +1,8 @@
-export const mcpClientIds: readonly string[] = ['https://chatgpt.com/oauth/client.json', 'https://chatgpt.com/oauth/codex/client.json', 'https://opencode.ai/oauth/opencode/client.json'];
+/** Reference CIMD clients used by tests and verification. Any dynamic CIMD client is accepted. */
+export const mcpClientIds: readonly string[] = ['https://chatgpt.com/oauth/client.json', 'https://chatgpt.com/oauth/codex/client.json', 'https://opencode.ai/oauth/opencode/client.json',
+  'https://claude.ai/oauth/mcp-oauth-client-metadata'];
+/** CIMD tokens carry the client metadata URL as azp; the website client uses an Auth0 client ID. */
+export const isMcpClient = (azp: unknown): azp is string => typeof azp === 'string' && /^https:\/\/[^\s]+$/.test(azp);
 export const mcpIdentityClaim = 'https://eastmoney.hasbai.xyz/identity';
 
 /** OAuth discovery only. Auth0 owns login, authorization codes and tokens. */

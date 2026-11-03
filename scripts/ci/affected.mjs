@@ -14,7 +14,7 @@ export function affected(paths, all = false) {
       ['gateway', 'dashboard', 'ingest', 'quant'].forEach(p => selected.add(p));
     }
     if (/^gateway\/(src|wrangler)/.test(path)) ['dashboard', 'data'].forEach(p => selected.add(p));
-    if (/^dashboard\/(src\/data-contracts|src\/lib\/gateway-contracts|worker|wrangler)/.test(path)) selected.add('gateway');
+    if (/^dashboard\/(src\/data-contracts|src\/lib\/(?:permissions|route-permissions)\.ts|worker|wrangler)/.test(path)) selected.add('gateway');
     if (/^messenger\/(src|wrangler)/.test(path)) ['dashboard', 'data', 'ingest', 'quant'].forEach(p => selected.add(p));
     if (/^quant\/(online|model|data)/.test(path)) selected.add('dashboard');
     if (owner === 'choice') selected.add('data');

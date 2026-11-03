@@ -134,11 +134,18 @@ class RegistryTest(unittest.TestCase):
             del value["terms"][missing]
             with self.assertRaisesRegex(ValueError, "explicit"):
                 app.register_scheme(self.ledger, value, SOURCE)
-        with patch(
-            "application.prospective.source_hashes", return_value={"changed": "0" * 64}
-        ):
-            with self.assertRaisesRegex(ValueError, "source or runtime changed"):
-                app.audit_registry(self.ledger)
+
+    def test_legacy_source_binding_is_accepted_but_other_keys_are_rejected(self):
+        value = copy.deepcopy(self.ledger.events()[0]["payload"])
+        self.assertNotIn("sources", value)
+        legacy = {**value, "sources": {"main.py": "0" * 64}, "runtime": {"python": "3"}}
+        self.assertEqual(contract.validate_protocol(legacy), legacy)
+        self.assertEqual(contract.validate_protocol(value), value)
+        with self.assertRaisesRegex(ValueError, "Unexpected registry protocol"):
+            contract.validate_protocol({**value, "extra": 1})
+        del value["candidate_method"]
+        with self.assertRaisesRegex(ValueError, "Unexpected registry protocol"):
+            contract.validate_protocol(value)
 
     def test_scheme_parent_keeps_original_and_rejects_branches(self):
         original, _ = self.prepare()

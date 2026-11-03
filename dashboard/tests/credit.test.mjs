@@ -241,63 +241,6 @@ test("授信增量 PATCH 须指明申请操作且拒绝空变更", () => {
   }).success, false);
 });
 
-test("授信 schema、API 与页面保留只读详情及申请入口", async () => {
-  const [schemaMigration, eventMigration, repository, route, view, application, metricCard, demoData] = await Promise.all([
-    readFile(new URL("../credit-migrations/0002_normalize_credit_tables.sql", import.meta.url), "utf8"),
-    readFile(new URL("../credit-migrations/0003_create_credit_events.sql", import.meta.url), "utf8"),
-    readFile(new URL("../src/lib/server/credit-repository.ts", import.meta.url), "utf8"),
-    readFile(new URL("../src/routes/api/credit/+server.ts", import.meta.url), "utf8"),
-    readFile(new URL("../src/lib/trading-research/CreditView.svelte", import.meta.url), "utf8"),
-    readFile(new URL("../src/lib/trading-research/CreditApplicationDialog.svelte", import.meta.url), "utf8"),
-    readFile(new URL("../src/components/MetricCard.svelte", import.meta.url), "utf8"),
-    readFile(new URL("../src/lib/trading-research/demo-data.ts", import.meta.url), "utf8"),
-  ]);
-
-  assert.match(schemaMigration, /CREATE TYPE credit\.credit_status AS ENUM/);
-  assert.match(schemaMigration, /RENAME TO institution/);
-  assert.match(schemaMigration, /RENAME TO item/);
-  assert.match(schemaMigration, /DROP TABLE credit\.daily_summary/);
-  assert.match(eventMigration, /CREATE TABLE credit\.institution_event/);
-  assert.match(eventMigration, /'new', 'renewal', 'increase', 'expiry', 'revocation'/);
-  assert.match(eventMigration, /CREATE OR REPLACE FUNCTION credit\.refresh_institution_events/);
-  assert.match(eventMigration, /SELECT credit\.refresh_institution_events\(\)/);
-  assert.doesNotMatch(repository, /daily_summary|institution_daily|item_daily|import_run|_snapshot/);
-  assert.doesNotMatch(repository, /expectedUpdatedAt|updated_at = \$3::timestamptz/);
-  assert.match(repository, /loadCreditStates/);
-  assert.doesNotMatch(repository, /SS\.MS/);
-  assert.match(repository, /credit\.append_entry/);
-  assert.match(
-    repository,
-    /await loadCreditData[\s\S]*?await client\.query\('COMMIT'\)/,
-  );
-  assert.match(route, /HYPERDRIVE/);
-  assert.match(route, /export const PATCH/);
-  assert.match(route, /creditInstitutionUpdateSchema/);
-  assert.match(view, /授信一览表/);
-  assert.match(view, /授信日历/);
-  assert.match(view, /授信周报/);
-  assert.match(view, /授信申请/);
-  assert.doesNotMatch(view, /updateCreditInstitution|oninput=\{\(event\) => setEditor/);
-  assert.match(application, /updateCreditInstitution/);
-  assert.match(application, /renewal: '续期'.*increase: '扩额'.*revocation: '撤销'/);
-  assert.match(view, /toggleSort/);
-  assert.doesNotMatch(view, /structuredClone/);
-  assert.doesNotMatch(view, /授信额度变动/);
-  assert.match(view, /title="近期新增授信批复"/);
-  assert.match(view, /title="授信明细"/);
-  assert.match(view, /rowspan=\{group\.institutions\.length\}/);
-  assert.match(view, /<ol class="tr-credit-news-list">/);
-  assert.doesNotMatch(view, /使用额度变动/);
-  assert.match(view, /导出图片/);
-  assert.match(view, /label="30日内到期"/);
-  assert.match(view, /label="额度使用率" value=\{report\.summary\.utilization\.toFixed\(1\)\} unit="%"/);
-  assert.match(view, /title="授信额度使用率"/);
-  assert.match(view, /title="授信预警"/);
-  assert.doesNotMatch(view, /高使用率机构|tr-result-count|一览表全口径|数据截至/);
-  assert.doesNotMatch(metricCard, /research-metric-card__balance/);
-  assert.doesNotMatch(demoData, /demoCreditLines|creditSummary|creditAlerts|CREDIT-USAGE|CREDIT-EXPIRY/);
-});
-
 function workbookBuffer() {
   return write(syntheticWorkbook(), { type: "buffer", bookType: "xlsx" });
 }

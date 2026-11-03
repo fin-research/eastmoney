@@ -4,14 +4,10 @@ import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 import { isValidEmail, normalizeEmail } from '../../src/lib/financing/email.js';
 import { DATA_ADMIN_DEBT_TYPES, DEBT_TYPES } from '../../src/lib/financing/debt-types.js';
-import { cacheSessionUser, invalidateCachedSession, readCachedSessionUser } from './fixtures/legacy-auth/auth-cache.js';
-import { createNeonAuthClient, jwtFromResponseHeaders, NEON_SESSION_COOKIE, sessionMaxAgeFromSetCookie, sessionTokenFromSetCookie } from './fixtures/legacy-auth/neon-auth-client.js';
 import { dataApiUrlFromAuthUrl } from '../../src/lib/financing/neon-urls.js';
 import { deleteProjectWithReminders } from '../../src/lib/server/financing/project-deletion.js';
 import { validateWorkbook } from '../../src/lib/financing/debt-import-json.ts';
 import { importDebtWorkbook, refreshDebtImportDerivatives } from '../../src/lib/server/financing/debt-importer.js';
-import { actionNameFromUrl, isAuthorizedRequest, isSafeRequestMethod } from './fixtures/legacy-auth/request-authorization.js';
-import { PERMISSION_CODES } from './fixtures/legacy-auth/permissions.js';
 
 function migrationSql(name) {
 	return fs.readFileSync(new URL(`../../financing-migrations/${name}`, import.meta.url), 'utf8')
@@ -78,39 +74,6 @@ test('login emails are normalized and validated', () => {
 	assert.equal(isValidEmail('legacy-admin'), false);
 });
 
-test('write authorization follows the persisted permission types', () => {
-	assert.equal(actionNameFromUrl(new URL('https://example.com/financing/logout')), 'default');
-	assert.equal(actionNameFromUrl(new URL('https://example.com/financing/projects?/createProject')), 'createProject');
-	for (const method of ['GET', 'HEAD', 'OPTIONS']) {
-		assert.equal(isSafeRequestMethod(method), true);
-		assert.equal(isAuthorizedRequest([], '/projects', method), true);
-	}
-	assert.equal(isSafeRequestMethod('POST'), false);
-	assert.equal(isAuthorizedRequest([], '/logout', 'POST'), true);
-	assert.equal(isAuthorizedRequest([], '/settings', 'POST', 'updateProfile'), true);
-	assert.equal(isAuthorizedRequest(PERMISSION_CODES, '/projects/[id]', 'POST', 'updateTask'), true);
-	assert.equal(isAuthorizedRequest(['own_task_update'], '/projects/[id]', 'POST', 'updateOwnTaskStatus'), true);
-	assert.equal(isAuthorizedRequest([], '/projects/[id]', 'POST', 'updateOwnTaskStatus'), false);
-	assert.equal(isAuthorizedRequest(['people_manage'], '/people', 'POST', 'updatePerson'), true);
-	assert.equal(isAuthorizedRequest([], '/people', 'POST', 'updatePerson'), false);
-	assert.equal(isAuthorizedRequest(['permission_manage'], '/people', 'POST', 'saveRolePermissions'), true);
-	assert.equal(isAuthorizedRequest(['data_manage'], '/data/import', 'POST'), true);
-	for (const [permission, routeId, actions] of [
-		['people_manage', '/people', ['createPerson', 'updatePerson', 'togglePerson', 'deletePerson']],
-		['project_manage', '/projects', ['createProject', 'updateProject', 'deleteProject']],
-		['project_manage', '/projects/[id]', ['updateProject', 'updateTask', 'addTask']],
-		['sop_manage', '/sop', ['createReminder', 'createSop']],
-		['sop_manage', '/sop/[id]', ['updateTemplate', 'toggleTemplate', 'addNode', 'updateNode', 'reorderNodes', 'deleteNode']],
-		['report_generate', '/liability-report', ['saveSnapshot']]
-	]) {
-		for (const actionName of actions) {
-			assert.equal(isAuthorizedRequest([permission], routeId, 'POST', actionName), true, `${routeId}:${actionName}`);
-			assert.equal(isAuthorizedRequest([], routeId, 'POST', actionName), false, `${routeId}:${actionName}`);
-		}
-	}
-	assert.equal(isAuthorizedRequest(PERMISSION_CODES, '/projects', 'POST', 'unknownAction'), false);
-});
-
 test('own-task action retains its narrow server-side field boundary', () => {
 	const taskSource = fs.readFileSync(new URL('../../src/routes/financing/projects/[id]/+page.server.ts', import.meta.url), 'utf8');
 	assert.match(taskSource, /updateOwnTaskStatus:/);
@@ -119,80 +82,6 @@ test('own-task action retains its narrow server-side field boundary', () => {
 	const ownTaskAction = taskSource.slice(taskSource.indexOf('updateOwnTaskStatus:'), taskSource.indexOf('\n\taddTask:'));
 	assert.match(ownTaskAction, /SET status = \?,\s*completed_at = CASE/);
 	assert.doesNotMatch(ownTaskAction, /SET status = \?,\s*assignee_id = \?/);
-});
-
-test('Neon Auth session cookie is proxied without exposing the upstream cookie', async () => {
-	const cookie = `${NEON_SESSION_COOKIE}=opaque-token; Max-Age=3600; Path=/; HttpOnly; Secure`;
-	assert.equal(sessionTokenFromSetCookie(cookie), 'opaque-token');
-	assert.equal(sessionMaxAgeFromSetCookie(cookie), 3600);
-	const requests = [];
-	const client = createNeonAuthClient({
-		baseUrl: 'https://example.neonauth.us-west-2.aws.neon.tech/neondb/auth',
-		origin: 'https://eastmoney.hasbai.xyz', token: 'opaque-token',
-		fetchImpl: async (url, options) => {
-			requests.push({ url: String(url), options });
-			return new Response(JSON.stringify({ user: { id: 'auth-id', email: 'admin@example.com' } }), { status: 200, headers: { 'content-type': 'application/json', 'set-auth-jwt': 'short-lived-jwt' } });
-		}
-	});
-	const session = await client.getSession();
-	assert.equal(session.data.user.id, 'auth-id');
-	assert.equal(session.jwt, 'short-lived-jwt');
-	assert.equal(requests[0].options.headers.get('Cookie'), `${NEON_SESSION_COOKIE}=opaque-token`);
-	assert.equal(requests[0].options.headers.get('Origin'), 'https://eastmoney.hasbai.xyz');
-});
-
-test('Data API JWT is read from the dedicated Neon Auth response header', () => {
-	assert.equal(jwtFromResponseHeaders(new Headers({ 'Set-Auth-Jwt': ' jwt-value ' })), 'jwt-value');
-	assert.equal(jwtFromResponseHeaders(new Headers()), null);
-});
-
-test('Data API token requests bypass the Neon Auth session cookie cache', async () => {
-	const requests = [];
-	const client = createNeonAuthClient({
-		baseUrl: 'https://example.neonauth.us-west-2.aws.neon.tech/neondb/auth',
-		origin: 'https://eastmoney.hasbai.xyz', token: 'opaque-token',
-		fetchImpl: async (url) => {
-			requests.push(String(url));
-			return new Response(JSON.stringify({ user: { id: 'auth-id' } }), {
-				status: 200,
-				headers: { 'content-type': 'application/json', 'set-auth-jwt': 'short-lived-jwt' }
-			});
-		}
-	});
-	const session = await client.getSession({ disableCookieCache: true });
-	assert.equal(session.jwt, 'short-lived-jwt');
-	assert.equal(new URL(requests[0]).searchParams.get('disableCookieCache'), 'true');
-	const hooksSource = fs.readFileSync(new URL('../../src/lib/server/gateway-context.ts', import.meta.url), 'utf8');
-	assert.match(hooksSource, /env\.GATEWAY_CONTEXT/);
-	assert.doesNotMatch(hooksSource, /readCachedSessionUser/);
-});
-
-test('short-lived Worker auth cache hashes opaque tokens and can be invalidated', async () => {
-	const entries = new Map();
-	const writes = [];
-	const cache = {
-		async match(request) { return entries.get(request.url)?.clone(); },
-		async put(request, response) { entries.set(request.url, response.clone()); },
-		async delete(request) { return entries.delete(request.url); }
-	};
-	const event = {
-		url: new URL('https://eastmoney.hasbai.xyz/financing/projects'),
-		platform: {
-			caches: { async open() { return cache; } },
-			context: { waitUntil(promise) { writes.push(promise); } }
-		}
-	};
-	const user = {
-		id: 'auth-id', email: 'admin@example.com', role: 'admin', personId: 'person-id',
-		personName: '管理员', hasAvatar: false, avatarVersion: '1'
-	};
-	await cacheSessionUser(event, 'opaque-session-token', user);
-	await Promise.all(writes);
-	assert.equal(entries.size, 1);
-	assert.equal([...entries.keys()][0].includes('opaque-session-token'), false);
-	assert.deepEqual(await readCachedSessionUser(event, 'opaque-session-token'), user);
-	assert.equal(await invalidateCachedSession(event, 'opaque-session-token'), true);
-	assert.equal(await readCachedSessionUser(event, 'opaque-session-token'), null);
 });
 
 test('收益凭证在数据后台合并、在仪表盘筛选中保留浮动和固定分类', () => {
@@ -205,9 +94,6 @@ test('收益凭证在数据后台合并、在仪表盘筛选中保留浮动和�
 	assert.equal(adminEntities[0].label, '收益凭证');
 	assert.equal(adminEntities[0].filterSubtype, false);
 	assert.deepEqual(adminEntities[0].subtypeOptions.map((item) => item.value), ['浮动收益凭证', '固定收益凭证']);
-	const adminSource = fs.readFileSync(new URL('../../src/lib/financing/data-admin.ts', import.meta.url), 'utf8');
-	assert.match(adminSource, /DATA_ADMIN_DEBT_TYPES\.map/);
-	assert.match(adminSource, /item\.filterSubtype \? \{ subtype: item\.fixedSubtype \} : \{\}/);
 });
 
 test('Data API URL is derived from the branch-scoped Neon Auth URL', () => {

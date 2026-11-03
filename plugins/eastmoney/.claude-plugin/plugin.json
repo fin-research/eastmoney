@@ -1,0 +1,6 @@
+{
+  "name": "eastmoney",
+  "version": "1.0.0",
+  "description": "券商资金部市场工具集：eastmoney MCP 加市场点评/今日聚焦、二级池周报、时事快评技能。",
+  "author": { "name": "yueshi" }
+}

@@ -1,43 +1,60 @@
 # Auth0 配置
 
-Auth0 的本站应用 `eastmoney` 使用自定义登录域 `auth.hasbai.xyz`。管理 API 使用原租户域 `hasbai.eu.auth0.com`。Dashboard 客户端拥有 `/auth/login`、`/auth/callback` 和退出页面，Auth0 SPA SDK 执行 PKCE，Gateway 只验签及授权，Auth0 API audience 为 `https://eastmoney.hasbai.xyz/`。API 不接受 ID token 或 Cloudflare Access JWT。
+本站应用 `eastmoney` 使用自定义登录域 `auth.hasbai.xyz`，管理 API 使用租户域 `hasbai.eu.auth0.com`，API audience 为 `https://eastmoney.hasbai.xyz/`。使用 New Universal Login，Auth0 负责密码和身份验证，发布用 `auth0` CLI。登录域 CNAME 指向 `hasbai-cd-j8r0mxglxwb2knim.edge.tenants.eu.auth0.com`，使用 Auth0 托管证书，保留该记录用于续期。
 
-当前 `login claims` 源码为 `actions/login-claims.cjs`。post-login 绑定为注册资料 Action 和 `login claims`（`35884b07-e1f4-4ab8-b66c-0325d5a055e4`）。后者添加顶层 `username`、`email`、`role` 字符串、`_roles` 角色名称数组，以及本站组织可选的 `department`、`picture`。拒绝封禁账号和未验证邮箱。`role` 供数据库使用，不用于 Gateway 业务授权。`_roles` 在 Gateway 按组织权限缓存解析为角色 ID。Gateway 接收 `Authorization: Bearer` 中的 Auth0 原始签名 token，`sub` 使用 Auth0 原生主键。
+登录架构与 token 规则见 [AUTH](../../docs/AUTH.md)，租户操作流程见 [本地租户管理](../../docs/AUTH.md#auth0-本地租户管理)，组织与应用边界见[组织与应用边界](../docs/AUTH0_ORGANIZATIONS.md)，交付见 [DEVELOPMENT](../docs/DEVELOPMENT.md)。
 
-`actions/eastmoney-login.cjs` 和 `scripts/publish-login-claims.mjs` 保留旧 nested `user` 协议的历史实现。不要重新发布或恢复旧绑定。网站拒绝旧 nested `user` 和旧 URL namespace token。官方 ChatGPT/Codex MCP 客户端仅在 `/api/mcp` 使用签名 `https://eastmoney.hasbai.xyz/identity`，无顶层字段回退；精确 CIMD 配置见 [MCP](../docs/MCP.md)。基础角色由 Auth0 成员关系管理，当前 Action 不自动分配。
+## 登录 Action
 
-其余注册 Action、中文主题、Hosted Form 与提示文案保留原业务流程。`eastmoney-signup-profile` 仍只处理新账号 pending 标记。姓名和部门不会授予权限或自动关联业务负责人。
+post-login 绑定两个 Action：注册资料 Action 和 `login claims`（`35884b07-e1f4-4ab8-b66c-0325d5a055e4`）。线上状态用 Auth0 CLI 读取，不从本地文件推断。
 
-本地租户管理按[共享 AUTH](../../docs/AUTH.md#auth0-本地租户管理) 使用 Auth0 skill 和 `auth0` CLI，先复用已有授权、读取目标当前配置，再执行精确变更并回读。常规 Action 发布只变更目标 code，保留当前 Secret、依赖和 post-login 绑定。禁止覆盖其他会话的未发布草稿。不能以本地 Action 文件推断线上状态。
+- [login-claims.cjs](actions/login-claims.cjs)：写入顶层 `username`、`email`、`role`、`_roles`，本站组织另有可选 `department`、`picture`。拒绝封禁账号和未验证邮箱。`tpc_` 第三方 MCP 客户端改写签名 claim `https://eastmoney.hasbai.xyz/identity`，见 [MCP](../docs/MCP.md)。
+- `role` 供数据库使用，不用于业务授权。`_roles` 由 Gateway 按组织权限缓存解析为角色 ID。
+- `eastmoney-signup-profile` 只处理新账号的 pending 标记。姓名和部门不授予权限，也不自动关联业务负责人。
+- 基础角色来自 Auth0 组织成员关系，Action 不自动分配。
 
-Quant 旧机器应用 `eastmoney quant gateway` 已退役。Gateway 的机器客户端白名单为空。若将来恢复机器 Choice 调用，须重新建立精确的应用、scope 和白名单，并验证 Quant 调用链。Secret 不进入 Git、文档、浏览器或日志。
+发布 Action 只修改目标 code，保留 Secret、依赖和 post-login 绑定，并避免覆盖其他会话未发布的草稿。
 
-具体发布与回退见 [DEVELOPMENT](../docs/DEVELOPMENT.md)。
+## SPA 客户端
 
-## SPA 登录与 token
+`eastmoney` 客户端为 `spa`、`token_endpoint_auth_method=none`，无 M2M grant。保留 callback、logout URL、web origins、organization 和授权码 grant。token 时长由 API 配置控制，Gateway 按签名 `exp` 校验。
 
-现有 `eastmoney` 客户端改为 `spa`、`token_endpoint_auth_method=none`，没有 M2M grant。保留本站 callback、logout URL、web origins、organization 和授权码 grant。Auth0 SPA SDK 负责 PKCE/state/nonce、弹窗与重定向登录，token 仅在浏览器内存中。刷新后尝试 Auth0 静默恢复，失败则重新登录。用户 token 时长由 API 配置控制，Gateway 依签名 `exp` 校验。
+## 管理应用
 
-Gateway 不再保存或消费 `__Host-eastmoney_session`，不再提供 `/auth/session`。`/auth/permissions` 返回有效权限和缓存时间。姓名、邮箱、部门、头像及 `_roles` 展示从当前 JWT 解析。旧 Cookie 仅在后续响应清理，不能创建登录身份。
+`eastmoney gateway management` 声明在 [gateway-management-client.yaml](gateway-management-client.yaml)，供 Gateway 身份服务和注册资料 Action 读写用户与角色。Gateway 的 `AUTH0_MANAGEMENT_*` 与注册资料 Action 的 `PROFILE_CLIENT_*` 使用同一凭据，Secret 不进入声明文件。
 
-切换前须通过 Dashboard 构建、Gateway 检查和真实 handler 集成。先部署已合并 Dashboard，核对线上版本及 CSR 页面。再部署已验证 Gateway。最后精确更新 Auth0 客户端公开 SPA 配置并回读，执行公开客户端 PKCE 的 HTTP Bearer 登录验收。若需回退，先恢复 Gateway 的保护边界，再回退 Dashboard。不得重放旧 Action 或全租户导出。
+## 中文主题
 
-## Eastmoney 组织隔离
+- `branding/theme.json` 映射 [DESIGN](../../dashboard/DESIGN.md)：品牌蓝 `#2f6fd6`、冷灰 `#f6f8fb`、白色卡片、8px 控件和 10px 卡片圆角。
+- `branding/zh-CN.json` 管理登录、注册和密码重置的中文文案。涉及 prompt：`login-id`、`login-password`、`signup-id`、`signup-password`，以及 `passkeys` 下的 `passkey-enrollment`、`passkey-enrollment-local`。其余文案用 Auth0 内置中文翻译。
+- 登录、注册和 Passkey 注册提示的 `description` 用单个空格隐藏默认说明。不能写空字符串，否则 Auth0 恢复默认文案。启用 Passkey 后登录页是 `login-id`，只改 `login` 不影响它。
+- 仅启用 `zh-CN`，英文浏览器也显示中文。主题与语言是租户级配置。
 
-网站与 MCP 用户登录绑定 `org_6yvoRRCkzk3eGkBS`，Gateway 校验 `org_id`。账号目录和成员角色使用本组织范围。当前套餐不支持 M2M Organizations。旧 Quant Choice 白名单已清空。应用盘点、迁移、套餐限制与回退见 [组织与应用边界](../docs/AUTH0_ORGANIZATIONS.md)。
+## Passkey
 
-## 统一 Gateway M2M
+用 Auth0 原生 Identifier First 流程。连接的 Passkey Authentication UI 设为“按钮与自动填充”。浏览器可在邮箱输入框建议已保存的密钥，用户仍须选择账号并完成设备验证。
 
-`eastmoney gateway management` 复用原 Gateway identity management 的 client ID 和 Secret，声明为 `gateway-management-client.yaml`。Gateway 的 `AUTH0_MANAGEMENT_*` 与注册资料 Action 的 `PROFILE_CLIENT_*` 使用同一凭据。历史登录 Action 的 `ROLES_CLIENT_*` 已不在当前登录链路。Secret 名保留以兼容现有 Action。Secret 值不写入声明文件。
+## 两步注册
 
-以下历史合并流程已完成，使用当时的 Deploy CLI 机器凭据。它不是当前租户管理入口。不得用它重新导入旧快照（当时在 Gateway 工作树运行，根 `.env` 通过 `AUTH_TEST_ENV_FILE` 指定）：
+当前套餐的 New Universal Login Page Template 返回 402，Partials 返回 403，所以用 Auth0 Forms 补充注册资料：第一步邮箱、密码，第二步姓名、部门。第二步完成后才继续邮箱验证。
 
-1. 显式 `auth0:export -- --include=clients,clientGrants,actions,forms,flows,flowVaultConnections --output=.auth0-deploy/m2m-before`，再执行 `node --use-env-proxy scripts/consolidate-management-clients.mjs plan` 保存无 Secret 快照。
-2. 对 `auth0/gateway-management-client.yaml` 执行 `auth0:plan` / `auth0:apply -- --include=clients,clientGrants`，回读确认复用原 client ID。
-3. 执行 `consolidate-management-clients.mjs switch` 预览，再加 `--apply`。脚本使用 Deploy CLI 仅导入两个 Action。Secret 从管理 API 读入进程内，通过 keyword mappings 环境变量传入，文件只有占位符。保留代码、Form、依赖和绑定顺序。
-4. 运行 `node --use-env-proxy scripts/verify-management-client.mjs`。脚本使用 test@18.cn 和统一凭据读取目录。再用线上 Action 代码调用真实管理 API，重复授予已有基础角色，并按原值保存姓名部门。回读确认资料和角色不变。该验证不是完整 Hosted Form 提交。随后运行 `pnpm auth:verify -- --refresh-permissions` 验证真实 HTTP 登录和 Gateway 权限。
-5. `consolidate-management-clients.mjs disable` 检查验证证据。对 `.auth0-deploy/m2m/disable.yaml` 执行显式 clients/clientGrants plan/apply。停用后运行 `verify-management-client.mjs --retired`，确认旧应用 token 被拒绝、新会话真实登录正常。全部通过才运行 `consolidate-management-clients.mjs delete` 预览并加 `--apply` 删除这两个精确 ID。全租户删除开关始终关闭。
+| 字段 | 必填与校验 | Auth0 存储 |
+| --- | --- | --- |
+| 邮箱 | `18.cn`，服务端校验 | `email` |
+| 密码 | Auth0 密码策略 | Auth0 密码凭证 |
+| 姓名 | 去除首尾空白，1–50 字符 | `name`、`nickname`、`user_metadata.name` |
+| 部门 | 去除首尾空白，1–100 字符 | `user_metadata.department` |
 
-`prepare-organization-migration.mjs` 保留历史实现但入口已退役，运行会在生成配置前终止，防止迁移前快照重新创建旧应用。当前 RBAC 工具引用统一应用。旧登录发布脚本属于历史实现。Dashboard 的旧注册发布入口退役，后续注册资料配置归 Gateway 管理。
+- 姓名用作显示名，允许同名。邮箱是登录标识，不增加要求唯一的 `username`。姓名和部门不授予角色，也不关联业务人员。
+- `branding/signup-profile-form.json` 是原生 Auth0 Form，标签与按钮为中文，继承主题。两个字段必填，结束节点恢复原登录事务。
+- `actions/eastmoney-registration.cjs` 保留 `18.cn` 限制，并给新用户设置 `app_metadata.eastmoney_signup_profile_pending`。
+- `actions/eastmoney-signup-profile.cjs` 在邮箱验证 Action 之前运行。新用户须完成 Form，恢复时再校验 Form ID、姓名和部门，只更新当前 Auth0 ID 的白名单字段。保存成功后清除 pending，失败保留以便重试。已有账号无 pending 标记，走原登录流程。
+- 资料 Action 与邮箱验证 Action 分开，因为 Auth0 不允许同一个 Action 既渲染 Form 又重定向。
+- 凭据见 [管理应用](#管理应用)，不写入 Action 代码。
 
-旧应用删除前可按快照恢复其 grant_types/scopes 并回切两个 Action。删除后旧 client ID 无法恢复，应修复统一应用或重新创建凭据并同步 Action。已经签发的旧管理 token 按其原有效期自然失效。
+## 参考
+
+- [自定义注册字段的前提](https://auth0.com/docs/customize/login-pages/universal-login/customize-signup-and-login-prompts)
+- [Forms 补充注册资料](https://auth0.com/docs/customize/forms/configure-additional-signup-steps)
+- [Forms 的 Action 渲染与恢复](https://auth0.com/docs/customize/forms/render)
+- [中文文案字段契约](https://auth0.com/docs/customize/login-pages/universal-login/customize-text-elements)

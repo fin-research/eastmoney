@@ -64,8 +64,6 @@
     draftDirty = currentValue !== generatedValue;
   }
 
-  export function prepareExport(): boolean { return applyDraft() !== null; }
-
   function applyDraft(): ReturnType<typeof applyTextReportEdits> | null {
     if (!draftDirty) return { data, focusText, issues: [] };
     const result = applyTextReportEdits(

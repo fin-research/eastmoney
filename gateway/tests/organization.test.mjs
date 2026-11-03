@@ -4,7 +4,6 @@ import { fixture } from './helpers/fixture.mjs';
 import { verifyToken } from '../src/tokens.ts';
 import { gatewayRequest } from '../src/app.ts';
 import { createDirectory } from '../src/lib/server/auth0-directory.ts';
-import action from '../auth0/actions/eastmoney-login.cjs';
 
 test('site ID, user API and machine tokens reject absent or foreign organization claims', async t => {
   const f = await fixture(t);
@@ -20,29 +19,6 @@ test('site ID, user API and machine tokens reject absent or foreign organization
   await assert.rejects(verifyToken(await f.signed({ gty: 'client-credentials', azp: 'foreign', sub: 'foreign@clients', org_id: undefined }), f.env), { status: 401 });
   const foreign = await f.signed({org_id:'org_Hasbai'});
   assert.equal((await gatewayRequest(f.request('/api/credit?organization=org_Eastmoney',{token:foreign}),f.env)).status,401);
-});
-
-test('Eastmoney Action rejects missing/foreign org while other applications remain untouched', async () => {
-  for (const client of ['website', 'M1a5PF3UJaFIZv1k4HO4IV06Z5fXQBHV', 'hasbai-app']) {
-    for (const organization of [undefined, { id: 'org_Hasbai' }]) {
-      const denied = [];
-      await action.onExecutePostLogin({ client: { client_id: client }, secrets: { EASTMONEY_CLIENT_ID: 'website' }, organization },
-        { access: { deny: value => denied.push(value) } });
-      assert.equal(denied.length, client === 'hasbai-app' ? 0 : 1);
-    }
-  }
-});
-
-test('role catalogue matching excludes a foreign organization role with an identical name', async t => {
-  const denied = [], claims = [];
-  t.mock.method(globalThis, 'fetch', async url => Response.json(String(url).endsWith('/oauth/token')
-    ? { access_token: 'fixture', expires_in: 100 }
-    : [{ id: 'rol_Foreign', name: 'Admin', owner_id: 'org_Hasbai' }]));
-  await action.onExecutePostLogin({ client: { client_id: 'website' }, organization: { id: 'org_6yvoRRCkzk3eGkBS' },
-    connection: { name: 'eastmoney-email' }, user: { user_id: 'auth0|test', email: 'test@18.cn', email_verified: true },
-    authorization: { roles: ['Admin'] }, secrets: { EASTMONEY_CLIENT_ID: 'website', ROLES_DOMAIN: 'hasbai.eu.auth0.com', ROLES_CLIENT_ID: 'fixture', ROLES_CLIENT_SECRET: 'fixture' } },
-  { access: { deny: v => denied.push(v) }, accessToken: { setCustomClaim: (...v) => claims.push(v) } });
-  assert.equal(denied.length, 1); assert.equal(claims.length, 0);
 });
 
 test('directory reads only organization members and scoped roles, preserving legacy permission IDs', async () => {

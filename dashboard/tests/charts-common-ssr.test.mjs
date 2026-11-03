@@ -18,27 +18,15 @@ test("融资择时图表模块可在 SSR 环境加载且公共配置使用回退
     root: fileURLToPath(new URL("..", import.meta.url)),
     server: { middlewareMode: true },
   });
-  let financingDriverRadarScale;
   let renderFinancingForecast;
   try {
-    ({ financingDriverRadarScale, renderFinancingForecast } =
+    ({ renderFinancingForecast } =
       await server.ssrLoadModule("/src/charts/financing-model.ts"));
   } finally {
     await server.close();
   }
 
   assert.equal(typeof renderFinancingForecast, "function");
-  assert.deepEqual(
-    financingDriverRadarScale([
-      { support_score: 46.63 },
-      { support_score: 57.79 },
-    ]),
-    { min: 40, max: 60 },
-  );
-  assert.deepEqual(
-    financingDriverRadarScale([{ support_score: 82 }]),
-    { min: 15, max: 85 },
-  );
   assert.equal(colors.ink, "#202622");
   assert.equal(colors.paper, "#ffffff");
   assert.match(fontFamily, /PingFang SC/);

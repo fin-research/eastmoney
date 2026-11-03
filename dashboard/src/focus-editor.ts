@@ -53,43 +53,6 @@ export function focusHtmlToPlainText(value: string): string {
   return normalizeFocusText(container.textContent ?? "");
 }
 
-export function loadStoredFocusText(reportDate: string): string {
-  if (!reportDate) return "";
-  try {
-    const saved = window.localStorage.getItem(
-      `${FOCUS_STORAGE_PREFIX}${reportDate}`,
-    );
-    if (saved) return focusHtmlToPlainText(saved);
-    return normalizeFocusText(
-      window.localStorage.getItem(
-        `${LEGACY_FOCUS_STORAGE_PREFIX}${reportDate}`,
-      ) ?? "",
-    );
-  } catch {
-    return "";
-  }
-}
-
-export function saveStoredFocusText(
-  reportDate: string,
-  value: string,
-): void {
-  if (!reportDate) return;
-  try {
-    const normalized = normalizeFocusText(value);
-    if (normalized) {
-      window.localStorage.setItem(
-        `${FOCUS_STORAGE_PREFIX}${reportDate}`,
-        plainTextToFocusHtml(normalized),
-      );
-    } else {
-      window.localStorage.removeItem(`${FOCUS_STORAGE_PREFIX}${reportDate}`);
-    }
-  } catch {
-    // In-memory report data remains authoritative when storage is unavailable.
-  }
-}
-
 function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")

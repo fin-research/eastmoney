@@ -8,13 +8,10 @@
     "typegen": "wrangler types && node scripts/normalize-generated-types.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.mjs",
-    "check": "pnpm typegen && pnpm typecheck && pnpm test",
+    "check": "pnpm typegen && pnpm typecheck && pnpm test && node scripts/sync-dashboard-contracts.mjs --check",
     "deploy:dry": "wrangler deploy --dry-run",
     "deploy": "wrangler deploy",
     "auth:verify": "node --use-env-proxy scripts/verify-auth-access.mjs",
-    "auth0:export": "node --use-env-proxy scripts/auth0-deploy.mjs export",
-    "auth0:plan": "node --use-env-proxy scripts/auth0-deploy.mjs plan",
-    "auth0:apply": "node --use-env-proxy scripts/auth0-deploy.mjs apply",
     "test:coverage": "mkdir -p coverage && node --experimental-test-coverage --test-coverage-include='src/**/*.ts' --test-coverage-include='src/**/*.js' --test-coverage-exclude='src/**/generated/**' --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test tests/*.test.mjs"
   },
   "dependencies": {
@@ -23,13 +20,10 @@
     "graphql": "catalog:",
     "hono": "catalog:",
     "jose": "catalog:",
-    "pg": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "@types/pg": "catalog:",
-    "auth0-deploy-cli": "catalog:",
     "typescript": "catalog:",
     "wrangler": "catalog:"
   }

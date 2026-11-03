@@ -26,11 +26,6 @@ export type WorkbenchBarDatum = {
   color?: string;
 };
 
-export type WorkbenchCurvePoint = {
-  tenor: string;
-  value: number;
-};
-
 export type EconomicIndicatorTrendPoint = {
   date: string;
   value: number;
@@ -61,11 +56,6 @@ function workbenchSeriesColor(
     WORKBENCH_CHART_PALETTE[0]
   );
 }
-
-type WorkbenchHistory = {
-  dates: readonly string[];
-  series: Array<{ name: string; values: readonly number[] }>;
-};
 
 export function workbenchBarChartOption(
   data: readonly WorkbenchBarDatum[],
@@ -268,105 +258,6 @@ export function renderWorkbenchStackedBarChart(
       itemStyle: { borderRadius: [3, 3, 0, 0] },
       data: [...series.values],
     })),
-  };
-  setChart(host, option);
-}
-
-export function renderWorkbenchHistoryChart(
-  host: HTMLElement,
-  history: WorkbenchHistory,
-  description: string,
-): void {
-  const option: ChartOption = {
-    animationDuration: 240,
-    aria: { enabled: true, description },
-    color: [...WORKBENCH_CHART_PALETTE],
-    tooltip: {
-      ...tooltip,
-      trigger: "axis",
-      valueFormatter: (value: unknown) => `${Number(value).toFixed(4)}%`,
-    },
-    legend: {
-      top: 0,
-      textStyle: {
-        color: colors.ink,
-        fontFamily,
-        fontSize: chartTextSize,
-        fontWeight: "normal",
-      },
-    },
-    grid: { left: 18, right: 22, top: 48, bottom: 32, containLabel: true },
-    xAxis: {
-      type: "category",
-      data: [...history.dates],
-      boundaryGap: false,
-      axisLabel,
-      axisLine: { lineStyle: { color: colors.line } },
-      axisTick: { show: false },
-    },
-    yAxis: {
-      type: "value",
-      name: "%",
-      nameTextStyle: axisLabel,
-      axisLabel,
-      splitLine: { lineStyle: gridLine },
-    },
-    series: history.series.map((series) => ({
-      name: series.name,
-      type: "line",
-      smooth: true,
-      showSymbol: false,
-      symbolSize: 7,
-      lineStyle: { width: 2.5 },
-      data: [...series.values],
-    })),
-  };
-  setChart(host, option);
-}
-
-export function renderWorkbenchCurveChart(
-  host: HTMLElement,
-  name: string,
-  points: readonly WorkbenchCurvePoint[],
-  description: string,
-): void {
-  const option: ChartOption = {
-    animationDuration: 240,
-    aria: { enabled: true, description },
-    color: [WORKBENCH_CHART_PALETTE[0]],
-    tooltip: {
-      ...tooltip,
-      trigger: "axis",
-      valueFormatter: (value: unknown) => `${Number(value).toFixed(4)}%`,
-    },
-    grid: { left: 16, right: 20, top: 24, bottom: 28, containLabel: true },
-    xAxis: {
-      type: "category",
-      data: points.map((point) => point.tenor),
-      boundaryGap: false,
-      axisLabel,
-      axisLine: { lineStyle: { color: colors.line } },
-      axisTick: { show: false },
-    },
-    yAxis: {
-      type: "value",
-      scale: true,
-      name: "%",
-      nameTextStyle: axisLabel,
-      axisLabel,
-      splitLine: { lineStyle: gridLine },
-    },
-    series: [
-      {
-        name,
-        type: "line",
-        smooth: true,
-        symbolSize: 7,
-        lineStyle: { width: 2.5 },
-        areaStyle: { color: "rgba(47, 111, 237, 0.08)" },
-        data: points.map((point) => point.value),
-      },
-    ],
   };
   setChart(host, option);
 }

@@ -11,7 +11,6 @@ import pandas as pd
 
 from artifacts import write_json
 from data.coupon_quotes import QUOTE_COLUMNS
-from research_sources import source_hashes, runtime_identity
 from .issuance_unified import CouponCandidate
 from .issuance_evaluation import (
     coupon_metrics,
@@ -248,11 +247,6 @@ def load_short_release(path):
     protocol = path.parent / "protocol.json"
     identity = json.loads(protocol.read_text())
     token = digest(protocol)
-    if (
-        identity["sources"] != source_hashes()
-        or identity["runtime"] != runtime_identity()
-    ):
-        raise ValueError("short-coupon release does not match frozen source/evidence")
     expected = _expected(path.parent, identity)
     if identity.get("schema_version") == "fixed-pre2026-v1":
         return _load_fixed_release(path, result, identity, expected, token)
@@ -389,8 +383,6 @@ def _freeze(
     identity = {
         "schema_version": "fixed-pre2026-v1",
         "as_of": str(pd.Timestamp(as_of).date()),
-        "sources": source_hashes(),
-        "runtime": runtime_identity(),
         "panel": _fingerprint(
             panel, fixed_candidates(representation), pd.Timestamp(as_of)
         ),

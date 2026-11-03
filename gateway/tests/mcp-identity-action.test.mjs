@@ -12,7 +12,7 @@ async function run(clientId,changes={}){
   return {claims,denials};
 }
 test('CIMD Action issues identity only from verified organization accounts, including refresh logins',async()=>{
-  for(const id of ['tpc_a7WD9gnnwfLwzjTcG3aN8m','tpc_2WkMuCZoYq49waTvQZjJHK','tpc_mJaDePAHohZSgFrpLBfWny']){
+  for(const id of ['tpc_a7WD9gnnwfLwzjTcG3aN8m','tpc_dynamicClientExample0001']){
     for(const protocol of ['oidc-basic-profile','oauth2-refresh-token']){
       const result=await run(id,{transaction:{protocol}});assert.equal(result.denials.length,0);
       assert.deepEqual(JSON.parse(JSON.stringify(result.claims[mcpIdentityClaim])),{username:'测试',email:'test@18.cn',role:'authenticated',_roles:['authenticated'],department:'研究',picture:''});
@@ -22,4 +22,16 @@ test('CIMD Action issues identity only from verified organization accounts, incl
     }
   }
   const website=await run('16vMxoYpr5AdPRiW1PkwIiHuRWszii6m');assert.equal(website.claims.email,'test@18.cn');assert.equal(website.claims[mcpIdentityClaim],undefined);
+});
+test('website logins receive top-level claims and blocked or unverified accounts are denied',async()=>{
+  const website='16vMxoYpr5AdPRiW1PkwIiHuRWszii6m';
+  const {claims,denials}=await run(website,{user:{email:'test@18.cn',email_verified:true,name:'测试',picture:'avatar.png',user_metadata:{department:'研究'}},authorization:{roles:['authenticated','admin']}});
+  assert.equal(denials.length,0);
+  assert.deepEqual(JSON.parse(JSON.stringify({username:claims.username,email:claims.email,role:claims.role,_roles:claims._roles,department:claims.department,picture:claims.picture})),
+    {username:'测试',email:'test@18.cn',role:'authenticated',_roles:['authenticated','admin'],department:'研究',picture:'avatar.png'});
+  const outside=await run(website,{organization:{id:'org_Other'}});
+  assert.equal(outside.claims.department,undefined);assert.equal(outside.claims.picture,undefined);
+  for(const user of [{email:'test@18.cn',email_verified:false},{email:'test@18.cn',email_verified:true,blocked:true}]){
+    assert.equal((await run(website,{user})).denials.length,1);
+  }
 });

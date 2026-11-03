@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "eastmoney": {
+      "type": "http",
+      "url": "https://eastmoney.hasbai.xyz/mcp"
+    }
+  }
+}

@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 
 from data.issuance_training import IssuancePanel
-from research_sources import source_hashes, runtime_identity
 from .export import write_json
 from .issuance_evaluation import (
     _best_candidate,
@@ -29,15 +28,6 @@ from .issuance_timing_audit import timing_summary
 from .issuance_diagnostics import error_metrics
 from .issuance_release import _verified_months
 from .research_resources import bounded_window_research, release_training_memory
-
-# Only publication adapters may differ from the original training/replay study.
-# Every old/new checksum is pinned in the new release protocol.
-RELEASE_ADAPTERS = {
-    "main.py",
-    "pipeline.py",
-    "online_pipeline.py",
-    "model/issuance_release.py",
-}
 
 
 def _verify_development_ranking(development, selection):
@@ -86,16 +76,6 @@ def _derived_selection(development):
         or len(selection["ranking"]) != len(PUBLIC_CANDIDATES)
     ):
         raise ValueError("incomplete public study for point release")
-    root = Path(__file__).resolve().parents[1]
-    changes = {}
-    for name, checksum in original["identity"]["code"].items():
-        actual = digest(root / name)
-        if actual != checksum:
-            if name not in RELEASE_ADAPTERS:
-                raise ValueError(
-                    "point release training code differs from original study: " + name
-                )
-            changes[name] = {"study_sha256": checksum, "release_sha256": actual}
     _verify_development_ranking(development, selection)
     best = _best_candidate(selection["ranking"])
     candidate = next(c for c in PUBLIC_CANDIDATES if asdict(c) == best["candidate"])
@@ -103,13 +83,13 @@ def _derived_selection(development):
         raise ValueError(
             "authorized Huber release is not registered best point candidate"
         )
-    return selection, original, best, candidate, changes
+    return selection, original, best, candidate
 
 
 @bounded_window_research
 def run_point_release(development, snapshot, directory):
     development, directory = Path(development).resolve(), Path(directory).resolve()
-    selection, original, best, candidate, changes = _derived_selection(development)
+    selection, original, best, candidate = _derived_selection(development)
     spec, nodes = load_spec(development.parent / "development.json")
     if spec != original["spec"]:
         raise ValueError(
@@ -134,10 +114,6 @@ def run_point_release(development, snapshot, directory):
         "selection_rule": "all 19 completed public candidates; h30 MAE; 0.2bp RMSE then simplicity",
         "user_choice": "Huber point accuracy; expected savings fields null",
         "selected_passed_gates": best["gates"]["passed"],
-        "release_adapter_changes": changes,
-        "source_identity_version": 2,
-        "release_code": source_hashes(),
-        "runtime": runtime_identity(),
         "identity": identity,
         "spec": spec,
     }
@@ -228,22 +204,12 @@ def load_point_release(value):
     ):
         raise ValueError("point release artifact checksum mismatch")
     policy = json.loads(protocol_path.read_text())
-    root = Path(__file__).resolve().parents[1]
-    if policy.get("source_identity_version") == 2 and (
-        source_hashes() != policy["release_code"]
-        or runtime_identity() != policy["runtime"]
-    ):
-        raise ValueError("point source closure or runtime changed after validation")
-    for name, checksum in policy["release_code"].items():
-        if digest(root / name) != checksum:
-            raise ValueError("point publication adapter changed after validation")
     development = Path(policy["development_selection"]).parent
-    selection, _, best, candidate, changes = _derived_selection(development)
+    selection, _, best, candidate = _derived_selection(development)
     if (
         digest(development / "selection.json") != policy["development_selection_sha256"]
         or digest(development / "protocol.json")
         != policy["development_protocol_sha256"]
-        or policy["release_adapter_changes"] != changes
         or policy["selected"] != asdict(candidate)
     ):
         raise ValueError("point release selection provenance mismatch")

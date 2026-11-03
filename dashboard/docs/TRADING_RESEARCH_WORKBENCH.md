@@ -2,198 +2,177 @@
 
 ## 当前交付边界
 
-交易研究工作台包含八个侧栏页面：总览、交易管理、市场热点、政策跟踪、跟踪点评、研究辅助、二级池周报和融资择时模型。交易管理在页头提供交易记录、交易流程和拆借台账三个标签页。授信工作台独立为首页一级入口，提供授信一览表、授信日历和授信周报。公开材料问答通过全站 AI 侧栏提供。
+交易研究工作台有八个侧栏页面，依次为：
 
-授信报表已经接入 Neon `credit` schema：业务人员每周在本地解析 Excel 并按报告日期写入数据库，浏览器通过同源 `/api/credit` 和 Hyperdrive 读取。研究辅助的首次全历史回填由受控本地命令完成。此后 Data 的定时 Workflow 每日增量写入 Neon `public.edb`，浏览器只通过同源 `/api/economic-indicators` 读取。交易管理仍使用仓库内冻结数据。
+- 总览、交易管理、市场热点、政策跟踪
+- 跟踪点评、研究辅助、二级池周报、融资择时模型
 
-交易流程配置和每日调度进度保存在 Dashboard D1，询价行、名单和备注仍在浏览器本地。二级池周报与融资择时复用独立路由的生产页面组件和既有数据链路。
+交易管理的页头有交易记录、交易流程和拆借台账三个标签页。授信工作台是独立的首页一级入口。
 
-上述数据边界属于工程实现说明，不在工作台 UI 展示“演示数据”“静态演示”“未来统一由数据库与同源 `/data` API 提供”等提示。业务页面只展示模块、数据基准日和业务状态，避免以实现说明占用研究界面。
+| 数据 | 来源 |
+| --- | --- |
+| 交易管理 | 仓库内冻结快照 `src/lib/trading-research/demo-data.ts`，基准时点见 `demoMeta` |
+| 授信 | Neon `credit`：每周在本地解析 Excel（`pnpm credit:import`），按报告日写库，浏览器经 `/api/credit` 读取。源 Excel 含受控数据，不提交 |
+| 研究辅助 | Neon `public.edb`，页面经 `/api/economic-indicators` 读最近 18 个月。回填与每日增量由 Data 负责 |
+| 交易流程 | D1 保存节点配置与每日调度进度。询价行、名单、备注在浏览器本地 |
+| 二级池周报、融资择时 | 复用独立路由的生产页面组件和既有数据链路 |
 
-演示数据来自 `/Users/yueshi/src/eastmoney/交易研究授信`：
-
-- 交易数据与资金存量：`dashboard/app.js` 中的冻结演示快照，基准时点为 `2026-08-07 15:00`。
-- 授信数据：本地 Excel 的“授信一览表”和“授信周报”Sheet，经 `pnpm credit:import` 按明确的报告日期写入 Neon。源 Excel 不提交到仓库。
-- 研究数据：36 个国内外宏观序列、利率与资金面的 8 个日频序列，以及负债周报使用的 11 个利率序列（其中 1Y 国债与研究序列复用同一代码），合计 54 个唯一指标。数据库保存上游可得全历史，页面读取最近 18 个月 Neon 快照。DR001、DR007、R007 使用 DM 历史接口，其余使用 Choice EDB。
-- 交易流程：日内三品种待办，节点配置与每日调度进度由 Dashboard D1 维护，不创建后端审批或执行任务。
-
-原项目的 `source-data/` Excel、登录、局域网 FastAPI、PostgreSQL、Nginx、账号权限和管理员页面均未迁入。源 Excel 含受控业务数据，不应提交到 dashboard 仓库。
+数据来源和接入状态是工程信息，不在工作台 UI 展示。业务页只展示模块、数据基准日和业务状态。
 
 ## 页面范围
 
-侧栏页面与页头标签均使用 path 路由，不使用 `?view=` 查询参数：
+侧栏页面与页头标签都用 path 路由，不用 `?view=` 查询参数：
 
 - `/trading-research`：总览。
-- `/trading-research/trading`：交易管理的交易记录标签页。
-- `/trading-research/market-hotspots`：市场热点。
-- `/trading-research/policy-tracking`：政策跟踪。
-- `/trading-research/tracking-commentary`：跟踪点评。
-- `/trading-research/research`：研究辅助。
-- `/trading-research/workflow`：交易管理的交易流程标签页，保留原深链。
-- `/trading-research/secondary-bond-pool`：二级池周报。
-- `/trading-research/bond`：旧二级池报告隐藏深链，不显示在导航。
+- `/trading-research/trading`、`/workflow`、`/interbank-ledger`：交易管理的交易记录、交易流程、拆借台账标签页，侧栏选中交易管理。
+- `/trading-research/market-hotspots`、`/policy-tracking`、`/tracking-commentary`、`/research`：市场热点、政策跟踪、跟踪点评、研究辅助。
+- `/trading-research/secondary-bond-pool`：二级池周报。`/trading-research/bond` 是旧二级池报告的隐藏深链，不进导航。
 - `/trading-research/financing-model`：融资择时模型。
+- 授信工作台：`/credit-workbench`、`/credit-workbench/ledger`、`/credit-workbench/calendar`、`/credit-workbench/weekly`。
 
-授信工作台使用 `/credit-workbench`、`/credit-workbench/calendar`、`/credit-workbench/weekly` 和 `/credit-workbench/assistant`。可选路径参数使一览表、日历、周报复用同一报表实例。旧问答入口重定向至全站 AI 侧栏。历史会话按登录用户隔离。两个工作台共用 `src/lib/workbench/WorkbenchShell.svelte`，不复制框架。
+两个工作台共用 `WorkbenchShell`。授信的标签复用同一报表实例。
 
-旧 `/trading-research/credit` 转到授信工作台。`/trading-research/credit-assistant` 和 `/credit-assistant` 转到门户并打开 AI 侧栏。`/market-hotspots`、`/policy-tracking` 转到交易研究工作台对应子页，并保留查询参数和政策锚点。研究详情的返回链接使用新的政策跟踪路径。
+兼容入口：
 
-原 `/bond`、`/trading-research/bond` 与 `/financing-model` 深链保留。新运营周报使用 `/secondary-bond-pool`，并与工作台子路径复用同一 Svelte 页面组件，不建立第二套请求实现。旧二级池入口不显示在 UI 导航。嵌入工作台时，日期与导出操作合并到工作台页头右侧。
+- `/trading-research/credit` 转到授信工作台。`/credit-workbench/assistant`、`/credit-assistant`、`/trading-research/credit-assistant` 转到门户并打开 AI 侧栏。
+- `/market-hotspots`、`/policy-tracking` 转到工作台对应子页，保留查询参数和政策锚点。研究详情的返回链接用新的政策跟踪路径。
+- `/bond`、`/trading-research/bond` 与 `/financing-model` 深链保留。新运营周报用 `/secondary-bond-pool`，与工作台子路径复用同一页面组件，嵌入工作台时日期与导出操作并入页头右侧。
 
-| 视图 | 当前展示 | 暂不包含 |
-| --- | --- | --- |
-| 总览 | 资金存量、当日交易、最新授信可用额度、核心利率、风险事项、数据覆盖 | 除授信外的迁入数据实时刷新 |
-| 交易管理 | 当日汇总、品种分布、对手集中度、交易筛选与明细 | 交易录入、聊天解析、凭证生成、押券校验写入 |
-| 授信管理 | 数据库一览表、逐列排序、详情显式保存、授信日历，以及结构化事件、近六个月批复和授信明细周报。一级投资用量在线归集 | 额度调整审批 |
-| 研究辅助 | “利率与资金面”主图、4 张资金利率指标卡、两组利差副图，以及 9 类 × 4 项“宏观指标”走势卡 | 指标自定义 |
-| 交易流程 | 三品种连线流程图、按需展开分支、画布拖动编辑、询价记录、按订阅发送提醒 | 审批执行与聊天发送 |
-| 二级池周报 | 复用 Neon 二级池数据链路，默认展示年初至最近完整周，并按原版报告画布呈现图表、重仓券和跟踪重点 | 原持仓成交分析页只保留隐藏深链 |
-| 融资择时模型 | 复用原模型快照、发行窗口、人工结论和卖方观点 | 无新增平行实现 |
+| 视图 | 展示 |
+| --- | --- |
+| 总览 | 资金存量、当日交易、最新授信可用额度、核心利率、风险事项、数据覆盖 |
+| 交易管理 | 当日汇总、品种分布、对手集中度、交易筛选与明细 |
+| 授信 | 一览表、日历、周报，规则见 [授信工作台](modules/credit-workbench.md) |
+| 研究辅助 | “利率与资金面”主图、4 张资金利率指标卡、两组利差副图、9 类 × 4 项宏观走势卡 |
+| 二级池周报 | 默认年初至最近完整周，按原版报告画布呈现图表、重仓券和跟踪重点 |
+| 融资择时模型 | 原模型快照、发行窗口、人工结论和卖方观点 |
 
-页面不得把不同基准日数据伪装为同一时点。总览必须保留“多基准日”状态，各业务视图显示自身 `asOf` 或统计区间。
+范围外：交易录入、聊天解析、凭证生成、押券校验写入、额度调整审批、审批执行与聊天发送、指标自定义。
+
+页面不把不同基准日的数据伪装成同一时点。总览保留“多基准日”状态，各业务视图显示自身 `asOf` 或统计区间。
 
 ## 统一业务口径
 
 ### 交易
 
-- 纳入范围仅为“同业拆借（纯信用）”和“拆出（质押式回购）”。质押式回购融入不计入该工作台交易范围。
-- 金额统一用亿元。接口建议传输十进制字符串或最小货币单位。前端不得以二进制浮点作为账务事实来源。
-- 利率字段使用百分数值，例如 `1.85` 表示 `1.85%`。利率变动使用 bp。
-- 当日成交加权利率：`sum(amount_yi * rate_pct) / sum(amount_yi)`。
-- 纯信用占比：`同业拆借成交金额 / 纳入范围成交金额`。
+- 纳入范围只有“同业拆借（纯信用）”和“拆出（质押式回购）”，质押式回购融入不计入。
+- 金额单位亿元。接口建议传十进制字符串或最小货币单位，前端不以二进制浮点作账务事实。
+- 利率字段是百分数值（`1.85` 即 `1.85%`），利率变动用 bp。
+- 当日成交加权利率为 `sum(amount_yi * rate_pct) / sum(amount_yi)`。纯信用占比为同业拆借成交金额除以纳入范围成交金额。
 - 对手集中度按纳入范围内的当日成交金额聚合。生产接口需返回用于复核的分母、排名和统计日期。
-- 待确认仅表示业务状态，不等于失败或风险处置完成。
+- “待确认”只是业务状态，不等于失败或风险处置完成。
 
 ### 授信
 
-授信的金额、状态、日历、周报和导入规则由 [授信工作台](modules/credit-workbench.md) 唯一维护。
-当前使用 `credit.institution`、`credit.metric` 与 `credit.entry`，按所选自然日继承历史字段。
-`credit.entry_as_of` 提供原始截面，浏览器共用 `buildCreditReport` 生成报表。
-融资及一级投资用量在线派生，二级净余额由业务日登记。
-不读取旧 `credit.item`、`institution_event` 或 `legacy_diff`，不删除重建同日报表。
+金额、状态、日历、周报和导入规则由 [授信工作台](modules/credit-workbench.md) 唯一维护。数据在 `credit.institution`、`credit.metric`、`credit.entry`，按所选自然日继承历史字段，`credit.entry_as_of` 提供原始截面，浏览器共用 `buildCreditReport` 生成报表。融资与一级投资用量在线派生，二级净余额按业务日登记。同日重导只写变化字段，不删除重建。
 
 ### 研究
 
-- 研究快照必须包含来源、文件哈希或上游批次 ID、统计区间、生成方式、规则版本、校验结果和复核状态。
-- 利率值使用百分数值，变动使用 bp。曲线必须带期限和观测日。
-- 当前研究底稿未覆盖的 SHIBOR 曲线、逐日 OMO、政策原文、国内高频和海外市场数据均应明确返回 `available: false` 与 `reason`。不得用模拟数字进入正式快照。
+- 研究快照须含来源、文件哈希或上游批次 ID、统计区间、生成方式、规则版本、校验结果和复核状态。
+- 利率值用百分数，变动用 bp。曲线带期限和观测日。
+- 研究底稿未覆盖的 SHIBOR 曲线、逐日 OMO、政策原文、国内高频和海外市场数据，返回 `available: false` 与 `reason`，不用模拟数字进入正式快照。
 - 规则模板输出不等同于大模型输出，也不等同于研究岗已复核结论。
+- 指标代码、名称、单位、频率、区域和展示换算在 `src/lib/trading-research/economic-indicators.ts`，采集目录、回填命令、每日 Cron 和 Workflow 重试见 [Data 经济指标同步](../../data/docs/modules/economic-indicator-sync.md)。新增或替换指标时同步映射测试。
+- DR001、DR007、R007 因 Choice 量化 API 不返回观测，改由 Data `GET /cfets-histories` 分页读 DM 历史，库内仍用核验后的 EDB ID 作序列代码。
+- Choice 用 `IsPublishDate=1,FixDate=0`，优先取 `PUBLISHDATE` 作发布日期。
+  - 下列指标缺发布日期：固定资产投资、核心 CPI、GDP 平减指数、社融存量、人民币贷款。
+  - 它们按同观测期沿用工业增加值、CPI、GDP、M2 的同批发布日期，避免未发布的 `0` 占位值冒充最新数据。
+- 展示换算只有两项：核心 CPI（上年同月=100）减 100 展示同比；10Y-2Y 的百分点乘 100 展示 bp。
+- Choice EDB 按指标代码计次。页面挂载、刷新和重试只读 Neon，调试不得用页面挂载或循环请求验证付费 EDB。
 
 ### 交易流程
 
-- `/trading-research/workflow` 为交易管理内的交易流程标签页，侧栏选中交易管理。拆借、逆回购每日默认启用，交易所回购每日默认折叠。流程与节点独立建模，流程仅包含拆借、逆回购和交易所回购。共通是节点的连线属性，不是第四条流程。汇合节点仅有一个 ID，共用一份进度。
-- 交易流程使用 Svelte Flow，顶部拆借、逆回购、交易所回购只作分类，不作为节点、不连线。保留品种浅色底框，文字居中，不设归档按钮。桌面右侧纵向排列三条流程的横文字标签，手机在画布顶部横排，点击切换展开/折叠。剩余品种重排填满工作区，过渡为 240ms，减少动效时关闭。询价分别位于各品种下方，点击展开可编辑表格，不参与完成状态和待办提醒。按账号、上海自然日和原节点 ID 保存记录，旧记录兼容。
-- 拆借询价字段为对手方、交易员、期限、金额（亿）、价格。逆回购省略交易员，价格为实际利率。无表头。期限、金额和价格聚焦后显示前行有效值候选，首项为最近前值，仅 Tab/点击确认后填入，留空与删除不会自动回填。
+范围与视觉：
 
-  Tab 选中候选并前移，末格 Tab/Enter 校验后进入下一行或追加新行，Shift+Tab 返回。输入首个值不追加空行。每行底线右端附近浮现圆形加号，点击在该行下方插入。鼠标拖动或 Shift+方向键选择矩形单元格，Ctrl/Command+C 复制 TSV，Delete/Backspace 清空选区，整行清空自动移除。
+- `/trading-research/workflow` 是交易管理内的标签页。拆借、逆回购每日默认启用，交易所回购每日默认折叠。流程只有拆借、逆回购、交易所回购三条，“共通”是节点的连线属性，不是第四条流程。
+- 汇合节点只有一个 ID，共用一份进度。多流程共用的连续节点同样居中，不按同名合并。衡泰补单审批分别属于各流程，进度与编辑互相独立。
+- 视觉规则见 [DESIGN](../DESIGN.md#交易流程图)。
 
-  Ctrl/Command+Backspace/Delete 删除当前记录。数值在失焦和前移时校验，期限须为有效正整数天数、金额大于零、价格为有效数值，错误保留输入并明确标记。行增删和选项使用短过渡并尊重减少动效。输入即时保存在本地。
+配置模型：
 
-  名单按账号跨日期维护，支持汉字、拼音首字母及部分匹配。旧 notes 内容保留为原询价记录，不强行结构化猜测。
-- 拆借价格数字为 SHIBOR 下浮 BP，失焦显示期限天数、金额亿及负 BP。每天上海时间 11:00 后请求 `/data/chinamoney/shibor`，发布前/失败每 15 秒重试，当日完整数据每 5 分钟刷新，后台页面暂停。仅用当日已公布利率计算：利率百分数减 BP/100。
+- `flows` 保存稳定 ID 与名称。
+- `nodes` 保存稳定 ID、所属流程 ID 集合（`flowIds`）、后续节点 ID（`nextIds`）和上级条件分支。
+- `nodes` 还保存任务 / 分支类型、名称、业务内容、开始 / 结束时间和可选 Lucide 图标键。
+- 节点数组只作存储。业务顺序和连线完全来自 `nextIds`，不根据时间、标题、ID 或数组位置补连线。旧配置缺图标时用默认语义图标。
+- 条件分支的上级须是与子节点有共同所属流程的分支，父链无环且最多四层。连线另校验端点、自环、重复连接和有向环。
+- 共通节点独立于三条流程，品种折叠不隐藏它。有流程节点介于共通节点之间时不添加共通节点直连。
+- 偏移量 `offset` 相对自动布局保存在配置的可选字段，询价输入框用可选 `inquiry` 字段配置，既有询价节点兼容旧配置。
 
-  选不短于询价天数的最短标准档位：1/7/14/30/90/180/270/365 天。超过 365 天继续 BP 报价。不使用昨日利率代替。
+编辑：
 
-  原 BP 保留，焦点进入价格格时仍编辑数字。
-- 节点以 `flowIds` 引用独立的流程定义，以 `nextIds` 保存后续节点 ID。多个前序指向同一节点时自动居中显示为共通节点，所属流程合并显示前序流程。多流程共用的连续节点同样居中，不按同名自动合并。衡泰补单审批分别属于各流程，进度与编辑彼此独立。
+- 编辑模式下拖动节点只改布局，点击节点打开右侧编辑面板。
+- 面板显示“所属流程”“前序节点”“后续节点”，可更换、增加、移除后续连接。
+- 分支与品种的编辑预览不改当日激活状态，取消编辑不保存。
+- 上移 / 下移交换相邻节点的实际连线，条件子树随原分支。
+- 删除需确认，只删除选中节点，把其前序接到后续，直接条件子节点提升到原上级，并立即保存。新增节点插入真实连接。
+- 保存失败保留草稿和保存入口。面板数字字段提供键盘与单指操作替代。
 
-  共通节点独立于三条流程，品种折叠不隐藏共通节点。有流程节点介于共通节点之间时不添加共通节点直连。条件分支的子节点在右侧独立列展开，主流程继续向下，展开不把后续主流程节点向下挤移。同级分支子节点使用品种色浅边框归组。
+询价：
 
-  节点、连线和组框同步进行 240ms 滑入淡入与收回淡出，收回结束后卸载，减少动效时直接切换。主干明确使用底部中心出口、顶部中心入口，只有分支首条连线使用左右侧出口。
-- 未完成节点白底，品种标签保留浅色底。完成节点使用加深的原语义色，图标不变。分支全部后代任务（含折叠子分支）完成后才着色。顶部时钟每秒显示上海时间，时间轴全长蓝色，淡水平线按显式时点插值并从节点下方穿过。移除 Flow 标识。
-- 编辑模式下直接拖动节点调整位置，点击节点打开右侧编辑面板。拖动不改变业务顺序及分支关系，无拖动按钮。偏移量相对自动布局保存于配置的可选 offset 字段，分支展开后仍跟随布局。面板数字字段提供键盘与单指操作替代。
+- 询价不参与完成状态和待办提醒，按账号、上海自然日和节点 ID 保存，旧记录兼容。旧 notes 内容保留为原询价记录，不强行结构化。
+- 拆借字段：对手方、交易员、期限、金额（亿）、价格。逆回购省略交易员，价格为实际利率。表格无表头。
+- 期限、金额、价格聚焦时显示前行有效值候选，首项为最近前值，只有 Tab 或点击才填入，留空和删除不回填。
+- 键盘：Tab 选中候选并前移，末格 Tab / Enter 校验后进入下一行或追加新行，Shift+Tab 返回。拖动或 Shift+方向键选矩形，Ctrl/Cmd+C 复制 TSV，Delete / Backspace 清空选区，整行清空自动移除，Ctrl/Cmd+Backspace / Delete 删除当前记录。
+- 期限须是有效正整数天数，金额大于零，价格为有效数值。校验在失焦和前移时进行，错误保留输入并标记。输入即时保存在本地。
+- 名单按账号跨日期维护，支持汉字、拼音首字母和部分匹配。
+- 拆借价格数字是 SHIBOR 下浮 BP，失焦显示期限天数、金额亿和负 BP。
+  - 每天上海时间 11:00 后请求 `/data/chinamoney/shibor`：发布前或失败每 15 秒重试，当日数据完整后每 5 分钟刷新，页面在后台时暂停。
+  - 只用当日已公布利率：利率百分数减 BP / 100。取不短于询价天数的最短标准档位（1/7/14/30/90/180/270/365 天），超过 365 天继续 BP 报价，不用昨日利率代替。
+  - 原 BP 保留，焦点进入价格格时仍编辑数字。
 
-  询价输入框可通过可选 inquiry 字段配置，既有询价节点兼容旧配置。分支及品种的编辑预览不修改当日激活状态，取消编辑不保存配置。保存失败保留草稿。
-- 配置分为 `flows` 与 `nodes`：流程保存稳定 ID 与名称。节点保存稳定 ID、所属流程 ID 集合、`nextIds`、上级条件分支、任务/分支类型、名称、业务内容、开始/结束时间及可选 Lucide 图标键。节点数组只作稳定存储，业务顺序和连线完全来自 `nextIds`，不能根据时间、标题、ID 或数组位置补造连线。编辑面板显示“所属流程”“前序节点”“后续节点”，支持更换、增加、移除后续连接。
+进度与提醒：
 
-  上移/下移交换相邻节点的实际连线，条件子树仍随原分支，拖动仍只改布局。旧配置缺少图标时沿用默认语义图标。编辑面板内置图标选项。上级必须为有共同所属流程的条件分支，父链禁止循环且最多四层。
+- D1 `trading_workflow_config` 保存共享节点配置和版本。每日启用、完成和分支状态存 `trading_workflow_progress`，按用户和上海日期隔离，用 `revision` 条件写防止多设备覆盖。首次打开当日已有本地状态时同步调度字段。
+- 询价行、名单、备注的本地 key 按账号与上海自然日隔离，调度进度跨设备以 D1 为准。
+- 分支激活后自动展开，关闭后折叠。父分支关闭时后代不计入待办、不触发提醒，本地勾选保留，重新激活时恢复。成交、审批和任务完成由经办人选择，不随时间自动确认。
+- 提醒由 Messenger 定时触发 `NotificationSource` 扫描，仅工作日。
+- 扫描按上海时区的节点开始 / 结束时间、启用品种、分支和完成状态，选最近五分钟到点的任务。区间节点在开始与结束时检查。
+- 事件幂等键含用户、日期、节点和时点。
+- 通知类型与 email / Telegram / Web Push 渠道在管理“通知”页按用户订阅配置，浏览器关闭后仍由服务端扫描。前台不再调用 `new Notification`。
+- 时间线用可见节点的显式起始时间作锚点，游标按上海时钟在锚点间插值。重复时间合并，非递增时点不作锚点，不给无时间节点创造期限。长流程通过内容区自然滚动，不用 fitView 压缩整图。
 
-  连线另行校验端点、自环、重复连接与有向环。删除需确认，仅删除选中节点，将其前序接到后续、直接条件子节点提升到原上级，并立即保存。失败保留草稿和保存入口。新增节点插入真实连接。
-- D1 `trading_workflow_config` 保存共享节点配置及版本。每日启用、完成与分支状态保存在 `trading_workflow_progress`，按用户和上海日期隔离。询价行、名单和备注仍在浏览器本地。配置和进度各自使用版本条件写，旧配置读取兼容由实现维护。
-- `GET /api/trading-workflow/config` 要求 `research.workspace:read`，返回 `version/flows/nodes/actorKey/canEdit`。`PUT` 要求 `research.workflow:update`、同源及严格 Schema，且只接受 `{expectedVersion,flows,nodes}`。条件 UPDATE 原子增加版本。冲突返回 409，编辑草稿留在画布与侧面板，取消后可刷新配置。
-- 询价行、名单和备注的本地 key 按账号与上海自然日隔离。调度进度跨设备以 D1 为准。
-- 分支激活后自动展开，关闭后折叠。父分支关闭时后代不计入待办、不触发提醒，但本地勾选保留，重新激活时恢复。业务触发条件由经办人选择，时间流逝不会自动确认成交、审批或完成任务。
-- 明确时点到点提醒。区间节点在开始与结束时检查。未完成且品种、分支启用的任务由 Messenger 定时扫描并按用户、日期、节点和时点去重。渠道以用户订阅为准。
-- header 只显示实时时钟和编辑模式。内容区无小标题、完成统计、定位/刷新/缩放等工具栏。保存、增加、删除和布局恢复仅在节点编辑面板。
-- 左侧时间线使用可见节点的显式起始时间作为锚点，时间游标每秒随上海时钟在锚点间插值。重复时间合并，非递增时点不作为坐标锚点，不给无时间节点创造期限。节点标题使用 1.125rem 粗体，备注使用 0.875rem 普通字重与次级文字色，按自然高度渲染，禁止 fitView 压缩整图。较长流程通过内容区自然滚动，窄屏仅画布局部横向滚动。
+API：
 
-  节点最大宽度 460px，列内居中。相邻节点保留至少 76px 垂直间距。同一目标的入边共用目标上方的水平汇合线，节点实测高度变动后重排并更新连线。
+- `GET /api/trading-workflow/config`：要求 `research.workspace:read`，返回 `version/flows/nodes/actorKey/canEdit`。
+- `PUT /api/trading-workflow/config`：要求 `research.workflow:update`、同源和严格 Schema，只接受 `{expectedVersion,flows,nodes}`，请求体上限 300,000 字符。条件 UPDATE 原子加版本，冲突返回 409，草稿留在画布，取消后可刷新。
+- `/api/trading-workflow/day`：按登录账号读写当日进度。Gateway 校验登录和 `research.workspace:read`。
 
 ## 数据分层
 
-浏览器不得直连数据库、Choice EDB 或 DM。授信和研究辅助均由 dashboard Worker 通过 Hyperdrive 读取 Neon，其中研究辅助只读 `public.edb`。上游数据只在首次本地回填和每日定时增量任务中调用。其余尚未接入的迁入模块未来仍通过明确的服务端接口读取。
-
-建议逻辑数据域如下。物理数据库与 schema 待接口设计时由数据所有方确认，不得复用或交叉写入 dashboard 现有 Neon `bond`、`financing_model` schema：
-
-| 数据域 | 逻辑实体 | 必备主键/版本 |
-| --- | --- | --- |
-| 交易 | `trade`, `trade_collateral`, `trade_status_event` | `trade_id`, `version`, `event_id` |
-| 授信 | `credit.institution`, `credit.metric`, `credit.entry` | 稳定主体 ID。entry 的报告日、字段 ID、主体 ID |
-| 研究 | `research_snapshot`, `market_observation`, `curve_point`, `source_availability` | `snapshot_id`, `series_code`, `observation_date` |
-| 交易流程配置 | `trading_workflow_config` | 单例 `id=1`, `version` |
-| 交易流程日进度 | `trading_workflow_progress` | 登录用户、上海日期、`revision` |
-
-授信按业务日增量保存 entry，同日同字段可更新。其他业务域若需要不可变历史，应在各自契约中独立设计。列表接口必须稳定排序并返回明确报告日期。
+- 浏览器不直连数据库、Choice EDB 或 DM。授信和研究辅助由 Dashboard Worker 经 Hyperdrive 读 Neon，研究辅助只读 `public.edb`，上游只在首次本地回填和每日增量中调用。
+- 交易域尚无生产数据。接入前须确定数据所有权、权限和 `/data/trading-research/*` 的 OpenAPI / Schema（目标，未实现）。首期读接口设想为 `GET /data/trading-research/overview?as_of=YYYY-MM-DD` 与 `GET /data/trading-research/trades?date=&query=&product=&status=&cursor=&limit=`。
+- 新数据域不复用或交叉写入 Dashboard 现有 Neon `bond`、`financing_model` schema。
 
 ## API 契约
 
-已实现的授信读接口：
+- `GET /api/credit`：按上海今天读取授信截面。`GET /api/credit?date=YYYY-MM-DD&month=YYYY-MM`：读指定日与月份的原始 CreditDataset，汇总、周比较、日历和预警在浏览器派生，契约见 [授信模块](modules/credit-workbench.md#接口与维护)。
+- `GET /api/economic-indicators`：Dashboard Worker 经 Hyperdrive 读 `public.edb`，返回 `asOf`、`syncedAt` 和近 18 个月的 `rows`。
+- 日期用上海时区的严格 `YYYY-MM-DD`，时间用含时区 ISO 8601。动态业务数据用 `Cache-Control: no-store`。
+- 错误响应为 `{ "error": "可公开信息", "code": "稳定错误码" }`，不返回 SQL、文件路径和密钥。
+- 响应在服务端和 Dashboard 客户端边界用 Zod 或等价 Schema 校验。字段变更先升级 `schemaVersion` 并同步契约测试。
 
-- `GET /api/credit`：按上海今天读取授信截面。
-- `GET /api/credit?date=YYYY-MM-DD&month=YYYY-MM`：读取指定日与月份的原始 CreditDataset。浏览器统一派生汇总、周比较、日历及预警，具体契约见 [授信模块](modules/credit-workbench.md#接口与维护)。
+## 验收
 
-研究辅助已实现接口：
-
-- `GET /api/economic-indicators`：由 dashboard Worker 通过 Hyperdrive 读取 Neon `public.edb`，返回 `asOf`、`syncedAt` 和近 18 个月的 `rows`。
-- Choice 固定使用 `IsPublishDate=1,FixDate=0`，优先读取 `PUBLISHDATE` 作为真实发布日期。Choice 未提供发布日期的日频与不定期指标以原始数据日期作为更新日。缺少发布日期的固定资产投资、核心 CPI、GDP 平减指数、社融存量和人民币贷款，按同观测期分别沿用工业增加值、CPI、GDP、M2 的同批发布日期，避免把未发布的 `0` 占位值当成最新数据。
-- DR001、DR007、R007 因 Choice 量化 API 不返回观测，改由 Data API `GET /cfets-histories` 分页读取 DM 历史。数据库仍统一使用核验后的 EDB ID 作为序列代码。
-- Choice 原始“核心 CPI（上年同月=100）”在前端减 100 展示同比。10Y-2Y 原始百分点在前端乘 100 展示 bp。其他指标不做口径换算。
-- Choice EDB 按指标代码计次，不按批量 HTTP 请求计次。页面挂载、刷新和重试均只读 Neon，消耗 0 次 Choice EDB 额度。
-
-
-经济指标的采集目录、回填命令、每日 Cron 和 Workflow 重试由 [Data 经济指标同步](../../data/docs/modules/economic-indicator-sync.md) 维护。Dashboard 只读同一张 `public.edb`。
-
-
-尚未接入交易数据的首期读接口建议：
-
-- `GET /data/trading-research/overview?as_of=YYYY-MM-DD`
-- `GET /data/trading-research/trades?date=YYYY-MM-DD&query=&product=&status=&cursor=&limit=`
-
-交易流程配置与每日进度边界见上文。不实现原演示方案中的后端审批任务接口。
-
-通用响应规则：
-
-- 日期使用上海时区的严格 `YYYY-MM-DD`，时间使用含时区 ISO 8601。
-- 动态业务数据使用 `Cache-Control: no-store`。授信按 `reportDate` 选择日报记录。
-- 错误响应使用 `{ "error": "可公开信息", "code": "稳定错误码" }`，不得向浏览器返回数据库 SQL、文件路径或密钥。
-- 生产响应使用 Zod 或等价 Schema 在服务端和 dashboard 客户端边界校验。字段变更先升级 `schemaVersion` 并同步契约测试。
-
-## 接入顺序与验收
-
-1. 授信按明确业务日导入 Excel，核对授信长表截面、融资派生用量和周报口径。
-2. 一级投资人和融资用量已在线派生，未匹配关联保持缺失。后续来源变化先核对 [客户归属](modules/clients.md)，不把原 Excel 已用值当运行时用量。
-3. 交易接入前确定数据所有权、权限和 `/data/trading-research/*` OpenAPI/Schema。需保留 `GET /data/trading-research/trades?date=YYYY-MM-DD&query=&product=&status=&cursor=&limit=` 契约。
-4. 研究数据首次通过本地全量命令回填，随后由每日增量 Cron 更新。新增或替换指标时先复核名称、ID、单位、频率、区域和展示换算，并同步指标映射测试。任何调试不得用页面挂载或循环请求验证付费 EDB。
-5. 交易流程验证配置 Schema、版本冲突、跨日隔离、分支启停、通知去重及权限边界。
-
-正式验收至少核对：交易汇总与明细求和一致、授信总额勾稽一致、研究曲线日期一致、流程版本冲突可见、所有页面显示明确基准日、移动端仅表格区域横向滚动。
-
-### 后台通知与每日进度
-
-交易提醒改由 Messenger 统一定时触发 NotificationSource。浏览器前台不再调用 new Notification。每日启用品种、完成状态和分支状态通过 `/api/trading-workflow/day` 存入 D1 `trading_workflow_progress`，按 Auth0 subject/上海日期隔离，字段增量以 revision 条件更新避免多设备覆盖。首次打开当日已有本地状态时同步调度字段。询价行、备注和名单继续本地保存。共享节点配置接口保持原有乐观锁。
-
-提醒扫描仅工作日，按上海时区节点开始/结束时间、启用品种、分支及完成状态选择最近五分钟到点任务。事件幂等键包含用户、日期、节点和时点。通知类型与 email/Telegram/Web Push 在管理“通知”页配置，浏览器关闭后仍由服务端扫描。
-
-## 页面层级
-
-交易研究工作台为一级入口，左侧导航为二级页面。页面内存在多个独立视图时才使用共享 header 三级标签页。页面标题和深链由 `WorkbenchShell` / `PageHeader` 统一维护，普通页与版式报告共用 header 样式。二级池周报保持原有单面正文，不按参考图增设标签或改动业务模块。三个独立报告兼容入口也复用 `WorkbenchPage`。
+- 授信按明确业务日导入 Excel，核对授信长表截面、融资派生用量和周报口径。一级投资人和融资用量在线派生，未匹配关联保持缺失，来源变化先核对 [客户归属](modules/clients.md)。
+- 研究数据首次由本地全量命令回填，随后由每日增量 Cron 更新。
+- 交易流程验证配置 Schema、版本冲突、跨日隔离、分支启停、通知去重和权限边界。
+- 核对项：交易汇总与明细求和一致、授信总额勾稽一致、研究曲线日期一致。
+- 另核对：流程版本冲突可见、页面显示明确基准日、移动端仅表格区域横向滚动。
 
 ## 拆借台账
 
-交易管理 header 的 `/trading-research/interbank-ledger` 提供成交归档、逐笔进度和资金系统台账查询。ZIP 解压、Excel 全表读取、真实 xlsx 转换、PDF 文本编号关联及重命名都在浏览器 Worker 完成，原件不传至 Dashboard 存储。选择或拖入 ZIP 后自动解析、改名、保存到成交日期子目录并导入资金系统，上传 PDF 后仅保存还款草稿。目录句柄用 IndexedDB 保存并在页面加载时恢复，已有读写权限时直接复用。首次选择目录或权限失效时，通过原生目录授权恢复后自动继续，不增加保存或导入按钮。不支持本地目录 API 的浏览器停止，不以触发下载冒充归档完成。
+`/trading-research/interbank-ledger` 提供成交归档、逐笔进度和资金系统台账查询。ZIP 解压、Excel 全表读取、xlsx 转换、PDF 编号关联和重命名都在浏览器 Worker 完成，原件不传到 Dashboard 存储。
 
-Excel 为唯一业务来源，读取实际单元格而非工作表 dimension，重复表头选择首个完整列，冲突或分散填值停止。账号保留前导零，利率只按十进制字符串除以 100；`days` 取实际占款天数，`daysPurpose` 取拆借期限，不重算利息。PDF 只提供成交编号和文件名简称。一个批次只接收一个 Excel、一个成交日期，所有 PDF 必须与 Excel 成交编号完整对应。
+- 选择或拖入 ZIP 后自动解析、改名、保存到成交日期子目录并导入资金系统。上传 PDF 后只保存还款草稿，不提供提交功能。
+- 目录句柄存 IndexedDB，页面加载时恢复，已有读写权限则直接复用。首次选择或权限失效时，经原生目录授权恢复后自动继续。不支持本地目录 API 的浏览器停止，不以触发下载冒充归档完成。
+- Excel 是唯一业务来源：读实际单元格而非工作表 dimension，重复表头取首个完整列，冲突或分散填值停止。账号保留前导零，利率按十进制字符串除以 100。`days` 取实际占款天数，`daysPurpose` 取拆借期限，不重算利息。
+- PDF 只提供成交编号和文件名简称。一个批次只接收一个 Excel、一个成交日期，所有 PDF 须与 Excel 成交编号完整对应。
 
-浏览器同源 `/data/camel/*` 直接经 Gateway 的 `DATA: GatewayData` 调用资金接口，不经过 Dashboard 业务后端。Gateway 对精确资源的 GET/HEAD 校验 `research.interbank:read`，POST 校验 `research.interbank:import` 和同源，再传入专用 CAMEL 准入结果；剥离用户凭据。旧 `/api/interbank/*` 已移除。Data 管理 CAMEL 会话、导入查重和额度检查、可信台账到还款草稿的转换。文件解析和附件上传使用原始文件 body、严格 MIME 与 `X-Filename: encodeURIComponent(name)`；Data 流式转换为上游单文件 multipart。浏览器只保存草稿，接口不提供提交功能。
+`/data/camel/*` 由浏览器同源直接调用，经 Gateway 的 `GatewayData` 到 Data，不经过 Dashboard 后端。Gateway 对精确资源的 GET/HEAD 校验 `research.interbank:read`，POST 校验 `research.interbank:import` 和同源，传入专用 CAMEL 准入结果并剥离用户凭据。Data 管理 CAMEL 会话、导入查重、额度检查和台账到还款草稿的转换。文件解析与附件上传用原始文件 body、严格 MIME 和 `X-Filename: encodeURIComponent(name)`，Data 流式转为上游单文件 multipart。
 
-本机进度按 Auth0 subject 和批次内容签名隔离，使用浏览器持久 journal 和账号级 Web Lock；同一把锁串行覆盖本地归档及整个导入流程，取得锁后重新读取当前 journal。本地冲突、授权失败或写盘失败均不发起资金请求。每个写请求前先保存 intent；存储失败不得写入。导入和草稿未知结果通过台账恢复，已有草稿必须与本批已知附件 ID 一致。未知附件上传没有 ID 时停止，不盲目重传。草稿保存后只读取一次详情，确认台账关联、附件 ID 与未提交状态，不追加批次审计。跨账号切换清除当前文件视图并阻止旧批次继续请求。
+本机进度与恢复：
+
+- 进度按 Auth0 subject 和批次内容签名隔离，用浏览器持久 journal 和账号级 Web Lock。同一把锁串行覆盖本地归档和整个导入流程，取得锁后重新读取 journal。
+- 本地冲突、授权失败或写盘失败都不发起资金请求。每个写请求前先保存 intent，存储失败不写入。
+- 导入和草稿的未知结果通过台账恢复，已有草稿须与本批已知附件 ID 一致。未知附件上传没有 ID 时停止，不盲目重传。
+- 草稿保存后只读取一次详情，确认台账关联、附件 ID 与未提交状态，不追加批次审计。跨账号切换清除当前文件视图并阻止旧批次继续请求。
