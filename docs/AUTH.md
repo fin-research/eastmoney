@@ -21,7 +21,7 @@ Dashboard / Ingest → DATA: InternalData → Data
    - 受保护页面用客户端渲染。Gateway 只按代码中的精确名单放行匿名 HTML 外壳。`/__data.json`、`.html__data.json`、API、actions 和报告/材料文件仍验签授权。
    - token 不写入 localStorage、URL、SSR HTML、日志或后端转发请求。
    - 客户端直接读当前 JWT 展示身份，并在 `/auth/permissions` 验证成功后发布登录状态。
-3. **账号与声明**：邮箱须属于 `18.cn`，当前组织只启用 `eastmoney-email` 连接。`login claims` Action 在签发时拒绝封禁账号和未验证邮箱，并写入顶层 `username`、`email`、`role`、`_roles`，以及可选的 `department`、`picture`。`role` 是数据库角色字符串，不用于业务授权。`_roles` 是业务角色名称数组。
+3. **账号与声明**：邮箱须属于 `18.cn`，当前组织只启用 `eastmoney-email` 连接。合并登录 Action 在签发时拒绝封禁账号和未验证邮箱，并写入顶层 `username`、`email`、`role`、`_roles`，以及可选的 `department`、`picture`。`role` 是数据库角色字符串，不用于业务授权。`_roles` 是业务角色名称数组。
    - Gateway 验签并校验组织与应用，再把角色名称匹配到当前组织缓存的角色 ID。角色解析、admin/credit 检查和权限合并共用同一份快照。
    - 角色重复、未知、歧义或格式错误时拒绝。缺角色声明时要求重新登录。旧的 nested `user` 和 URL 字段 token 一律拒绝。
    - `username` 作显示姓名，缺失时显示邮箱。`id` 与 `auth0Id` 均为 Auth0 `sub`。
