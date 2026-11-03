@@ -60,8 +60,10 @@ export function encodeQuery(functionName: string, payload: Record<string, unknow
 }
 function normalizeDate(value: unknown): string {
   if (typeof value !== "string") throw new ChoiceWireError("Invalid Choice row date");
-  const result=value.split(" ",1)[0]!.replaceAll("/","-");
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(result)) throw new ChoiceWireError("Unsupported Choice row date");
+  // Choice sends unpadded dates such as 2026/11/2.
+  const parts=/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/.exec(value.split(" ",1)[0]!);
+  const result=parts && `${parts[1]}-${parts[2]!.padStart(2,"0")}-${parts[3]!.padStart(2,"0")}`;
+  if (!result || !(Date.parse(`${result}T00:00:00Z`)>0) || new Date(`${result}T00:00:00Z`).toISOString().slice(0,10)!==result) throw new ChoiceWireError("Unsupported Choice row date");
   return result;
 }
 function fields(source: readonly string[]): string[] {
