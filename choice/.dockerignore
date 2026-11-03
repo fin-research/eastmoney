@@ -1,5 +1,0 @@
-build
-vendor/linux-x64/userInfo
-vendor/linux-x64/*.log
-vendor/linux-x64/loginactivator*
-vendor/linux-x64/image

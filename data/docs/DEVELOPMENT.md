@@ -17,19 +17,18 @@ curl https://eastmoney-data-vpc-smoke.hasbai.workers.dev/camel
 pnpm exec wrangler delete --config wrangler.vpc-smoke.jsonc
 ```
 
-Smoke 只返回连通性、HTTP 状态和 RPC 契约版本，不返回 DM 正文或凭据。`wrangler dev --remote` 的 VPC 远程 binding 会在本地超时，office 网络、VPC service 和 tunnel 均正常。以部署后的 edge smoke 判定 VPC 健康。
+Smoke 只返回连通性、HTTP 状态，不返回 DM 正文或凭据。`wrangler dev --remote` 的 VPC 远程 binding 会在本地超时，office 网络、VPC service 和 tunnel 均正常。以部署后的 edge smoke 判定 VPC 健康。
 
 ## 发布
 
 只提交任务文件，推送后核对远端。部署后检查线上版本、受影响资源和真实 VPC smoke。
 
-## Office 运维所有权
+## Choice 运维
 
-Choice 镜像、SDK、受限 env file 与容器恢复按 [Choice 开发文档](../../choice/docs/DEVELOPMENT.md)操作。原生会话迁移见 [Choice 原生协议](modules/choice-native.md)，生产 office 服务尚未退役。
+Choice 会话由 `CHOICE_SESSION` 持有，机制、令牌有效期和排障见[原生协议](modules/choice-native.md)。
+Choice 返回 `login count up to limit` 时，同一账号被另一个客户端占用。核对没有桌面客户端或本地脚本登录该账号，等待令牌到期或调用 `reset()`。重试无法绕过会话上限。
 
-Choice 返回 `login count up to limit` 时，原因是 office RPC 进程启动时 SDK `start()` 失败，同一账号被另一个进程或残留会话占用。先核对是否还有其他 RPC 进程，再单实例重启 `data` 容器。Data 透传该错误，重试无法绕过会话上限。
-
-宿主 cloudflared、容器和 WUD 状态要实时核验。
+宿主 cloudflared 和 VPC 状态只影响 DM 与 CAMEL，要实时核验。
 
 ## Secrets
 
@@ -44,7 +43,7 @@ pnpm exec wrangler secret put CAMEL_USERNAME
 pnpm exec wrangler secret put CAMEL_PASSWORD
 ```
 
-`CHOICE_AUTH` 只存在 office 主机的受限 env file。本分支的 Worker Secrets `CHOICE_CREDENTIALS` 和 `CHOICE_SERVERS` 持有原生协议凭据，尚未部署。本地 `.dev.vars` 和 `.env` 已被 Git 忽略。
+Worker Secrets `CHOICE_CREDENTIALS` 和 `CHOICE_SERVERS` 持有 Choice 账号和服务器清单。本地 `.dev.vars` 和 `.env` 已被 Git 忽略。
 
 ## 权限专项验证
 

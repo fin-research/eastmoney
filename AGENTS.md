@@ -1,9 +1,9 @@
 # Eastmoney monorepo
 
 公开仓库为 `fin-research/eastmoney`，默认分支为 `main`。
-七项目保留独立运行、测试、migration和发布。
+六项目保留独立运行、测试、migration和发布。
 JavaScript六项目统一使用根pnpm workspace、精确catalog和单锁，工具版本以根packageManager为准。
-依赖变化修改根catalog并更新根锁，不新增子项目锁文件。Python uv和Choice C++工具链独立。
+依赖变化修改根catalog并更新根锁，不新增子项目锁文件。Python uv独立。
 
 ## 规则
 
@@ -28,7 +28,6 @@ JavaScript六项目统一使用根pnpm workspace、精确catalog和单锁，工�
 | 公网入口、Auth0、JWT与权限 | [Gateway](gateway/AGENTS.md) |
 | 页面、业务API、融资与管理 | [Dashboard](dashboard/AGENTS.md) |
 | 公共数据契约、DM、Choice、CAMEL | [Data](data/AGENTS.md) |
-| office C++ RPC | [Choice](choice/AGENTS.md) |
 | 通知、队列与集中调度 | [Messenger](messenger/AGENTS.md) |
 | 研报与政策采集 | [Ingest](ingest/AGENTS.md) |
 | 本地量化研究与独立线上推理 | [Quant](quant/AGENTS.md) |
@@ -53,7 +52,7 @@ CI范围由Claude在开PR时判断：按改动、调用方和契约，用`gh pr 
 每个Worker独立构建发布，保留现有资源和migration ledger。
 Ingest只走Git自动部署。
 
-Choice厂商SDK留在私有构建来源，不进入公开仓库。
+Choice服务器清单和账号凭据只存Worker Secrets，不进入公开仓库。
 必要部署沿用用户授权，执行后核对实际版本和受影响入口。
 
 迁移来源和公开审计见[迁移记录](docs/operations/monorepo-migration.md)。

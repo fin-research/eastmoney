@@ -1,11 +1,11 @@
 import { pathToFileURL } from 'node:url';
 
 export function verify(plan, needs) {
-  for (const project of ['gateway', 'dashboard', 'data', 'choice', 'messenger', 'ingest', 'quant']) {
+  for (const project of ['gateway', 'dashboard', 'data', 'messenger', 'ingest', 'quant']) {
     if (!['true', 'false'].includes(plan[project])) throw new Error(`Invalid change plan for ${project}.`);
   }
   if (needs.changes?.result !== 'success') throw new Error('Change analysis did not pass.');
-  for (const project of ['gateway', 'data', 'messenger', 'ingest', 'quant', 'choice']) {
+  for (const project of ['gateway', 'data', 'messenger', 'ingest', 'quant']) {
     const expected = plan[project] === 'true' ? 'success' : 'skipped';
     if (needs[project]?.result !== expected) throw new Error(`${project}: expected ${expected}, received ${needs[project]?.result}`);
   }

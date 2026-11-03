@@ -12,7 +12,7 @@ CAMEL client → 会话缓存 / CAPTCHA → AI adapter
 
 - [index.ts](../src/index.ts) 区分关闭的默认入口与私有的 `GatewayData`、`InternalData`、`ScheduledTasks`。入口由 binding 选择，请求头无法选择，见[入口与访问边界](#入口与访问边界)。
 - [public-access.ts](../src/public-access.ts) 只消费 Gateway 的版本化上下文和 GraphQL Choice 字段结果。
-- [app.ts](../src/app.ts) 只装配路由。DM 的签名与协议解码在 `src/dm/`，Choice 的 RPC 版本校验在 `src/choice/`，网页解析在 `src/eastmoney.ts`。
+- [app.ts](../src/app.ts) 只装配路由。DM 的签名与协议解码在 `src/dm/`，Choice 的表结构校验在 `src/choice/`，网页解析在 `src/eastmoney.ts`。
 - 交易日由 [trading-calendar.ts](../src/trading-calendar.ts) 调用 Choice `tradedates`，结果缓存在当前节点的 Cache API：当日和未来 1 小时，历史 24 小时。缓存故障时回源，错误不缓存。公共 HTTP 仍为 no-store。
 - 行情快照由 [eastmoney-market.ts](../src/services/eastmoney-market.ts) 通过 Choice CSS 生成。
 - REST 与 GraphQL 复用通过契约校验的 DTO。GraphQL 不复制上游读取。字段投影、分页和错误见 [API](API.md)。
@@ -42,7 +42,7 @@ VPC service 经 `office` tunnel 连接，service id 以 [wrangler.jsonc](../wran
 | `CAMEL` | `camel` | office `10.6.88.192:7000`，HTTP |
 
 - DM：Worker 用 `DM_COOKIE` 中的 `device_id` 重算 MD5 签名，解码 JSON 和 deflate/gzip protobuf。
-- Choice：私有 `CHOICE_SESSION` Durable Object 经出站 TCP 和 HTTPS 访问厂商服务，不走 VPC。会话、令牌有效期、费用和离线验证边界见[原生协议迁移](modules/choice-native.md)，该迁移尚未部署。
+- Choice：私有 `CHOICE_SESSION` Durable Object 经出站 TCP 和 HTTPS 访问厂商服务，不走 VPC。会话、令牌有效期、费用和离线验证边界见[原生协议](modules/choice-native.md)。
 - CAMEL：无公共业务路由，浏览器经 Gateway 调用 `/data/camel/*`，详见 [CAMEL](modules/camel.md)。
 
 东方财富网页与行情走普通 fetch，网络等待不计入 CPU。
