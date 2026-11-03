@@ -5,7 +5,7 @@
 ## 连接
 
 - 协议：Streamable HTTP。认证：Auth0 OAuth 授权码 + PKCE，ID token 不可用。
-- Gateway 在 `/mcp` 准入 ChatGPT、Codex、OpenCode 三个官方 CIMD 客户端，客户端无需填写 client ID 或 secret。MCP token 不能访问普通业务 REST 或 `/data/mcp`。
+- Gateway 在 `/mcp` 准入 CIMD 客户端（ChatGPT、Codex、Claude、OpenCode 等，动态注册），客户端无需填写 client ID 或 secret。MCP token 不能访问普通业务 REST 或 `/data/mcp`。
 - ChatGPT：新建连接，填写上述 URL 并选 OAuth，高级 OAuth 设置留空。已有固定 client ID 的连接须删除重建。
 - Codex：在配置中加入下列内容，再执行 `codex mcp login eastmoney`。删除旧的显式 `oauth.client_id`、`callback_port`。
 - OpenCode 的配置见 [Gateway MCP](../../gateway/docs/MCP.md)。

@@ -8,7 +8,7 @@
 
 post-login 绑定两个 Action：注册资料 Action 和 `login claims`（`35884b07-e1f4-4ab8-b66c-0325d5a055e4`）。线上状态用 Auth0 CLI 读取，不从本地文件推断。
 
-- [login-claims.cjs](actions/login-claims.cjs)：写入顶层 `username`、`email`、`role`、`_roles`，本站组织另有可选 `department`、`picture`。拒绝封禁账号和未验证邮箱。三个 MCP 客户端改写签名 claim `https://eastmoney.hasbai.xyz/identity`，见 [MCP](../docs/MCP.md)。
+- [login-claims.cjs](actions/login-claims.cjs)：写入顶层 `username`、`email`、`role`、`_roles`，本站组织另有可选 `department`、`picture`。拒绝封禁账号和未验证邮箱。`tpc_` 第三方 MCP 客户端改写签名 claim `https://eastmoney.hasbai.xyz/identity`，见 [MCP](../docs/MCP.md)。
 - `role` 供数据库使用，不用于业务授权。`_roles` 由 Gateway 按组织权限缓存解析为角色 ID。
 - `eastmoney-signup-profile` 只处理新账号的 pending 标记。姓名和部门不授予权限，也不自动关联业务负责人。
 - 基础角色来自 Auth0 组织成员关系，Action 不自动分配。

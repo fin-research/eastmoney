@@ -112,6 +112,7 @@ Dashboard / Ingest → DATA: InternalData → Data
 
 - 开始前运行 `auth0 tenants list`，核对授权和活动租户。能读取目标资源就直接复用。
 - 先用 `--help` 核对参数，再读取目标资源和关联关系。变更某个资源后，按 ID 回读核验。
+- 本机 agent 使用 M2M 应用 `eastmoney agent management`（`r4iobbtIy8S5bPjUFqxlS6flW6LA4cDG`），凭据在根 `.env` 的 `AUTH0_AGENT_CLIENT_ID` / `AUTH0_AGENT_CLIENT_SECRET`。用 `auth0 login --domain hasbai.eu.auth0.com --client-id … --client-secret …` 机器登录，CLI 自动续期。范围覆盖 clients、client grants、client profiles、租户设置、API、Actions、日志，以及组织、角色、用户只读和连接读写，无 delete。
 - 多个 agent 会话共用本机 CLI 授权。只有确认未授权，或命令因缺 scope 失败时，才由一个会话执行一次 `auth0 login`（缺 scope 时请求所需 scope），其他会话等待后重试。不要把 `auth0 login` 当初始化步骤，也不要在任务结束时 `auth0 logout`。
 - 命令尽量带 `--tenant`，避免 `auth0 tenants use` 改动其他会话的默认租户。
 - 并行写同一资源前先协调所有权和顺序，写前重读，写后回读。临时导出各用独立目录。不要用全租户导入覆盖其他会话的改动。
@@ -125,7 +126,7 @@ Dashboard / Ingest → DATA: InternalData → Data
 ## MCP 边界
 
 - **入口**：统一 `/mcp`，要求有效的 Auth0 用户登录。客户端连接 `https://eastmoney.hasbai.xyz/mcp`。
-- **发现与授权**：Gateway 的公开 Protected Resource Metadata 和 401 挑战指向真实 Auth0 issuer。ChatGPT、Codex、OpenCode 用官方 CIMD 自动识别，走授权码 + PKCE。Auth0 原生开启 CIMD discovery 与 RFC9207，动态注册和 DCR 未开放。三个精确客户端只准入 `/mcp`，不准入普通 REST。Gateway 不签发或代理 token。
+- **发现与授权**：Gateway 的公开 Protected Resource Metadata 和 401 挑战指向真实 Auth0 issuer。ChatGPT、Codex、OpenCode 用官方 CIMD 自动识别，走授权码 + PKCE。Auth0 原生开启 CIMD discovery 与 RFC9207，动态 CIMD 已开放（client profile 强制组织登录，默认 grant 授予本站 API），DCR 未开放。所有 CIMD 客户端只准入 `/mcp`，不准入普通 REST。Gateway 不签发或代理 token。
 - **身份**：来自签名声明 `https://eastmoney.hasbai.xyz/identity`，不回退到顶层保留字段。本站 API resource 为 `https://eastmoney.hasbai.xyz/`，组织限定和角色校验照常生效。
 - **工具**：Gateway 经命名绑定聚合 Dashboard 与 Data 的工具目录，用户 token 不进入应用。Gateway 按当前业务 route/action 权限筛选 Dashboard 工具，并校验每次执行。Data 使用可信用户和 Choice 准入上下文。MCP 不开放 CAMEL 和 `InternalData`，不发布 AI 生成工具。
 - **错误码**：匿名和无效登录返回 401，账号被拒返回 403。已登录但入口未登记时返回 403 `ROUTE_NOT_REGISTERED`。
