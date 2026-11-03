@@ -150,7 +150,8 @@ export class ChoiceSession extends DurableObject<Cloudflare.Env> {
     await this.ctx.storage.put('lastLoginAt', Date.now());
     const credentials = this.config.credentials;
     const saved = await this.ctx.storage.get<StoredActivation>('activation');
-    const auto = saved ? { ...credentials, ...saved } : credentials;
+    // Auto login with a rolled activation is rejected (code 35) in the password flow; password mode always logs in with the password.
+    const auto = saved && credentials.mode === 'auto' ? { ...credentials, ...saved } : credentials;
     const request = 'uid' in auto ? encodeAutoLogin(auto) : encodePasswordLogin(auto.account, auto.password, auto);
     try {
       const reply = await exchange(this.config.servers['19'], request, remaining(deadline));

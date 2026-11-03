@@ -99,11 +99,11 @@ class MemoryStorage {
   readonly delete = vi.fn(async (key: string) => this.values.delete(key));
 }
 
-function createSession(storage = new MemoryStorage(), account = 'fixture-account'): { session: ChoiceSession; storage: MemoryStorage } {
+function createSession(storage = new MemoryStorage(), account = 'fixture-account', credentials?: Record<string, unknown>): { session: ChoiceSession; storage: MemoryStorage } {
   const servers = Object.fromEntries(['3', '6', '19', '20'].map(type => [type, { hostname: 'fixture.invalid', port: Number(type) }]));
   const env = {
     CHOICE_SERVERS: JSON.stringify({ ...servers, statisticsOrigin: 'https://fixture.invalid/' }),
-    CHOICE_CREDENTIALS: JSON.stringify({ mode: 'password', account, password: 'fixture-password', deviceId: 'fixture-device', deviceModel: 'MACMD5' }),
+    CHOICE_CREDENTIALS: JSON.stringify(credentials ?? { mode: 'password', account, password: 'fixture-password', deviceId: 'fixture-device', deviceModel: 'MACMD5' }),
   } as Cloudflare.Env;
   const ctx = { storage } as unknown as DurableObjectState;
   return { session: new ChoiceSession(ctx, env), storage };
@@ -147,17 +147,30 @@ describe('Choice native offline session lifecycle', () => {
     expect(dataCalls()).toBe(3);
   });
 
-  it('logs in again after the token lifetime using the rolled activation', async () => {
+  const logins = () => offline.exchange.mock.calls.filter(([endpoint]) => endpoint.port === 19);
+  const loginBody = (index: number) => new TextDecoder().decode((logins()[index]?.[1] as Uint8Array).subarray(14));
+
+  it('logs in again with the password after the token lifetime, because the vendor rejects auto login in the password flow', async () => {
     const { session, storage } = createSession();
     expect((await session.fetch(request())).status).toBe(200);
     expect(storage.values.get('activation')).toEqual({ uid: 'fixture-uid', ctoken: 'fixture-rolled-ctoken', utoken: 'fixture-rolled-utoken' });
     now += 20 * 60_000 + 1;
     expect((await createSession(storage).session.fetch(request())).status).toBe(200);
-    const secondLogin = offline.exchange.mock.calls.filter(([endpoint]) => endpoint.port === 19)[1];
-    const loginBody = new TextDecoder().decode((secondLogin?.[1] as Uint8Array).subarray(14));
-    expect(loginBody).toContain('fixture-rolled-ctoken');
-    expect(loginBody).toContain('fixture-rolled-utoken');
-    expect(loginBody).not.toContain('fixture-password');
+    expect(logins()).toHaveLength(2);
+    expect(loginBody(1)).toContain('"Account":"fixture-account"');
+    expect(loginBody(1)).not.toContain('CToken');
+    expect(loginBody(1)).not.toContain('fixture-rolled-ctoken');
+  });
+
+  it('keeps the rolled activation chain in auto mode', async () => {
+    const auto = { mode: 'auto', uid: 'seed-uid', ctoken: 'seed-ctoken', utoken: 'seed-utoken', deviceId: 'fixture-device', deviceModel: 'MACMD5' };
+    const { session, storage } = createSession(undefined, 'unused', auto);
+    expect((await session.fetch(request())).status).toBe(200);
+    now += 20 * 60_000 + 1;
+    expect((await createSession(storage, 'unused', auto).session.fetch(request())).status).toBe(200);
+    expect(loginBody(0)).toContain('seed-ctoken');
+    expect(loginBody(1)).toContain('fixture-rolled-ctoken');
+    expect(loginBody(1)).not.toContain('seed-ctoken');
   });
 
   it('keeps the stored token after a failed query so the next query needs no login', async () => {
@@ -178,14 +191,13 @@ describe('Choice native offline session lifecycle', () => {
     offline.exchange.mockResolvedValueOnce(loginFrame('10001020'));
     expect((await session.fetch(request())).status).toBe(503);
     expect(storage.values.has('session')).toBe(false);
-    const logins = () => offline.exchange.mock.calls.filter(([endpoint]) => endpoint.port === 19).length;
-    expect(logins()).toBe(2);
+    expect(logins()).toHaveLength(2);
     now += 30_000;
     expect((await createSession(storage).session.fetch(request())).status).toBe(503);
-    expect(logins()).toBe(2);
+    expect(logins()).toHaveLength(2);
     now += 31_000;
     expect((await createSession(storage).session.fetch(request())).status).toBe(200);
-    expect(logins()).toBe(3);
+    expect(logins()).toHaveLength(3);
   });
 
   it('clears the token, activation and identity on reset', async () => {
