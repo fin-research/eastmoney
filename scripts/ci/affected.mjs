@@ -4,12 +4,27 @@ import { pathToFileURL } from 'node:url';
 
 export const projects = ['gateway', 'dashboard', 'data', 'choice', 'messenger', 'ingest', 'quant'];
 
-export function affected(paths, all = false) {
+const infrastructure = /^(\.github\/|scripts\/|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|\.npmrc$)/;
+
+export function declared(labels) {
+  const scope = new Set();
+  for (const label of labels.filter(l => l.startsWith('ci:'))) {
+    const name = label.slice(3);
+    if (name === 'all') projects.forEach(p => scope.add(p));
+    else if (projects.includes(name)) scope.add(name);
+    else throw new Error(`Unknown CI scope label: ${label}`);
+  }
+  return scope.size ? scope : null;
+}
+
+export function affected(paths, all = false, scope = null) {
   const selected = new Set(all ? projects : []);
+  let infra = false;
   for (const path of paths) {
     const owner = path.split('/')[0];
     if (projects.includes(owner)) selected.add(owner);
     else if (!path.startsWith('docs/') && !['README.md'].includes(path)) projects.forEach(p => selected.add(p));
+    if (infrastructure.test(path)) infra = true;
     if (/^(data\/src\/|data\/wrangler)/.test(path)) {
       ['gateway', 'dashboard', 'ingest', 'quant'].forEach(p => selected.add(p));
     }
@@ -22,14 +37,16 @@ export function affected(paths, all = false) {
     if (/^dashboard\/financing-model-migrations\//.test(path)) selected.add('quant');
     if (/^docs\/(AUTH|ARCHITECTURE|DATABASE|AI|TESTING)\.md$/.test(path)) projects.forEach(p => selected.add(p));
   }
-  return Object.fromEntries(projects.map(p => [p, selected.has(p)]));
+  const final = scope && !all && !infra ? scope : selected;
+  return Object.fromEntries(projects.map(p => [p, final.has(p)]));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const base = process.env.CI_BASE_SHA;
   const all = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' || !base;
   const paths = all ? [] : execFileSync('git', ['diff', '--name-only', '-z', base, 'HEAD'], { encoding: 'utf8' }).split('\0').filter(Boolean);
-  const plan = affected(paths, all);
+  const labels = (process.env.CI_LABELS ?? '').split(/[\n,]/).map(l => l.trim()).filter(Boolean);
+  const plan = affected(paths, all, declared(labels));
   if (process.env.GITHUB_OUTPUT) for (const [name, value] of Object.entries(plan)) appendFileSync(process.env.GITHUB_OUTPUT, `${name}=${value}\n`);
   console.log(JSON.stringify(plan));
 }

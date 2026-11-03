@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { affected, projects } from './affected.mjs';
+import { affected, declared, projects } from './affected.mjs';
 import { verify } from './gate.mjs';
 
 test('service bindings and shared contracts include consumers without global imports', () => {
@@ -32,4 +32,21 @@ test('shared dependency policy changes require every project', () => {
   for (const path of ['package.json', 'pnpm-workspace.yaml', 'pnpm-lock.yaml', '.npmrc']) {
     assert.ok(projects.every(project => affected([path])[project]), path);
   }
+});
+
+test('declared scope replaces dependency expansion but never narrows CI or dependency files', () => {
+  const only = labels => declared(labels);
+  const plan = affected(['data/src/contracts.ts'], false, only(['ci:data']));
+  assert.deepEqual(projects.filter(p => plan[p]), ['data']);
+  const multi = affected(['data/src/contracts.ts'], false, only(['ci:data', 'ci:gateway', 'bug']));
+  assert.deepEqual(projects.filter(p => multi[p]), ['gateway', 'data']);
+  for (const path of ['.github/workflows/ci.yml', 'scripts/ci/gate.mjs', 'package.json', 'pnpm-lock.yaml']) {
+    assert.ok(projects.every(p => affected([path], false, only(['ci:data']))[p]), path);
+  }
+  const skills = affected(['gateway/src/a.ts', 'skills/x/SKILL.md'], false, only(['ci:gateway']));
+  assert.deepEqual(projects.filter(p => skills[p]), ['gateway']);
+  assert.ok(projects.every(p => affected(['skills/x/SKILL.md'])[p]));
+  assert.ok(projects.every(p => affected(['data/src/a.ts'], false, only(['ci:all']))[p]));
+  assert.deepEqual(affected(['data/src/a.ts'], false, only(['bug'])), affected(['data/src/a.ts']));
+  assert.throws(() => declared(['ci:unknown']), /Unknown CI scope label/);
 });
