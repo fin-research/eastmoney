@@ -23,7 +23,7 @@
 
 ## CI 范围
 
-PR 标签 `ci:gateway`、`ci:dashboard`、`ci:data`、`ci:choice`、`ci:messenger`、`ci:ingest`、`ci:quant`、`ci:all` 声明要运行的项目，取代路径推导的依赖扩展。合并队列读取同一 PR 的标签。增删标签会重新触发 PR CI。无标签时按 `scripts/ci/affected.mjs` 的路径规则。公开安全、gitleaks、依赖检查和 CI 脚本测试始终运行；改动 `.github/`、`scripts/` 或依赖文件时标签无效。
+PR 标签 `ci:gateway`、`ci:dashboard`、`ci:data`、`ci:messenger`、`ci:ingest`、`ci:quant`、`ci:all` 声明要运行的项目，取代路径推导的依赖扩展。合并队列读取同一 PR 的标签。增删标签会重新触发 PR CI。无标签时按 `scripts/ci/affected.mjs` 的路径规则。公开安全、gitleaks、依赖检查和 CI 脚本测试始终运行；改动 `.github/`、`scripts/` 或依赖文件时标签无效。
 
 ## 各项目
 
@@ -32,7 +32,6 @@ PR 标签 `ci:gateway`、`ci:dashboard`、`ci:data`、`ci:choice`、`ci:messenge
 [Data](../data/docs/TESTING.md)、
 [Ingest](../ingest/docs/TESTING.md)、
 [Gateway](../gateway/docs/TESTING.md)、
-[Quant](../quant/docs/TESTING.md)、
-[Choice](../choice/docs/TESTING.md)。
+[Quant](../quant/docs/TESTING.md)。
 
 权限登录验收见 [AUTH](AUTH.md#程序化权限测试)。Dashboard 浏览器测试用独立组件入口和固定业务夹具，不启动认证服务，也不加生产身份旁路。

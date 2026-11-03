@@ -48,7 +48,7 @@ Dashboard / Ingest → DATA: InternalData → Data
 | GraphQL | 公开字段执行。Choice 字段返回登录错误 | Choice 字段按身份结果执行 | 别名、片段、混合查询保持字段边界。匿名不消耗 Choice 额度 |
 | Dashboard 页面外壳 | 精确 CSR 外壳可读 | 相同，数据另取 | 外壳不含业务数据 |
 | Dashboard 数据、API、actions、文件 | 拒绝或跳转 | 按 Bearer 权限检查 | `__data.json` 保留 redirect 协议 |
-| Ingest / Choice / Quant | 入口边界不变 | 用户 Bearer 不能替代服务凭据 | Ingest 仅 GET health。Choice 用私网 RPC token。Quant 默认 HTTP 404，研究报告只经 Gateway 模型读权限和命名绑定提供 |
+| Ingest / Quant | 入口边界不变 | 用户 Bearer 不能替代服务凭据 | Ingest 仅 GET health。Quant 默认 HTTP 404，研究报告只经 Gateway 模型读权限和命名绑定提供 |
 
 `InternalData` 没有公网 URL，调用方不依赖用户 token。Gateway 机器客户端白名单为空（`AUTH0_MACHINE_CLIENT_IDS`），Quant 目前不能经公网调用 Data Choice。重新开放须单独配置客户端、scope 和白名单，并验证完整调用链。
 

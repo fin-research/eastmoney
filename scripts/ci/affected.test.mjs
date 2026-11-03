@@ -6,10 +6,8 @@ import { verify } from './gate.mjs';
 test('service bindings and shared contracts include consumers without global imports', () => {
   const plan = affected(['data/src/contracts.ts']);
   for (const p of ['data', 'gateway', 'dashboard', 'ingest', 'quant']) assert.equal(plan[p], true);
-  assert.equal(plan.choice, false);
   assert.equal(affected(['dashboard/migrations/next.sql']).ingest, true);
   assert.equal(affected(['ingest/migrations/next.sql']).dashboard, true);
-  assert.equal(affected(['choice/src/main.cpp']).data, true);
   assert.equal(affected(['dashboard/src/lib/permissions.ts']).gateway, true);
   assert.equal(affected(['quant/online/worker.ts']).dashboard, true);
   assert.ok(projects.every(p => affected(['.github/workflows/ci.yml'])[p]));

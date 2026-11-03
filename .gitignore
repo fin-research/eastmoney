@@ -30,7 +30,6 @@
 !/gateway/
 !/dashboard/
 !/data/
-!/choice/
 !/messenger/
 !/ingest/
 !/quant/
@@ -48,5 +47,3 @@
 **/.Codex
 **/outputs
 **/coverage/
-/choice/vendor/linux-x64/libEMQuantAPIx64.so
-/choice/vendor/linux-x64/ServerList.json.e

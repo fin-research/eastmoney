@@ -21,7 +21,6 @@ jobs:
       gateway: ${{ steps.plan.outputs.gateway }}
       dashboard: ${{ steps.plan.outputs.dashboard }}
       data: ${{ steps.plan.outputs.data }}
-      choice: ${{ steps.plan.outputs.choice }}
       messenger: ${{ steps.plan.outputs.messenger }}
       ingest: ${{ steps.plan.outputs.ingest }}
       quant: ${{ steps.plan.outputs.quant }}
@@ -106,13 +105,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.quant == 'true'
     uses: ./.github/workflows/quant.yml
-  choice:
-    needs: changes
-    if: needs.changes.outputs.choice == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: docker build --target build -t choice:ci choice
   integration:
     needs: changes
     if: needs.changes.outputs.gateway == 'true' || needs.changes.outputs.dashboard == 'true' || needs.changes.outputs.data == 'true'
@@ -135,7 +127,7 @@ jobs:
         working-directory: dashboard
   gate:
     name: Monorepo CI
-    needs: [changes, gateway, data, messenger, ingest, dashboard, quant, choice, integration]
+    needs: [changes, gateway, data, messenger, ingest, dashboard, quant, integration]
     if: always()
     runs-on: ubuntu-latest
     steps:
