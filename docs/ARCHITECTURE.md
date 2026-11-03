@@ -11,13 +11,15 @@
 | Dashboard Worker | 私有 `GatewayDashboard` 承接 UI、业务 API/actions。Workflows 与授信 Agent | [wrangler](../dashboard/wrangler.jsonc)、[入口](../dashboard/worker/entry.ts) |
 | Messenger Worker | 私有 Messaging / MessengerAdmin，消息投递与唯一分钟 Cron Scheduler | [配置](../messenger/wrangler.jsonc)、[接口](../messenger/README.md) |
 | Ingest Worker | 研报、政策与央行资讯私有定时入口 / Workflows。不承接站点页面 | [wrangler](../ingest/wrangler.jsonc)、[入口](../ingest/src/index.ts) |
-| Choice RPC | office Linux amd64 的 Choice SDK 单会话私网服务 | [构建与运行](../choice/docs/DEVELOPMENT.md) |
+| Choice 原生会话 | 本分支由 Data 的私有 Durable Object 持有厂商会话，尚未部署 | [原生协议迁移](../data/docs/modules/choice-native.md) |
 | Quant | 本地债券训练。两融封存于 archive。私有债券 JS 推理 Workflow 与静态研究报告，自动归档并发布结果，无公网 API | [本地架构](../quant/docs/ARCHITECTURE.md)、[线上推理](../quant/docs/ONLINE_INFERENCE.md) |
 | 原 Financing Worker | 休眠回退。空路由、空 Cron，不能重新取得生产 Workflow 所有权 | [合并记录](../dashboard/docs/FINANCING_MERGE.md) |
 
 业务站点公网为 `eastmoney.hasbai.xyz/*` → Gateway。`/api/ai/responses` 由 Gateway 验证本站用户 Bearer 后直接请求 Cloudflare AI Gateway，支持 JSON 和原生 Responses SSE。`/data` 及其子路径进入 Data。`/financing-model/research` 按既有模型读取权限进入 Quant `ResearchReport` 命名报告入口，其余已登记路径进入 Dashboard。MCP 统一通过 Gateway `eastmoney.hasbai.xyz/mcp` 接入，不经过 Cloudflare MCP Portal。
 
-MCP 通过 Gateway 公开资源发现直连 Auth0 OAuth，使用正常 API Bearer，执行经私有 IDENTITY 路由权限桥接；只注册已审核业务数据与人工操作，AI 生成不进入工具目录。Gateway 通过命名 `GatewayDashboard` / `GatewayData` Service Binding 汇总 Dashboard 与 Data 工具；应用维护 Schema、查询与业务权限，Gateway 不转发用户 token。旧公网 `/api/mcp`、`/data/mcp` 返回410。连接与发布目录见 [Dashboard MCP](../dashboard/docs/MCP.md)。Dashboard/Data 没有 routes、Custom Domain、workers.dev 或 preview URL。
+MCP 通过 Gateway 公开资源发现直连 Auth0 OAuth，使用正常 API Bearer，执行经私有 IDENTITY 路由权限桥接；只注册已审核业务数据与人工操作，AI 生成不进入工具目录。Gateway 通过命名 `GatewayDashboard` / `GatewayData` Service Binding 汇总 Dashboard 与 Data 工具；应用维护 Schema、查询与业务权限，Gateway 不转发用户 token。旧公网 `/api/mcp`、`/data/mcp` 返回410。
+
+连接与发布目录见 [Dashboard MCP](../dashboard/docs/MCP.md)。Dashboard/Data 没有 routes、Custom Domain、workers.dev 或 preview URL。
 
 默认 fetch 固定 404，命名入口不能由 URL 或请求头选中。
 
@@ -43,7 +45,8 @@ Messenger 唯一每分钟 Cron → 私有 ScheduledTasks → Dashboard / Data / 
 Dashboard 管理页 → MESSENGER_ADMIN: MessengerAdmin → 投递历史与人工重试
 Dashboard / Ingest / Quant 定时任务 → DATA: InternalData → Data
 Quant 本地 → Neon 只读输入；旧 Auth0 机器 Choice 客户端已退役
-Data → DM / CHOICE_RPC / CAMEL VPC → office 上游
+Data → DM / CAMEL VPC → office 上游
+Data → CHOICE_SESSION Durable Object → Choice 厂商 TCP / HTTPS（本分支，尚未部署）
 Data economic-indicator-sync → Hyperdrive → Neon public.edb / quant_input
 Data economic-indicator-sync → R2 eastmoney/fund-reports（只读）
 Ingest → D1 + R2 article → AI Search research
@@ -57,7 +60,8 @@ Quant BondInferenceWorkflow → R2 quant-trial 归档 → Neon financing_model.p
 - Data 接收 Gateway 的 GraphQL 字段授权结果与 CAMEL 专用准入结果。公开字段照常执行，受保护资源在上游调用前应用结果。Data 不访问 Auth0 或权限库。
 - Dashboard 的用户目录及角色权限配置通过 `IDENTITY` 调用 Gateway。角色权限在 Auth0 管理，Gateway 用 Cache API 缓存 1 小时并逐请求检查。提醒 Cron 通过相同私有目录服务取得收件人，不依赖用户会话。
 - Dashboard/Ingest 的 `InternalData` 机器调用保持不变。Quant 在线定时任务使用同一命名绑定，仅查询交易日。Quant 本地的旧机器应用已退役，Gateway 白名单为空。恢复机器 Choice 访问须按 [AUTH](AUTH.md) 重新配置并验证。
-- DM、Choice、CAMEL 继续各走 VPC binding，不添加公网回退。CAMEL 拆借查询、Excel 导入、PDF 上传和还款草稿由浏览器直接调用 `/data/camel/*`，Gateway 对精确资源校验独立拆借读/导入权限和 POST 同源后，经 GatewayData 的专用 CAMEL verdict 分派；不经过 Dashboard 业务后端。InternalData 继续服务可信机器绑定。ZIP 解析、改名、本地归档及导入编排在浏览器完成，资金凭据、验证码和会话留在 Data。
+- DM、CAMEL 继续各走 VPC binding，不添加公网回退。Choice 的原生会话迁移仅完成离线验证，生产办公室服务尚未退役。
+- CAMEL 拆借查询、Excel 导入、PDF 上传和还款草稿由浏览器直接调用 `/data/camel/*`。Gateway 校验精确资源的独立拆借读/导入权限和 POST 同源后，经 GatewayData 的专用 CAMEL verdict 分派；不经过 Dashboard 业务后端。InternalData 继续服务可信机器绑定。ZIP 解析、改名、本地归档及导入编排在浏览器完成，资金凭据、验证码和会话留在 Data。
 - Workflow 失败与终止统一由 Messenger 订阅平台事件。omo 和 market-briefing 成功也通知。economic-indicator-sync 的完成事件用于捕获业务 partial/failed，正常成功不通知。Workflow 不再内嵌终态通知。业务消息仍通过 Messaging。新增订阅流程见 [Messenger 运维](../messenger/docs/DEVELOPMENT.md#workflow-订阅)。
 
 ## 共享数据接口与业务计算

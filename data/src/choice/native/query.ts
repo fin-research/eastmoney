@@ -51,11 +51,7 @@ export function encodeQuery(functionName: string, payload: Record<string, unknow
     }
     case "edb": {
       serverType=6;
-      const ids=csv(text(payload,"edbIds"));
-      if (!ids.length || ids.some(id=>!/^\w+$/.test(id))) throw new ChoiceWireError("Invalid Choice EDB IDs");
-      // FIXDATE/PERIOD trigger additional SDK queries; do not silently ignore them.
-      for (const key of opt.keys()) if (!["STARTDATE","ENDDATE"].includes(key)) throw new ChoiceWireError(`Unsupported native EDB option ${key}`);
-      command="$-edb\r\n$indicate(userid="+uid+"|name="+ids.join(",")+"|startDate="+date(text(payload,"startDate"))+"|enddate="+date(text(payload,"endDate"))+"|CLIENT=CHOICEPC)";
+      command=edbCommand(payload,uid,false);
       break;
     }
     default: throw new ChoiceWireError(`Unsupported native Choice function ${functionName}`);
@@ -97,14 +93,14 @@ export type ChoicePercentIndicatorsByCode = Readonly<Record<string, readonly str
 function publicScalar(value: ChoiceScalar, wireType: number): unknown {
   if (wireType===1 || wireType===2) return null; // Existing C++ adapter intentionally drops byte/byte-array.
   if (typeof value === "bigint") return Number(value); // Existing JSON boundary parsed into JS numbers.
-  if (typeof value === "number" && [6,7,8].includes(wireType)) { const rounded=Math.round(value*1_000_000)/1_000_000; return Number.isFinite(rounded)?rounded:null; }
+  if (typeof value === "number" && [6,7,8].includes(wireType)) { const rounded=Math.sign(value)*Math.round(Math.abs(value)*1_000_000)/1_000_000; return Number.isFinite(rounded)?rounded:null; }
   return value;
 }
 function scalarText(value: ChoiceScalar|undefined): string {
   if (typeof value !== "string") throw new ChoiceWireError("Invalid Choice row key");
   return value;
 }
-export function decodeQuery(functionName: string,payload: Record<string,unknown>,responseBody: Uint8Array, expectedDates?: readonly string[], percentIndicatorsByCode?: ChoicePercentIndicatorsByCode): ChoiceTable {
+export function decodeQuery(functionName: string,payload: Record<string,unknown>,responseBody: Uint8Array, expectedDates?: readonly string[], percentIndicatorsByCode?: ChoicePercentIndicatorsByCode, publishDatesBody?: Uint8Array): ChoiceTable {
   const name=functionName.toUpperCase(), sheets=decodeChoiceSheets(responseBody);
   if (name === "TRADEDATES") {
     for (const sheet of sheets) if (sheet.types.length!==1 || sheet.types[0]!==5) throw new ChoiceWireError("Invalid Choice calendar schema");
@@ -113,21 +109,42 @@ export function decodeQuery(functionName: string,payload: Record<string,unknown>
   if (name === "CTR") {
     if (sheets.length > 1) throw new ChoiceWireError("Multiple Choice CTR sheets need explicit mapping");
     const sheet=sheets[0]; if (!sheet) return {function:"CTR",fields:[],rows:[]};
-    const outputFields=fields(sheet.columns);
-    return {function:"CTR",fields:outputFields,rows:sheet.rows.map(row=>Object.fromEntries(outputFields.map((field,index)=>[field,publicScalar(row[index]!,sheet.types[index]!)])))};
+    const requested=unique(csv(text(payload,"indicators").replaceAll("|",",")));
+    const projected=requested.map(field=>sheet.columns.findIndex(column=>column.toUpperCase()===field)).filter(index=>index>=0);
+    const columns=projected.length ? projected : sheet.columns.map((_,index)=>index);
+    const outputFields=fields(columns.map(index=>sheet.columns[index]!));
+    return {function:"CTR",fields:outputFields,rows:sheet.rows.map(row=>Object.fromEntries(outputFields.map((field,index)=>[field,publicScalar(row[columns[index]!]!,sheet.types[columns[index]!]!)])))};
   }
   if (name !== "CSD" && name !== "CSS" && name !== "EDB") throw new ChoiceWireError("Unsupported native Choice response function");
   if (name === "EDB") {
-    const rows:Array<Record<string,unknown>>=[];
-    for (const sheet of sheets) {
-      if (sheet.columns.length!==2) throw new ChoiceWireError("Invalid Choice EDB schema");
-      for (const row of sheet.rows) {
-        const value=publicScalar(row[1]!,sheet.types[1]!);
-        if (value !== null) rows.push({code:sheet.name.toUpperCase(),date:normalizeDate(row[0]),RESULT:value});
+    const publish=options(payload).get("ISPUBLISHDATE") === "1" && edbIdType(csv(text(payload,"edbIds")).length ? csv(text(payload,"edbIds")) : sheets.map(sheet=>sheet.name.toUpperCase()))===1;
+    if(publish && !publishDatesBody) throw new ChoiceWireError("Choice EDB publish dates response is required");
+    const publishValues=new Map<string,number|null>();
+    if(publishDatesBody) for(const sheet of decodeChoiceSheets(publishDatesBody)) {
+      if(sheet.columns.length!==2 || sheet.types[1]!==7) throw new ChoiceWireError("Invalid Choice EDB publish schema");
+      for(const row of sheet.rows){
+        const key=sheet.name.toUpperCase()+"\0"+normalizeDate(row[0]);
+        const value=row[1];
+        if(!publishValues.has(key)) publishValues.set(key,typeof value === "number" ? Math.trunc(value)|0 : null);
       }
     }
+    const values=new Map<string,Record<string,unknown>>(),seen=new Set<string>();
+    const requestedIds=csv(text(payload,"edbIds"));
+    for (const sheet of sheets) {
+      const code=sheet.name.toUpperCase();
+      if (sheet.columns.length!==2 || sheet.types[1]!==7 || (requestedIds.length && !requestedIds.includes(code))) throw new ChoiceWireError("Invalid Choice EDB schema");
+      for (const row of sheet.rows) {
+        const day=normalizeDate(row[0]),key=code+"\0"+day;
+        if(seen.has(key))continue; // SDK std::map::insert keeps the first row.
+        seen.add(key);
+        const value=publicScalar(row[1]!,sheet.types[1]!);
+        const published=publishValues.get(key) ?? null;
+        if (value !== null || (publish && published !== null)) values.set(key,{code,date:day,RESULT:value,...(publish?{PUBLISHDATE:published}:{})});
+      }
+    }
+    const rows=[...values.values()];
     rows.sort((a,b)=>String(a.code).localeCompare(String(b.code)) || String(a.date).localeCompare(String(b.date)));
-    return {function:"EDB",fields:["code","date","RESULT"],rows};
+    return {function:"EDB",fields:["code","date","RESULT",...(publish?["PUBLISHDATE"]:[])],rows};
   }
   const requestedIndicators=csv(text(payload,"indicators")),requestedCodes=unique(csv(text(payload,"codes")));
   const outputIndicators=fields(requestedIndicators.length ? requestedIndicators : sheets.map(sheet=>sheet.name));
@@ -168,4 +185,29 @@ export function calendarQueryForCsd(payload: Record<string,unknown>): Record<str
   const opt=options(payload), period=opt.get("PERIOD") ?? "1", market=opt.get("MARKET") ?? "CNSESH";
   validateCsdOptions(opt);
   return {startDate:date(text(payload,"startDate")),endDate:date(text(payload,"endDate")),options:"PERIOD="+period+",ORDER="+(opt.get("ORDER") ?? "1")+",MARKET="+market};
+}
+
+function edbCommand(payload: Record<string,unknown>,uid:string,publish:boolean):string {
+  const ids=csv(text(payload,"edbIds"));
+  const idType=edbIdType(ids);
+  if(/[\r\n\0,|$()]/.test(uid))throw new ChoiceWireError("Invalid Choice EDB UID");
+  for(const [key,value] of options(payload)) {
+    if(["STARTDATE","ENDDATE"].includes(key))continue;
+    if((key==="FIXDATE" || key==="ISLATEST") && value==="0")continue;
+    if(key==="ISPUBLISHDATE" && ["0","1"].includes(value))continue;
+    throw new ChoiceWireError(`Unsupported native EDB option ${key}`);
+  }
+  return "$-"+(publish?"EDBDATE":idType===1?"edb":"bond")+"\r\n$indicate(userid="+uid+"|name="+ids.join(",")+"|startDate="+date(text(payload,"startDate"))+"|enddate="+date(text(payload,"endDate"))+"|CLIENT=CHOICEPC)";
+}
+/** cedbwraper @0x2aca8e performs this query before EDB when IsPublishDate=1. */
+export function publishDateQueryForEdb(payload:Record<string,unknown>,uid:string):EncodedChoiceQuery|undefined {
+  if(options(payload).get("ISPUBLISHDATE")!=="1" || edbIdType(csv(text(payload,"edbIds")))!==1)return undefined;
+  return {serverType:6,frame:encodeChoiceFrame(edbCommand(payload,uid,true))};
+}
+
+function edbIdType(ids:readonly string[]):1|2 {
+  if(!ids.length)throw new ChoiceWireError("Choice EDB IDs are required");
+  const types=ids.map(id=>/^EM[IMGW]\d{8}$/.test(id)?1:/^E\d{7}$/.test(id)?2:0);
+  if(types.some(type=>type===0 || type!==types[0])) throw new ChoiceWireError("Choice EDB IDs have unsupported or mixed formats");
+  return types[0] as 1|2;
 }

@@ -53,8 +53,8 @@ GraphQL 请求的保守资源预算为 40 个上游 subrequest，防止重复 al
 OMO、CFETS、国债收益率、期货、今日成交等稀疏行情字段缺失或为上游占位符时统一输出 `null`，不伪造为 0。
 `bond-top-case` 的个别债券缺少收益率时保留该行和其他有效行情。非数值错型仍返回 Schema 校验错误。
 
-上游请求或 Schema 校验失败时，错误响应除 `detail` 外还返回安全诊断对象，包含错误码、数据源、处理阶段、
-上游 HTTP 状态及限长后的字段路径/收到类型。DM / Choice 的非 2xx 响应另保留 `error.upstreamResponse`：
+上游请求或 Schema 校验失败时，响应在 `detail` 外提供安全诊断。
+该对象包含错误码、数据源和处理阶段。还包含上游 HTTP 状态及限长字段路径/收到类型。DM / Choice 的非 2xx 响应另保留 `error.upstreamResponse`：
 `status`、`statusText`、`contentType`、`requestId`、脱敏 `body`（最多 8 KiB 输入、8,192 字符输出）、`truncated`，
 读取响应体失败时附 `readError`。DM 业务错误另保留 `upstreamCode` / `upstreamMessage`。CFETS 历史 protobuf
 业务失败保存解码后的错误信封，无效 protobuf / JSON 保存限长响应片段及处理阶段。
@@ -79,7 +79,7 @@ Cookie、Bearer/JWT、签名参数及已知运行时 Secret 值均脱敏，Set-C
 - [app.ts](../src/app.ts) 负责公共 HTTP 装配。[http.ts](../src/http.ts) 负责错误、限长读取与 JSON 响应。[graphql.ts](../src/graphql.ts) 保持相同资源的薄镜像。
 - 修改字段时先扩展 Zod 契约并运行 `pnpm openapi:generate`，同步 REST 投影、GraphQL 和 [契约测试](../tests/contracts.test.ts)。
 - 公共响应保留 `Cache-Control: no-store`。不要改变现有 HTTP 状态或将稀疏行情伪造为零。
-- Choice RPC 的版本、请求/响应和失败契约由 [Choice API](../../choice/docs/API.md) 维护。本项目的 [Choice client](../src/choice/client.ts) 负责版本检查、解析与表结构校验。
+- 本分支的 Choice 原生协议、兼容范围和验证边界见 [原生协议迁移](modules/choice-native.md)。[Choice client](../src/choice/client.ts) 检查私有对象协议版本并校验表结构。生产切换尚未执行。
 - 跨仓库变更只加读受影响消费者模块，按 [共享架构变更协同](../../docs/ARCHITECTURE.md#变更协同) 检查。
 
 ## 中国货币网
@@ -88,6 +88,8 @@ Cookie、Bearer/JWT、签名参数及已知运行时 Secret 值均脱敏，Set-C
 
 ### 新闻正文分页
 
-`GET /data/news?detail=true&pageSize=10&offset=0` 返回顶层数组，包含正文 `content` 与可选 `link`；省略 `detail` 时仍只返回摘要。正文模式默认和上限均为 10 条，每批详情最多五个并发；任一详情失败或 ID 不匹配则整批失败。`offset` 为 0—90，`offset + pageSize` 不超过 100。先按日期、时间、标签筛选并去重，再分页，仅获取本页正文。客户端跨批固定相同 `endTime`，不足一页停止。REST、GraphQL `news` 和 MCP 共用参数、投影与 DTO。GraphQL 预算在列表扫描成本之外增加本批详情数。
+`GET /data/news?detail=true&pageSize=10&offset=0` 返回顶层数组，包含正文 `content` 与可选 `link`；省略 `detail` 时仍只返回摘要。正文模式默认和上限均为 10 条，每批详情最多五个并发；任一详情失败或 ID 不匹配则整批失败。`offset` 为 0—90，`offset + pageSize` 不超过 100。
+
+先按日期、时间、标签筛选并去重，再分页，仅获取本页正文。客户端跨批固定相同 `endTime`，不足一页停止。REST、GraphQL `news` 和 MCP 共用参数、投影与 DTO。GraphQL 预算在列表扫描成本之外增加本批详情数。
 
 正文模式只对筛选后参与分页的摘要执行一次完整契约校验；其他记录不检查无关的标题、标签等字段。扫描时间无法识别时仍返回 503，避免误判日期范围或末页。每篇正文保留一次完整契约校验和 ID 匹配。

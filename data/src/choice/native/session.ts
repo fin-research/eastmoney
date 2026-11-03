@@ -8,9 +8,9 @@ import { fetchNativeStatistics } from './statistics';
 import { ChoiceQuotaError, executeAccountedEdb } from './quota';
 import { readUpstreamJson } from '../../upstream-diagnostics';
 import { requireUpstreamCapacity } from '../../upstream-rate-limit';
-import { decodeChoiceSheets } from './wire';
+import { decodeChoiceSheets, assertQueryFrame, ChoiceServerError } from './wire';
 import { percentMetadataRequest, decodePercentMetadata, percentFlags, codeTypeRequest, decodeCodeTypes, type PercentMetadata } from './percent';
-import { encodeQuery, decodeQuery, calendarQueryForCsd } from './query';
+import { encodeQuery, decodeQuery, calendarQueryForCsd, publishDateQueryForEdb } from './query';
 import { choiceTableSchema, type ChoiceTable } from '../client';
 
 const querySchema = z.object({ function: z.enum(['csd','css','edb','ctr','tradedates','datastatistics']), payload: z.record(z.string(), z.unknown()) });
@@ -66,15 +66,23 @@ export class ChoiceSession extends DurableObject<Cloudflare.Env> {
           const calendar = encodeQuery('tradedates', calendarPayload, session.token, session.uid);
           await requireUpstreamCapacity(this.env.CHOICE_OTHER_LIMIT, 'tradedates', 'Choice');
           const result = await exchange(this.config.servers['3'], calendar.frame, remaining(started + 60_000));
-          if ([101,102,103,107].includes(result.header[9]!)) throw new ChoiceTransportError('Choice calendar protocol error');
+          assertQueryFrame(result);
           expectedDates = decodeQuery('tradedates', calendarPayload, result.body).rows.map(row => String(row.date));
         }
         const query = encodeQuery(name, payload, session.token, session.uid);
         const queryData = async () => {
+        let published: Uint8Array | undefined;
+        const publicationQuery = name === 'edb' ? publishDateQueryForEdb(payload, session.uid) : undefined;
+        if (publicationQuery) {
+          await requireUpstreamCapacity(this.env.CHOICE_OTHER_LIMIT, 'edb', 'Choice');
+          const publication = await exchange(this.config.servers['6'], publicationQuery.frame, remaining(started + 60_000));
+          assertQueryFrame(publication);
+          published = publication.body;
+        }
         const result = await exchange(this.config.servers[String(query.serverType) as '3'|'6'|'20'], query.frame, remaining(started + 60_000));
         // SDK reports server-side string/error responses using status byte9 101/102/103/107.
-        if ([101,102,103,107].includes(result.header[9]!)) throw new ChoiceTransportError('Choice server returned a protocol error');
-        return { value: decodeQuery(name, payload, result.body, expectedDates, percentByCode), sheets: name === 'edb' ? decodeChoiceSheets(result.body) : [] };
+        assertQueryFrame(result);
+        return { value: decodeQuery(name, payload, result.body, expectedDates, percentByCode, published), sheets: name === 'edb' ? decodeChoiceSheets(result.body) : [] };
         };
         table = name === 'edb' ? await executeAccountedEdb(session.token, async request => {
           await requireUpstreamCapacity(this.env.CHOICE_OTHER_LIMIT, 'edb', 'Choice');
@@ -92,7 +100,7 @@ export class ChoiceSession extends DurableObject<Cloudflare.Env> {
       // Deliberately omit vendor response/error text, tokens, endpoint and activation data.
       if (error instanceof ApiError && error.status === 429) return errorResponse(error);
       const timeout = error instanceof ChoiceTransportError && error.timeout || error instanceof DOMException && error.name === 'TimeoutError';
-      return Response.json({ error: { code: timeout ? 'UPSTREAM_TIMEOUT' : 'CHOICE_NATIVE_ERROR', message: timeout ? 'Choice native request timed out' : 'Choice native request failed', ...(error instanceof ChoiceLoginError || error instanceof ChoiceQuotaError || error instanceof ChoiceTransportError && error.upstreamCode !== undefined ? { upstreamCode: error.upstreamCode } : {}) } }, { status: timeout ? 504 : 503, headers: { 'Cache-Control': 'no-store' } });
+      return Response.json({ error: { code: timeout ? 'UPSTREAM_TIMEOUT' : 'CHOICE_NATIVE_ERROR', message: timeout ? 'Choice native request timed out' : 'Choice native request failed', ...(error instanceof ChoiceLoginError || error instanceof ChoiceQuotaError || error instanceof ChoiceServerError || error instanceof ChoiceTransportError && error.upstreamCode !== undefined ? { upstreamCode: error.upstreamCode } : {}) } }, { status: timeout ? 504 : 503, headers: { 'Cache-Control': 'no-store' } });
     }
   }
 
@@ -103,7 +111,7 @@ export class ChoiceSession extends DurableObject<Cloudflare.Env> {
     const metadataExchange = async (frame: Uint8Array) => {
       await requireUpstreamCapacity(this.env.CHOICE_OTHER_LIMIT, 'ctr', 'Choice');
       const reply = await exchange(this.config.servers['3'], frame, remaining(deadline));
-      if ([101,102,103,107].includes(reply.header[9]!)) throw new ChoiceTransportError('Choice metadata protocol error');
+      assertQueryFrame(reply);
       return reply.body;
     };
     if (!this.percentCache || this.percentCache.expires <= Date.now()) {

@@ -187,3 +187,30 @@ export function decodeChoiceSheets(bytes: Uint8Array): ChoiceSheet[] {
   }
   return sheets;
 }
+
+export class ChoiceServerError extends ChoiceWireError {
+  readonly upstreamCode:number;
+  constructor(upstreamCode:number) { super("Choice query failed"); this.name="ChoiceServerError"; this.upstreamCode=upstreamCode; }
+}
+/** cquantbusiness::reqbusiness @0x2af908..0x2afb35; table @0x519b50.
+ * Preserves native numeric codes without returning vendor text or session material.
+ */
+export function assertQueryFrame(frame:{header:Uint8Array;body:Uint8Array}):void {
+  decodeChoiceHeader(frame.header);
+  const status=frame.header[9]!;
+  if(![101,102,103,107].includes(status))return;
+  let code=status===101?10002003:status===102?10000015:10000013;
+  if(status===103) {
+    const zero=frame.body.indexOf(0), end=zero<0?frame.body.length:zero;
+    if(end>0 && frame.body[end-1]===93) {
+      let start=end-2;
+      while(start>=0 && frame.body[start]!==91)start--;
+      if(start>=0 && end-start>2) {
+        const suffix=new TextDecoder().decode(frame.body.subarray(start+1,Math.min(end-1,start+32)));
+        const number=Number.parseInt(suffix,10);
+        if(number>=10000 && number<=10003)code=[10001012,10001012,10000016,10003010][number-10000]!;
+      }
+    }
+  }
+  throw new ChoiceServerError(code);
+}
