@@ -14,7 +14,8 @@ export function decodePercentMetadata(body: Uint8Array): PercentMetadata {
     const indexes = ['ENGNAME_API', 'EOIFUNCTION', 'STYPE'].map(name => sheet.columns.findIndex(column => column.toUpperCase() === name));
     if (indexes.some(index => index < 0 || sheet.types[index] !== 12)) throw new ChoiceWireError('Invalid Choice percentage metadata schema');
     for (const row of sheet.rows) {
-      const values = indexes.map(index => row[index]);
+      // Wire type 12 decodes an empty string as null; the SDK reads it as an empty string.
+      const values = indexes.map(index => row[index] ?? '');
       if (values.some(value => typeof value !== 'string')) throw new ChoiceWireError('Invalid Choice percentage metadata row');
       const [indicator, functionName, rawTypes] = values as [string, string, string];
       const name = functionName.toUpperCase();

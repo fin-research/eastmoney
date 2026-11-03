@@ -88,7 +88,7 @@ export class ChoiceSession extends DurableObject<Cloudflare.Env> {
         };
         table = name === 'edb' ? await executeAccountedEdb(session.token, async request => {
           await requireUpstreamCapacity(this.env.CHOICE_OTHER_LIMIT, 'edb', 'Choice');
-          const response = await fetch(new URL(request.path, this.config.servers.statisticsOrigin), { method: 'POST', redirect: 'error', headers: { 'Content-Type': 'application/json' }, body: request.body, signal: AbortSignal.timeout(remaining(started + 60_000)) });
+          const response = await fetch(new URL(request.path, this.config.servers.statisticsOrigin), { method: 'POST', redirect: 'manual', headers: { 'Content-Type': 'application/json' }, body: request.body, signal: AbortSignal.timeout(remaining(started + 60_000)) });
           if (!response.ok) { await response.body?.cancel(); throw new Error('Choice quota HTTP error'); }
           return readUpstreamJson(response, [session.token]);
         }, queryData) : (await queryData()).value;

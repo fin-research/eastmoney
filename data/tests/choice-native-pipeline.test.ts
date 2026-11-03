@@ -69,6 +69,7 @@ it.each([false,true])('EDB publish-date query, quota order and failed accounting
   const calls: string[] = [];
   vi.stubGlobal('fetch', vi.fn(async (url: URL, init: RequestInit) => {
     const path = url.pathname; calls.push(path);
+    expect(init.redirect).toBe('manual'); // workerd rejects redirect: 'error'
     if(path === '/api/count') expect(JSON.parse(String(init.body))).toEqual({subjectName:'EM_EDB',tokenID:'synthetic-token',num:'1'});
     return Response.json({code:200,data:[{flag:!(denied && path === '/api/count')}]});
   }));
