@@ -120,6 +120,8 @@ Quant → Neon 只读数据；旧 Auth0 机器 Choice 入口已退役
 
 Agent mode 下 CLI 已输出 JSON，不能给所有命令盲加 `--json`。错误信息保留在 stderr，不把 `2>&1` 接入 `jq`，也不打印 token、client secret、完整用户资料或含凭据的配置。删除命令在 agent mode 下需要 `--force`，仅对已核对的精确 ID 执行。Auth0 skill 的 CLI 参考是命令语法依据，应用业务权限和生产身份边界仍以本文件及 Gateway 实现为准。
 
+本机 agent 使用 M2M 应用 `eastmoney agent management`（`r4iobbtIy8S5bPjUFqxlS6flW6LA4cDG`），凭据在根 `.env` 的 `AUTH0_AGENT_CLIENT_ID` / `AUTH0_AGENT_CLIENT_SECRET`。`auth0 login --domain hasbai.eu.auth0.com --client-id … --client-secret …` 做机器登录，CLI 自动续期，无需设备码。授权范围覆盖 clients、client grants、client profiles、租户设置、API、Actions、日志，以及组织、角色、用户和连接的只读（连接另可写）。无 delete 权限。
+
 原有 `pnpm auth0:export` / `auth0:plan` / `auth0:apply` 与 Management API helper 是依赖专用机器凭据的历史迁移工具，不作为新任务的本地 Auth0 管理入口。不能在机器应用退役后继续运行。Gateway 运行时使用的 `eastmoney gateway management` 是另一应用，供身份服务和登录 Actions 使用，不受本地 CLI 授权变化影响。worktree 的权限测试仍可用 `AUTH_TEST_ENV_FILE` 指向项目组根 `.env`。身份验收继续只允许程序化流程，禁止 browser。
 
 ## 维护与来源
@@ -132,7 +134,7 @@ HTTP 登录遵循现有 [Auth0 Universal Login](https://auth0.com/docs/authentic
 
 ## MCP 边界
 
-统一 `/mcp` 要求有效 Auth0 用户登录。客户端连接 `https://eastmoney.hasbai.xyz/mcp`，不经过 Cloudflare MCP Portal。Gateway 的公开 Protected Resource Metadata 和 401 挑战指向真实 Auth0 issuer，使用官方 ChatGPT/Codex/OpenCode CIMD 自动识别客户端和授权码 + PKCE；Auth0 原生开启 CIMD discovery 与 RFC9207，动态注册与 DCR 未开放。三个精确客户端仅准入 `/mcp`，不准入普通 REST。MCP 身份来自签名 `https://eastmoney.hasbai.xyz/identity`，不回退顶层保留字段；网站声明协议保持。本站 API resource 为 `https://eastmoney.hasbai.xyz/`，Auth0 原生支持 resource 参数，组织限定与角色校验继续生效。Gateway 不签发或代理 token。旧公网 `/api/mcp`、`/data/mcp` 返回410。Gateway 通过命名应用 binding 聚合 Dashboard 与 Data 目录，用户 token 不进入应用；Data 使用可信用户和 Choice 准入上下文，MCP 不开放 CAMEL 或 InternalData。Gateway 按当前业务 route/action 权限筛选 Dashboard 工具目录，并校验每次执行；不发布 AI 生成工具。
+统一 `/mcp` 要求有效 Auth0 用户登录。客户端连接 `https://eastmoney.hasbai.xyz/mcp`，不经过 Cloudflare MCP Portal。Gateway 的公开 Protected Resource Metadata 和 401 挑战指向真实 Auth0 issuer，使用官方 ChatGPT/Codex/OpenCode CIMD 自动识别客户端和授权码 + PKCE；Auth0 原生开启 CIMD discovery 与 RFC9207，动态 CIMD 已开放（client profile 强制组织登录，默认 grant 授予本站 API），DCR 未开放。所有 CIMD 客户端仅准入 `/mcp`，不准入普通 REST。MCP 身份来自签名 `https://eastmoney.hasbai.xyz/identity`，不回退顶层保留字段；网站声明协议保持。本站 API resource 为 `https://eastmoney.hasbai.xyz/`，Auth0 原生支持 resource 参数，组织限定与角色校验继续生效。Gateway 不签发或代理 token。旧公网 `/api/mcp`、`/data/mcp` 返回410。Gateway 通过命名应用 binding 聚合 Dashboard 与 Data 目录，用户 token 不进入应用；Data 使用可信用户和 Choice 准入上下文，MCP 不开放 CAMEL 或 InternalData。Gateway 按当前业务 route/action 权限筛选 Dashboard 工具目录，并校验每次执行；不发布 AI 生成工具。
 
 旧 Quant Choice 机器 scope 不扩展到 MCP。匿名及无效登录返回 401，账号拒绝返回 403。已登录请求未登记入口时返回 403 `ROUTE_NOT_REGISTERED`，不再混淆为账号缺少权限。当前连接与工具范围见 [Dashboard MCP](../dashboard/docs/MCP.md)，门户历史配置见 [Gateway MCP](../gateway/docs/MCP.md)。
 

@@ -7,7 +7,7 @@ import { verifyToken, userClaims } from '../../tokens.ts';
 import { accessToken } from '../../session.ts';
 import { requireSameOrigin } from '../../policy.ts';
 import type { JWTPayload } from 'jose';
-import { mcpClientIds, mcpIdentityClaim } from '../../mcp-auth.ts';
+import { isMcpClient, mcpIdentityClaim } from '../../mcp-auth.ts';
 
 export function authorizationMode(value: unknown): AuthorizationMode {
   if (value !== 'enforce') throw new AccessError(503, '权限模式尚未配置完成');
@@ -20,7 +20,7 @@ export async function userIdentity(request: Request, env: Env, optional = false,
   if (!token && optional) return null;
   const payload = await verifyToken(token ?? '', env);
   const mcp = new URL(request.url).pathname.replace(/\/$/, '') === '/mcp';
-  return identityFromPayload(payload, env, mcp && mcpClientIds.includes(String(payload.azp)) ? String(payload.azp) : env.AUTH0_CLIENT_ID, snapshot);
+  return identityFromPayload(payload, env, mcp && isMcpClient(payload.azp) ? String(payload.azp) : env.AUTH0_CLIENT_ID, snapshot);
 }
 
 async function identityFromPayload(payload: JWTPayload, env: Env, clientId: string = env.AUTH0_CLIENT_ID,

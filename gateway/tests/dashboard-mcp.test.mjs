@@ -28,7 +28,7 @@ test('MCP authorization accepts only site/CIMD users and checks identity before 
   assert.equal((await status(new Request(f.env.SITE_ORIGIN+'/mcp',{method:'POST',headers:{Authorization:'Bearer '+await f.signed(),Origin:'https://evil.test'},body:'{}'}),f.env)),403);
   for(const path of ['/api/credit','/api/profile','/financing/projects']) assert.equal((await gatewayRequest(f.request(path,{token}),f.env)).status,403,path);
 });
-test('CIMD identities require exact clients and their signed namespace, with no legacy fallback',async t=>{
+test('CIMD identities require an https client and their signed namespace, with no legacy fallback',async t=>{
   const f=await fixture(t);
   const status=async(request,env)=>{try{await authorizeRequest(request,env,'/mcp');return 200;}catch(error){return error.status;}};
   const request=token=>new Request(f.env.SITE_ORIGIN+'/mcp',{method:'POST',headers:{Authorization:'Bearer '+token},body:'{}'});
@@ -42,7 +42,8 @@ test('CIMD identities require exact clients and their signed namespace, with no 
     }
     assert.equal((await status(request(await f.signed({azp,[mcpIdentityClaim]:f.flatClaims,org_id:'org_Other'})),f.env)),401);
   }
-  for(const azp of ['M1a5PF3UJaFIZv1k4HO4IV06Z5fXQBHV','https://chatgpt.com/oauth/unknown/client.json','https://chatgpt.com.evil.test/oauth/client.json'])
+  assert.equal((await status(request(await f.signed({azp:'https://unknown.example/client.json',[mcpIdentityClaim]:f.flatClaims})),f.env)),200);
+  for(const azp of ['M1a5PF3UJaFIZv1k4HO4IV06Z5fXQBHV','http://unknown.example/client.json'])
     assert.equal((await status(request(await f.signed({azp,[mcpIdentityClaim]:f.flatClaims})),f.env)),403);
 });
 test('private MCP policies and dispatch enforce fresh real-route permission and named action',async t=>{

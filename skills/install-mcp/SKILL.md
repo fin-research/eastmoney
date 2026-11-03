@@ -72,7 +72,7 @@ description: 在 AIWork、OpenCode、Codex 或 ChatGPT 中安装和配置 Eastmo
 
 - Codex：复用现有 Eastmoney 连接。新增时仅为 `mcp_servers.eastmoney` 配置 `url = "https://eastmoney.hasbai.xyz/mcp"`，再通过 `codex mcp login eastmoney` 发起授权。使用当前版本自带的 CIMD；不要填 OpenCode 的 client ID。
 - ChatGPT：在连接器设置中添加同一 URL，认证选择 OAuth，额外 client ID / secret 留空，由宿主使用官方 CIMD。已经安装并连接本插件时，直接发现工具，无需重复添加。
-- 其他自研客户端：不能仅凭“支持 MCP”判断 OAuth 兼容。需要支持 Streamable HTTP、OAuth 发现、PKCE 及服务端已登记的客户端身份和回调。若身份尚未登记，向服务维护者提供客户端名称、官方 CIMD URL 或所需回调，申请独立登记；不要套用 Codex、ChatGPT 或 OpenCode 身份。
+- 其他自研客户端：不能仅凭“支持 MCP”判断 OAuth 兼容。需要支持 Streamable HTTP、OAuth 发现、PKCE 及服务端已登记的客户端身份和回调。支持 CIMD 的客户端无需登记，直接发起授权即可，Auth0 自动注册。仅 DCR 或固定 client_id 的客户端不被接受；不要套用 Codex、ChatGPT 或 OpenCode 身份。
 
 ## 授权与验收
 

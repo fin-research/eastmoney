@@ -4,15 +4,15 @@
 
 客户端直接连接 `https://eastmoney.hasbai.xyz/mcp`，使用 Streamable HTTP 与 Auth0 OAuth 授权码/PKCE。此链路不经过 Cloudflare MCP Portal，不加 `dashboard_` 前缀。连接配置与发布目录由 [Dashboard MCP](../../dashboard/docs/MCP.md) 维护。
 
-Gateway 的 `/.well-known/oauth-protected-resource/mcp` 及根路径发现文档公开本站 API resource 与真实 Auth0 issuer。未登录 MCP 请求返回 401 和指向该文档的 `WWW-Authenticate`。Auth0 负责授权和 token；Gateway 不代理登录或签发 token。ChatGPT、Codex 和支持 CIMD 的 OpenCode 自动使用已登记的官方 CIMD，不填写 client ID 或 secret。Auth0 原生开启 CIMD discovery 与 RFC9207。动态 CIMD 与 DCR 保持关闭。
+Gateway 的 `/.well-known/oauth-protected-resource/mcp` 及根路径发现文档公开本站 API resource 与真实 Auth0 issuer。未登录 MCP 请求返回 401 和指向该文档的 `WWW-Authenticate`。Auth0 负责授权和 token；Gateway 不代理登录或签发 token。ChatGPT、Codex、Claude、支持 CIMD 的 OpenCode 及其他 CIMD 客户端自动使用自己的 CIMD，不填写 client ID 或 secret。Auth0 原生开启 CIMD discovery、RFC9207 和动态 CIMD 注册；DCR 保持关闭。
 
 ChatGPT 新建 OAuth 连接只填写上述 MCP URL，高级 OAuth 设置留空。Codex 仅配置 `mcp_servers.eastmoney.url` 后执行 `codex mcp login eastmoney`；删除旧的显式 `oauth.client_id`、`callback_port` 配置。
 
 精确客户端为 `https://chatgpt.com/oauth/client.json`（Auth0 内部 `tpc_a7WD9gnnwfLwzjTcG3aN8m`，ChatGPT 官方 private-key JWT）、`https://chatgpt.com/oauth/codex/client.json`（`tpc_2WkMuCZoYq49waTvQZjJHK`，public PKCE）和 `https://opencode.ai/oauth/opencode/client.json`（`tpc_mJaDePAHohZSgFrpLBfWny`，public PKCE）。ChatGPT 固定回调为 `https://chatgpt.com/connector_platform_oauth_redirect`；Codex、OpenCode 按 RFC8252 使用动态端口 loopback `/callback`，OpenCode 还允许 `localhost` 和旧 `/mcp/oauth/callback`。
 
-三个第三方客户端分别拥有本站 API 的 user grant，不开放全体第三方默认授权。`eastmoney-email` 提升至 domain connection，本组织允许 third-party user flow，三个客户端均强制组织登录。refresh token 轮换，最长30天、闲置7天。
+动态 CIMD 客户端由 Auth0 在首次授权时自动创建（`tpc_` 前缀、`external_metadata_created_by=client`）。统一策略由两处承载：租户唯一的 client profile `Dynamic MCP clients`（`cpr_72deigBtrUpFrLYGexKenE`，强制组织登录、refresh token 轮换、最长30天、闲置7天），以及本站 API 的第三方默认 client grant（`default_for=third_party_clients`，subject_type=user，scope 为空）。三个预登记客户端保留自己的 user grant 和组织配置。`eastmoney-email` 为 domain connection，本组织允许 third-party user flow。
 
-Auth0 第三方 access token 会过滤保留字段 `email`；当前 `auth0/actions/login-claims.cjs` 对三个内部客户端 ID 写入签名的 `https://eastmoney.hasbai.xyz/identity`，校验组织、连接、18.cn 和邮箱验证。Gateway 仅在 `/mcp` 按三个精确外部 `azp` 读取该身份，无顶层字段回退。网站仍使用原顶层声明。旧固定 MCP client 不再接受，CIMD 不准入普通 REST 或 `/data/mcp`。
+Auth0 第三方 access token 会过滤保留字段 `email`；线上绑定的 Action 对所有 `tpc_` 第三方客户端写入签名的 `https://eastmoney.hasbai.xyz/identity`，校验组织、连接、18.cn 和邮箱验证，不满足即拒绝发 token。Gateway 仅在 `/mcp` 对 https 的外部 `azp` 读取该身份，无顶层字段回退，缺少签名身份的 token 被拒。网站仍使用原顶层声明。旧固定 MCP client 不再接受，CIMD 不准入普通 REST 或 `/data/mcp`。
 
 OpenCode V2 配置：
 
@@ -31,7 +31,7 @@ OpenCode V2 配置：
 
 然后执行 `opencode mcp auth eastmoney`。OpenCode 自动使用官方 CIMD，移除显式 `oauth.client_id`、`oauth.client_secret`、`oauth.redirect_uri`；自定义 redirect URI 会使 OpenCode 回退 DCR。旧版本或自研分支须确认已包含 CIMD 支持。[OpenCode 官方接入说明](https://opencode.ai/v2/docs/mcp-servers#client-registration)。
 
-新增 CIMD 客户端时，通过 Auth0 CLI 的 `clients/cimd/preview` 校验官方元数据，再用 `clients/cimd/register` 导入；为返回的内部客户端 ID 单独配置本站 user grant、组织登录、刷新策略，并同步 Action 与 Gateway 精确名单。Auth0 原生 DCR 不为新客户端配置组织登录；动态 CIMD 的统一组织策略需要 Application Profiles。当前未开放这两种任意客户端自动注册路径。[Auth0 CIMD 配置](https://auth0.com/docs/get-started/auth0-overview/create-applications/register-applications-with-cimd)。
+新增 CIMD 客户端无需登记：客户端发起授权时 Auth0 自动注册并套用上述 profile 与默认 grant。需要独立策略的客户端才用 `clients/cimd/preview` 与 `clients/cimd/register` 手动导入，并单独配置 user grant。Application Profiles 当前为 Early Access，每租户仅一个，仅匹配动态 CIMD 客户端。无法逐个豁免，改动最多约5分钟生效。[Auth0 CIMD 配置](https://auth0.com/docs/get-started/auth0-overview/create-applications/register-applications-with-cimd)。
 
 程序化验收：`AUTH_TEST_ENV_FILE=<项目组.env> node --use-env-proxy scripts/verify-mcp-oauth.mjs`，覆盖发现、CIMD、成功/错误 issuer、真实账号 PKCE、签名身份、刷新、47工具及只读调用、普通 REST/Data 拒绝。二级池先读取可用日期，再以上海当日为 asOf 查询当年1月1日至当年最新可用台账日（无当年数据时截止 asOf）；设置 `MCP_EVIDENCE_DIR` 可保存目录和二级池业务回包，不保存身份或凭据。ChatGPT private-key exchange 须由 ChatGPT 主机完成，HTTP 脚本仅验证其真实授权与回调。
 

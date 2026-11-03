@@ -8,7 +8,7 @@
 - 认证：Auth0 OAuth 授权码 + PKCE，客户端打开正常登录页，保存并刷新本站 API access token。ID token 不可用。
 - Gateway 校验用户身份与权限，Dashboard 只接收私有入口注入的身份。
 - Gateway 通过公开 `/.well-known/oauth-protected-resource/mcp` 和 401 `WWW-Authenticate` 提供 OAuth 发现，授权服务器为 `https://auth.hasbai.xyz/`。resource 为现有本站 API 标识 `https://eastmoney.hasbai.xyz/`。
-- ChatGPT/Codex 通过官方 CIMD 自动识别客户端，不填写 client ID 或 secret。Auth0 原生开启 CIMD discovery 与 RFC9207；动态注册和 DCR 保持关闭。登录限定 Eastmoney 组织，refresh token 轮换，最长30天、闲置7天。
+- ChatGPT/Codex 通过官方 CIMD 自动识别客户端，不填写 client ID 或 secret。Auth0 原生开启 CIMD discovery 与 RFC9207；动态 CIMD 已开放，DCR 保持关闭。登录限定 Eastmoney 组织，refresh token 轮换，最长30天、闲置7天。
 
 ChatGPT 新建连接，填写上述 URL、选择 OAuth，高级 OAuth 设置留空即可。已有使用固定 client ID 的连接应删除后重建。
 
@@ -21,7 +21,7 @@ url = "https://eastmoney.hasbai.xyz/mcp"
 
 然后执行 `codex mcp login eastmoney`。删除旧的显式 `oauth.client_id`、`callback_port` 配置，客户端自动选择官方 CIMD 和 loopback 回调端口。
 
-Gateway 只在 `/mcp` 接受两个已登记的官方 CIMD 客户端。MCP token 不能用于普通业务 REST 或 `/data/mcp`；工具仍按当前用户权限筛选与执行。精确客户端、签名身份和程序化验收见 [Gateway MCP](../../gateway/docs/MCP.md)。ChatGPT 最后的 private-key token exchange 由 ChatGPT 主机完成，程序化 HTTP 验收不代替界面连接。
+Gateway 只在 `/mcp` 接受 CIMD 客户端（`azp` 为 https 元数据 URL，且带签名身份声明）。MCP token 不能用于普通业务 REST 或 `/data/mcp`；工具仍按当前用户权限筛选与执行。精确客户端、签名身份和程序化验收见 [Gateway MCP](../../gateway/docs/MCP.md)。ChatGPT 最后的 private-key token exchange 由 ChatGPT 主机完成，程序化 HTTP 验收不代替界面连接。
 
 客户端配置参考 [OpenAI MCP](https://learn.chatgpt.com/docs/extend/mcp#configure-with-configtoml)。
 
