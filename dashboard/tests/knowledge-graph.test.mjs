@@ -28,6 +28,8 @@ test("节点键统一全角、大小写、空白和常见别名", () => {
   assert.equal(normalizeNodeKey(" ＤＲ００７ "), "dr007");
   assert.equal(normalizeNodeKey("10年期国债收益率"), normalizeNodeKey("十年国债收益率"));
   assert.equal(normalizeNodeKey("10年 国债收益率"), "10年国债收益率");
+  assert.equal(normalizeNodeKey("央行逆回购投放"), normalizeNodeKey("7天逆回购投放"));
+  assert.equal(normalizeNodeKey("美联储加息预期"), "美联储加息");
 });
 
 test("空窗口返回空结构而不是错误", () => {
