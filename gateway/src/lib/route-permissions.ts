@@ -15,6 +15,7 @@ export const ROUTE_PERMISSIONS: Record<string, Methods> = {
   '/api/market-briefing': { POST: 'research.market_report:generate' },
   '/market-hotspots': { GET: 'research.hotspot:read' },
   '/api/rag/hotspots': { GET: 'research.hotspot:read', POST: 'research.hotspot:generate' },
+  '/api/rag/knowledge-graph': { GET: 'research.hotspot:read' },
   '/policy-tracking': { GET: 'research.policy:read' },
   '/api/commentaries': { GET: 'research.policy:read', POST: 'research.policy_commentary:update' },
   '/api/commentaries/[id]': { GET: 'research.policy:read', PUT: 'research.policy_commentary:update' },

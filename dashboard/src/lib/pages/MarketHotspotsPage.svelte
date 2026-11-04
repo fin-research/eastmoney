@@ -7,7 +7,14 @@
   import { onDestroy, onMount } from "svelte";
   import { isAiRequestCancelled, useAiClient } from "$lib/ai-client.svelte";
 
+  import CausalGraph from "$lib/components/CausalGraph.svelte";
   import WordCloud from "$lib/components/WordCloud.svelte";
+  import {
+    describeChain,
+    matchingChains,
+    MOVE_GLYPH,
+    type KnowledgeGraphResponse,
+  } from "$lib/knowledge-graph";
   import type {
     Hotspot,
     HotspotApiResponse,
@@ -32,6 +39,19 @@
   let errorMessage = $state("");
   let request: AbortController | null = null;
   let configurationOpen = $state(false);
+  let view = $state<"cloud" | "graph">("cloud");
+  let graph = $state<KnowledgeGraphResponse | null>(null);
+  let graphError = $state("");
+  let selectedEdge = $state<number | null>(null);
+  let highlighted = $state("");
+  let graphRequest: AbortController | null = null;
+
+  const graphEnd = $derived(data ? shanghaiDate(new Date(data.scope.lastPublishedAt)) : "");
+  const highlightIds = $derived(
+    new Set(data?.hotspots.find((item) => item.keyword === highlighted)?.evidence.map((item) => item.articleId) ?? []),
+  );
+  const edge = $derived(graph && selectedEdge !== null ? (graph.edges[selectedEdge] ?? null) : null);
+  const nodeLabel = (key: string): string => graph?.nodes.find((node) => node.key === key)?.label ?? key;
 
   let scopeLabel =
     $derived(data?.scope.mode === "rolling"
@@ -41,7 +61,35 @@
         : "尚未生成");
 
   onMount(loadLatestHotspots);
-  onDestroy(() => request?.abort());
+  onDestroy(() => {
+    request?.abort();
+    graphRequest?.abort();
+  });
+
+  $effect(() => {
+    if (graphEnd) void loadGraph(graphEnd);
+  });
+
+  async function loadGraph(end: string): Promise<void> {
+    graphRequest?.abort();
+    graphRequest = new AbortController();
+    graphError = "";
+    selectedEdge = null;
+    try {
+      const response = await fetch(`/api/rag/knowledge-graph?end=${end}&days=14`, {
+        signal: graphRequest.signal,
+        headers: { Accept: "application/json" },
+      });
+      const payload = (await response.json()) as KnowledgeGraphResponse & { error?: string };
+      if (!response.ok) throw new Error(payload.error || "传导图读取失败");
+      graph = payload;
+    } catch (error) {
+      if (!isAiRequestCancelled(error)) {
+        graph = null;
+        graphError = error instanceof Error ? error.message : String(error);
+      }
+    }
+  }
 
   async function loadLatestHotspots(): Promise<void> {
     request?.abort();
@@ -339,6 +387,12 @@
     {:else if data}
       <section class="cloud-panel" aria-labelledby="cloud-heading">
         <div class="summary-meta">
+          <Tabs.Root bind:value={() => view, (value) => view = value as "cloud" | "graph"}>
+            <Tabs.List aria-label="热点视图">
+              <Tabs.Trigger value="cloud" class="min-h-11">词云</Tabs.Trigger>
+              <Tabs.Trigger value="graph" class="min-h-11">传导图</Tabs.Trigger>
+            </Tabs.List>
+          </Tabs.Root>
           <time datetime={data.generatedAt}>{formatGeneratedAt(data.generatedAt)} 生成</time>
         </div>
         <div class="market-summary">
@@ -348,6 +402,7 @@
           </div>
         </div>
 
+        {#if view === "cloud"}
         <div class="cloud-canvas">
           <WordCloud
             items={data.hotspots}
@@ -355,6 +410,49 @@
             onSelect={selectHotspot}
           />
         </div>
+        {:else}
+        <div class="cloud-canvas graph-canvas">
+          {#if graphError}
+            <p class="graph-state" role="alert">{graphError}</p>
+          {:else if !graph}
+            <p class="graph-state" aria-live="polite">正在读取传导图</p>
+          {:else if graph.edges.length === 0}
+            <p class="graph-state">所选时间窗内暂无因果传导数据</p>
+          {:else}
+            <div class="graph-toolbar">
+              <span class="graph-counts">{graph.coverage.claimCount} 条主张 · {graph.coverage.claimArticleCount}/{graph.coverage.articleCount} 篇</span>
+              <div class="graph-chips" role="group" aria-label="按热点高亮">
+                {#each data.hotspots as hotspot (hotspot.keyword)}
+                  <Button variant="outline" class="ui-button graph-chip" type="button"
+                    aria-pressed={highlighted === hotspot.keyword}
+                    onclick={() => (highlighted = highlighted === hotspot.keyword ? "" : hotspot.keyword)}>
+                    {hotspot.keyword}
+                  </Button>
+                {/each}
+              </div>
+            </div>
+            <div class="graph-body">
+              <CausalGraph {graph} highlightArticleIds={highlightIds} {selectedEdge} onSelectEdge={(index) => (selectedEdge = index)} />
+            </div>
+            {#if edge}
+              <section class="graph-claims" aria-label="边的研报主张">
+                <h3>{nodeLabel(edge.source)}{MOVE_GLYPH[edge.sourceMove]} → {nodeLabel(edge.target)}{MOVE_GLYPH[edge.effectMove]}
+                  {#if edge.contested}<span class="graph-conflict">多空冲突</span>{/if}
+                </h3>
+                <ul>
+                  {#each edge.claims as claim, claimIndex (`${claim.articleId}|${claimIndex}`)}
+                    <li>
+                      <span class="graph-claim-meta">{claim.basis === "observed" ? "已发生" : "预期"} · {claim.author || "未署名"} · {formatGeneratedAt(claim.publishedAt)}</span>
+                      <strong>{claim.title}</strong>
+                      <p>{claim.mechanism}</p>
+                    </li>
+                  {/each}
+                </ul>
+              </section>
+            {/if}
+          {/if}
+        </div>
+        {/if}
       </section>
 
       {#if selected}
@@ -407,6 +505,18 @@
                 {#each selected.drivers as driver}<li>{driver}</li>{/each}
               </ul>
             </section>
+
+            {#if graph}
+              {@const chains = matchingChains(graph, selected.evidence.map((item) => item.articleId))}
+              {#if chains.length > 0}
+                <section class="detail-section">
+                  <h3>传导链 <span>{chains.length}</span></h3>
+                  <ul class="driver-list">
+                    {#each chains as chain}<li>{describeChain(graph, chain)}</li>{/each}
+                  </ul>
+                </section>
+              {/if}
+            {/if}
 
             <section class="detail-section">
               <h3>证据索引 <span>{selected.evidence.length}</span></h3>
@@ -757,6 +867,107 @@
 
   .cloud-canvas {
     min-height: 0;
+  }
+
+  .summary-meta {
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .graph-canvas {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 8px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
+    padding: 10px 14px;
+  }
+
+  .graph-state {
+    grid-row: 1 / -1;
+    align-self: center;
+    justify-self: center;
+    color: var(--text-2);
+    font-size: 1rem;
+  }
+
+  .graph-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+  }
+
+  .graph-counts {
+    color: var(--text-2);
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .graph-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  :global(.graph-chip[data-ui-owner="lib-pages-MarketHotspotsPage-svelte"]) {
+    min-height: 44px;
+    padding: 0 12px;
+    font-size: 0.875rem;
+  }
+
+  :global(.graph-chip[aria-pressed="true"]) {
+    border-color: var(--brand-deep);
+    background: var(--brand-soft);
+    color: var(--text-1);
+  }
+
+  .graph-body {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .graph-claims {
+    max-height: 32dvh;
+    overflow-y: auto;
+    border-top: 1px solid var(--line);
+    padding-top: 8px;
+  }
+
+  .graph-claims h3 {
+    font-size: 1rem;
+  }
+
+  .graph-claims ul {
+    display: grid;
+    margin: 6px 0 0;
+    padding: 0;
+    gap: 10px;
+    list-style: none;
+  }
+
+  .graph-claims li {
+    display: grid;
+    gap: 2px;
+  }
+
+  .graph-claim-meta {
+    color: var(--text-3);
+    font-size: 0.75rem;
+  }
+
+  .graph-claims p {
+    color: var(--text-2);
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+
+  .graph-conflict {
+    margin-left: 8px;
+    color: var(--color-error-content);
+    font-size: 0.875rem;
   }
 
 

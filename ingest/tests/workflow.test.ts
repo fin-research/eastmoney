@@ -36,20 +36,21 @@ describe("article workflow steps", () => {
           stream("# 测试文章\n\n公众号正文。\n"),
         );
         await modifier.mockStepResult(
-          { name: "extract article features with Responses API" },
+          { name: "extract article nodes and claims with Responses API" },
           {
             title: "测试文章",
             author: "测试机构",
             summary: "测试摘要",
             importance: 60,
-            keywords: [
+            nodes: [
               {
-                topic: "货币政策预期",
+                label: "货币政策预期",
+                kind: "policy",
                 fact: "原文事实",
-                interpretation: "归纳含义",
                 impact: "流动性预期改善可能同时影响股票估值与利率债定价。",
               },
             ],
+            claims: [],
           },
         );
         await modifier.mockStepResult({ name: "store article features in D1" }, { stored: true });
@@ -74,7 +75,7 @@ describe("article workflow steps", () => {
         instance.waitForStepResult({ name: "download WeChat article" }),
       ).resolves.toBeInstanceOf(ReadableStream);
       await expect(
-        instance.waitForStepResult({ name: "extract article features with Responses API" }),
+        instance.waitForStepResult({ name: "extract article nodes and claims with Responses API" }),
       ).resolves.toMatchObject({ importance: 60 });
       const archived = await env.ARTICLE_BUCKET.get("report/2026-08-12/测试文章.md");
       expect(await archived?.text()).toBe("# 测试文章\n\n公众号正文。 \n");
@@ -104,9 +105,9 @@ describe("article workflow steps", () => {
         await modifier.mockStepResult({ name: "download article from DM" }, stream(JSON.stringify({
           content: "假期文字正文。", link: "https://mp.weixin.qq.com/s/unrelated",
         })));
-        await modifier.mockStepResult({ name: "extract article features with Responses API" }, {
+        await modifier.mockStepResult({ name: "extract article nodes and claims with Responses API" }, {
           title: "假期订阅研报", author: "关注公众号", summary: "文字研报摘要", importance: 60,
-          keywords: [{ topic: "资金面", fact: "事实", interpretation: "解读", impact: "影响" }],
+          nodes: [{ label: "资金面", kind: "market", fact: "事实", impact: "影响" }], claims: [],
         });
         await modifier.mockStepResult({ name: "store article features in D1" }, { stored: true });
         await modifier.mockStepResult({ name: "associate article with recent policies" }, { matches: 0 });

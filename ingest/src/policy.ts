@@ -190,11 +190,11 @@ interface ArticleRow {
   published_at: string;
 }
 
-interface KeywordRow {
+interface NodeRow {
   article_id: string;
-  topic: string;
+  label: string;
+  kind: string;
   fact: string;
-  interpretation: string;
   impact: string;
 }
 
@@ -204,10 +204,10 @@ export interface PolicyArticleEvidence {
   summary: string;
   author: string | null;
   publishedAt: string;
-  keywords: Array<{
-    topic: string;
+  nodes: Array<{
+    label: string;
+    kind: string;
     fact: string;
-    interpretation: string;
     impact: string;
   }>;
 }
@@ -750,7 +750,7 @@ export class D1PolicyAssociationRepository {
       WHERE id = ? AND summary IS NOT NULL
     `).bind(articleId).first<ArticleRow>();
     if (!article) return null;
-    return (await this.attachKeywords([article]))[0] ?? null;
+    return (await this.attachNodes([article]))[0] ?? null;
   }
 
   async loadPoliciesForArticle(publishedAt: string): Promise<ExistingPolicy[]> {
@@ -784,7 +784,7 @@ export class D1PolicyAssociationRepository {
       ORDER BY published_at DESC, id DESC
       LIMIT 100
     `).bind(startDate, endDate).all<ArticleRow>();
-    return await this.attachKeywords(result.results);
+    return await this.attachNodes(result.results);
   }
 
   async loadDecisions(pairs: AssociationPair[]): Promise<Map<string, boolean>> {
@@ -881,24 +881,19 @@ export class D1PolicyAssociationRepository {
     }));
   }
 
-  private async attachKeywords(articles: ArticleRow[]): Promise<PolicyArticleEvidence[]> {
+  private async attachNodes(articles: ArticleRow[]): Promise<PolicyArticleEvidence[]> {
     if (articles.length === 0) return [];
     const placeholders = articles.map(() => "?").join(", ");
-    const keywords = await this.database.prepare(`
-      SELECT article_id, topic, fact, interpretation, impact
-      FROM keyword
+    const nodes = await this.database.prepare(`
+      SELECT article_id, label, kind, fact, impact
+      FROM article_node
       WHERE article_id IN (${placeholders})
       ORDER BY article_id ASC, ordinal ASC
-    `).bind(...articles.map((article) => article.id)).all<KeywordRow>();
-    const byArticle = new Map<string, PolicyArticleEvidence["keywords"]>();
-    for (const row of keywords.results) {
+    `).bind(...articles.map((article) => article.id)).all<NodeRow>();
+    const byArticle = new Map<string, PolicyArticleEvidence["nodes"]>();
+    for (const row of nodes.results) {
       const values = byArticle.get(row.article_id) ?? [];
-      values.push({
-        topic: row.topic,
-        fact: row.fact,
-        interpretation: row.interpretation,
-        impact: row.impact,
-      });
+      values.push({ label: row.label, kind: row.kind, fact: row.fact, impact: row.impact });
       byArticle.set(row.article_id, values);
     }
     return articles.map((article) => ({
@@ -907,7 +902,7 @@ export class D1PolicyAssociationRepository {
       summary: article.summary,
       author: article.author,
       publishedAt: article.published_at,
-      keywords: byArticle.get(article.id) ?? [],
+      nodes: byArticle.get(article.id) ?? [],
     }));
   }
 }
@@ -1050,7 +1045,7 @@ function associationPolicy(policy: ExistingPolicy) {
 function associationArticle(article: PolicyArticleEvidence): PolicyArticleEvidence {
   return {
     id: article.id, title: article.title, summary: article.summary,
-    author: article.author, publishedAt: article.publishedAt, keywords: article.keywords,
+    author: article.author, publishedAt: article.publishedAt, nodes: article.nodes,
   };
 }
 

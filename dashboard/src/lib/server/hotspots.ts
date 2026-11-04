@@ -13,13 +13,13 @@ import {
 import { saveHotspotSnapshot } from "./hotspot-snapshots.ts";
 
 const HOTSPOT_MODEL = AI_GATEWAY_MODEL;
-const PROMPT_VERSION = "d1-hotspots-v10-unbounded-summary";
+const PROMPT_VERSION = "d1-hotspots-v11-graph-nodes";
 const HOTSPOT_REQUEST_TIMEOUT_MS = 300_000;
-const MAX_KEYWORDS_PER_CARD = 3;
+const MAX_NODES_PER_CARD = 3;
 const MAX_TITLE_CHARS = 120;
 const MAX_SUMMARY_CHARS = 480;
-const MAX_KEYWORD_TOPIC_CHARS = 40;
-const MAX_KEYWORD_FIELD_CHARS = 240;
+const MAX_NODE_LABEL_CHARS = 40;
+const MAX_NODE_FIELD_CHARS = 240;
 export const hotspotResponseSchema = z
   .object({
     marketSummary: z
@@ -58,17 +58,17 @@ interface ArticleRow {
   updated_at: string;
 }
 
-interface KeywordRow {
+interface NodeRow {
   article_id: string;
   ordinal: number;
-  topic: string;
+  label: string;
+  kind: string;
   fact: string;
-  interpretation: string;
   impact: string;
 }
 
 interface EvidenceCard extends ArticleRow {
-  keywords: Array<Omit<KeywordRow, "article_id">>;
+  nodes: Array<Omit<NodeRow, "article_id">>;
 }
 
 export type HotspotRequestScope =
@@ -77,7 +77,7 @@ export type HotspotRequestScope =
 
 const AGGREGATE_SYSTEM = `你是服务于专业投资者的中国股债市场研究员。必须开启内部思考，但只做简短的事件归并、同义词统一、证据交叉验证和热度排序；不要输出思考过程。
 
-输入是第一阶段产生的结构化证据卡片，不包含完整原文。只能使用输入的标题、summary、importance、keywords 和 articleId，不得补充常识、旧闻或模型知识。合并同一驱动和同源观点，但保留有证据支持的不同主题；必须输出 8-15 个热点。
+输入是第一阶段产生的结构化证据卡片，不包含完整原文。只能使用输入的标题、summary、importance、nodes 和 articleId，不得补充常识、旧闻或模型知识。合并同一驱动和同源观点，但保留有证据支持的不同主题；必须输出 8-15 个热点。
 
 严格遵循响应 JSON Schema 输出，不要输出思考过程、Markdown 或 Schema 以外字段。字段语义和数量约束以 Schema 为准。`;
 
@@ -152,7 +152,7 @@ async function loadEvidenceCards(
              FROM article a
              WHERE a.summary IS NOT NULL
                AND a.importance IS NOT NULL
-               AND EXISTS (SELECT 1 FROM keyword k WHERE k.article_id = a.id)
+               AND EXISTS (SELECT 1 FROM article_node k WHERE k.article_id = a.id)
              ORDER BY a.published_at DESC, a.id DESC
              LIMIT ?`,
           )
@@ -164,7 +164,7 @@ async function loadEvidenceCards(
              WHERE substr(a.published_at, 1, 10) BETWEEN ? AND ?
                AND a.summary IS NOT NULL
                AND a.importance IS NOT NULL
-               AND EXISTS (SELECT 1 FROM keyword k WHERE k.article_id = a.id)
+               AND EXISTS (SELECT 1 FROM article_node k WHERE k.article_id = a.id)
              ORDER BY a.published_at DESC, a.id DESC
              LIMIT 100`,
           )
@@ -173,34 +173,34 @@ async function loadEvidenceCards(
   const articles: ArticleRow[] = articlesResult.results ?? [];
   if (articles.length === 0) return [];
   const placeholders = articles.map(() => "?").join(", ");
-  const keywordsResult = await database
+  const nodesResult = await database
     .prepare(
-      `SELECT article_id, ordinal, topic, fact, interpretation, impact
-       FROM keyword
+      `SELECT article_id, ordinal, label, kind, fact, impact
+       FROM article_node
        WHERE article_id IN (${placeholders})
        ORDER BY article_id ASC, ordinal ASC`,
     )
     .bind(...articles.map((article) => article.id))
-    .all<KeywordRow>();
-  const keywords: KeywordRow[] = keywordsResult.results ?? [];
-  const keywordsByArticle = new Map<string, EvidenceCard["keywords"]>();
-  for (const keyword of keywords) {
-    const group = keywordsByArticle.get(keyword.article_id) ?? [];
+    .all<NodeRow>();
+  const nodes: NodeRow[] = nodesResult.results ?? [];
+  const nodesByArticle = new Map<string, EvidenceCard["nodes"]>();
+  for (const node of nodes) {
+    const group = nodesByArticle.get(node.article_id) ?? [];
     group.push({
-      ordinal: keyword.ordinal,
-      topic: keyword.topic,
-      fact: keyword.fact,
-      interpretation: keyword.interpretation,
-      impact: keyword.impact,
+      ordinal: node.ordinal,
+      label: node.label,
+      kind: node.kind,
+      fact: node.fact,
+      impact: node.impact,
     });
-    keywordsByArticle.set(keyword.article_id, group);
+    nodesByArticle.set(node.article_id, group);
   }
   return articles
     .map((article) => ({
       ...article,
-      keywords: keywordsByArticle.get(article.id) ?? [],
+      nodes: nodesByArticle.get(article.id) ?? [],
     }))
-    .filter((article) => article.keywords.length > 0);
+    .filter((article) => article.nodes.length > 0);
 }
 
 function buildAggregateMessages(
@@ -211,11 +211,10 @@ function buildAggregateMessages(
     title: truncate(card.title, MAX_TITLE_CHARS),
     summary: truncate(card.summary, MAX_SUMMARY_CHARS),
     importance: card.importance,
-    keywords: card.keywords.slice(0, MAX_KEYWORDS_PER_CARD).map((keyword) => ({
-      topic: truncate(keyword.topic, MAX_KEYWORD_TOPIC_CHARS),
-      fact: truncate(keyword.fact, MAX_KEYWORD_FIELD_CHARS),
-      interpretation: truncate(keyword.interpretation, MAX_KEYWORD_FIELD_CHARS),
-      impact: truncate(keyword.impact, MAX_KEYWORD_FIELD_CHARS),
+    nodes: card.nodes.slice(0, MAX_NODES_PER_CARD).map((node) => ({
+      label: truncate(node.label, MAX_NODE_LABEL_CHARS),
+      fact: truncate(node.fact, MAX_NODE_FIELD_CHARS),
+      impact: truncate(node.impact, MAX_NODE_FIELD_CHARS),
     })),
   }));
   return [
@@ -238,7 +237,7 @@ function expandCompactHotspotOutput(
   const rows = value.hotspots;
   const cardById = new Map(cards.map((card) => [card.id, card]));
   const candidates = cards
-    .flatMap((card) => card.keywords.map((keyword) => ({ card, keyword })))
+    .flatMap((card) => card.nodes.map((node) => ({ card, node })))
     .sort((left, right) => right.card.importance - left.card.importance);
   const usedKeywords = new Set<string>();
   const compactRows: Array<{
@@ -268,7 +267,7 @@ function expandCompactHotspotOutput(
 
   for (const candidate of candidates) {
     if (compactRows.length >= 8) break;
-    const keyword = candidate.keyword.topic.trim();
+    const keyword = candidate.node.label.trim();
     const keywordKey = normalizeKeyword(keyword);
     if (!keyword || usedKeywords.has(keywordKey)) continue;
     usedKeywords.add(keywordKey);
@@ -287,26 +286,26 @@ function expandCompactHotspotOutput(
         .map((id) => cardById.get(id))
         .filter((card): card is EvidenceCard => Boolean(card));
       const relatedKeywords = evidenceCards.flatMap((card) =>
-        card.keywords.filter(
-          (keyword) =>
-            normalizeKeyword(keyword.topic) === normalizeKeyword(row.keyword) ||
-            row.keyword.includes(keyword.topic) ||
-            keyword.topic.includes(row.keyword),
+        card.nodes.filter(
+          (node) =>
+            normalizeKeyword(node.label) === normalizeKeyword(row.keyword) ||
+            row.keyword.includes(node.label) ||
+            node.label.includes(row.keyword),
         ),
       );
       const selectedKeywords = relatedKeywords.length
         ? relatedKeywords
-        : evidenceCards.flatMap((card) => card.keywords).slice(0, 3);
+        : evidenceCards.flatMap((card) => card.nodes).slice(0, 3);
       const evidence = evidenceCards.slice(0, 5).map((card) => {
         const keyword =
           selectedKeywords.find((item) =>
-            card.keywords.some((candidate) => candidate.topic === item.topic),
-          ) ?? card.keywords[0];
+            card.nodes.some((candidate) => candidate.label === item.label),
+          ) ?? card.nodes[0];
         return {
           articleId: card.id,
           evidence: truncate(
             keyword
-              ? keyword.topic + "：" + keyword.fact + "；" + keyword.interpretation + "。" + keyword.impact
+              ? keyword.label + "：" + keyword.fact + "。" + keyword.impact
               : card.summary,
             500,
           ),
@@ -315,12 +314,12 @@ function expandCompactHotspotOutput(
       const impacts = selectedKeywords.map((keyword) => keyword.impact);
       const fixedIncome = impacts.filter(isFixedIncomeImpact);
       const equities = impacts.filter(isEquitiesImpact);
-      const drivers = [...new Set(selectedKeywords.map((keyword) => keyword.topic))].slice(0, 8);
+      const drivers = [...new Set(selectedKeywords.map((keyword) => keyword.label))].slice(0, 8);
       const explanation = selectedKeywords.length
         ? "证据显示" +
           selectedKeywords
             .slice(0, 2)
-            .map((keyword) => keyword.fact + "，" + keyword.interpretation)
+            .map((keyword) => keyword.fact)
             .join("；") +
           "。" +
           selectedKeywords[0]!.impact
@@ -379,7 +378,7 @@ function cardMatchesKeyword(card: EvidenceCard, keyword: string): boolean {
   return (
     card.title.includes(keyword) ||
     card.summary.includes(keyword) ||
-    card.keywords.some((item) => item.topic.includes(keyword) || keyword.includes(item.topic))
+    card.nodes.some((item) => item.label.includes(keyword) || keyword.includes(item.label))
   );
 }
 

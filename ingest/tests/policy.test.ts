@@ -555,7 +555,7 @@ describe("policy article association", () => {
       summary: "研报分析房地产信贷政策对融资和资产定价的直接影响。",
       author: "测试机构",
       publishedAt: "2026-08-29T09:00:00+08:00",
-      keywords: [],
+      nodes: [],
     };
 
     const matches = await generateArticlePolicyMatches(
@@ -604,7 +604,7 @@ describe("policy article association", () => {
         summary: "研报分析房地产信贷政策对融资和资产定价的直接影响。",
         author: "测试机构一",
         publishedAt: "2026-08-29T09:00:00+08:00",
-        keywords: [],
+        nodes: [],
       },
       {
         id: "article-2",
@@ -612,7 +612,7 @@ describe("policy article association", () => {
         summary: "研报讨论资本市场交易表现，未直接研究房地产政策。",
         author: "测试机构二",
         publishedAt: "2026-08-30T09:00:00+08:00",
-        keywords: [],
+        nodes: [],
       },
     ];
 

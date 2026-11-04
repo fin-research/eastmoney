@@ -17,7 +17,7 @@ D1 article metadata (atomic title/date deduplication)
  → DM detail
  → optional WeChat download and cleanup
  → AI feature extraction
- → D1 article + keyword
+ → D1 article + article_node + article_claim
  → AI match against policies from the previous 14 days
  → prepareAiSearchMarkdown: strip metadata, images and link destinations; Chinese punctuation spacing
  → R2 Markdown + search metadata
@@ -27,7 +27,7 @@ D1 article metadata (atomic title/date deduplication)
 - 订阅来源在 Workflow 内取 DM 正文，使用列表长 URL，跳过公众号抓取。默认 source 走 news 链路。
 - DM 详情步骤幂等更新原文 link。公众号下载是独立的可重试步骤，失败时回退 DM 已清洗正文。
 - 正文明确为空时返回 `status: skipped` / `reason: empty-content`，不执行 AI、关联和归档。字段缺失、类型错误和 HTTP/JSON 异常按步骤重试，最终失败后人工处理。
-- AI 特征抽取用统一 adapter 和 Zod Schema，规则见[共享 AI](../../../docs/AI.md)。Adapter 失败交给 Workflow 步骤重试，残缺结果不保存。
+- AI 特征抽取用统一 adapter 和 Zod Schema，规则见[共享 AI](../../../docs/AI.md)。Adapter 失败交给 Workflow 步骤重试，残缺结果不保存。一次调用同时输出节点（无方向的市场概念）和因果主张（节点之间“原因变化 → 结果变化”，区分已发生与预期），主张的校验与丢弃规则见 [DATABASE](../DATABASE.md#article_node-与-article_claim)。老文章的回填见[图谱回填](../DATABASE.md#图谱回填)。
 - 返回 `status: archived` / `indexing: r2-source`。索引完成须独立检查 `completed`。
 
 `prepareAiSearchMarkdown` 是研报和政策共用的归档入口，在唯一一次存储前处理，AI 特征抽取仍用原文。原因：原始中文 Markdown 可能触发 AI Search 的 `file_content_empty`。
@@ -43,5 +43,5 @@ D1 article metadata (atomic title/date deduplication)
 - [article.ts](../../src/article.ts)：列表/详情契约、日期和稳定 key。
 - [ingest.ts](../../src/ingest.ts)：列表查重、直接启动 Workflow 和元数据存储。
 - [index.ts](../../src/index.ts)：ArticleWorkflow 步骤。[wechat.ts](../../src/wechat.ts)：公众号下载和清洗。
-- [feature-extraction.ts](../../src/feature-extraction.ts)：Prompt / Zod 特征及关键词覆盖。
+- [feature-extraction.ts](../../src/feature-extraction.ts)：Prompt / Zod 特征、节点与主张。[graph-backfill.ts](../../src/graph-backfill.ts)：图谱回填 Workflow。
 - [tests](../../tests)：按 article、ingest、feature-extraction、wechat 与 Workflow 相关测试选择。

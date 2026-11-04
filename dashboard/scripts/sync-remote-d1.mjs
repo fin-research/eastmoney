@@ -22,13 +22,16 @@ const articleColumns = [
   "importance",
   "prompt_version",
 ];
-const keywordColumns = [
+const nodeColumns = ["article_id", "ordinal", "label", "kind", "fact", "impact"];
+const claimColumns = [
   "article_id",
   "ordinal",
-  "topic",
-  "fact",
-  "interpretation",
-  "impact",
+  "cause",
+  "cause_move",
+  "effect",
+  "effect_move",
+  "basis",
+  "mechanism",
 ];
 const snapshotColumns = [
   "snapshot_id",
@@ -61,8 +64,8 @@ const articleWhere = articleCutoff
        WHERE candidate.summary IS NOT NULL
          AND candidate.importance IS NOT NULL
          AND EXISTS (
-           SELECT 1 FROM keyword candidate_keyword
-           WHERE candidate_keyword.article_id = candidate.id
+           SELECT 1 FROM article_node candidate_node
+           WHERE candidate_node.article_id = candidate.id
          )
        ORDER BY candidate.updated_at DESC, candidate.id DESC
        LIMIT ${bootstrapArticleLimit}
@@ -77,11 +80,12 @@ const snapshotWhere = snapshotCutoff
      )`;
 
 let articles = [];
-let keywords = [];
+let nodes = [];
+let claims = [];
 let snapshots = [];
 let remoteUnavailable = false;
 try {
-  [articles, keywords, snapshots] = await Promise.all([
+  [articles, nodes, claims, snapshots] = await Promise.all([
     queryWrangler(
       ["d1", "execute", "DB", "--remote"],
       `SELECT ${articleColumns.map((column) => `a.${column}`).join(", ")}
@@ -91,8 +95,16 @@ try {
     ),
     queryWrangler(
       ["d1", "execute", "DB", "--remote"],
-      `SELECT ${keywordColumns.map((column) => `k.${column}`).join(", ")}
-       FROM keyword k
+      `SELECT ${nodeColumns.map((column) => `k.${column}`).join(", ")}
+       FROM article_node k
+       INNER JOIN article a ON a.id = k.article_id
+       ${articleWhere}
+       ORDER BY a.updated_at ASC, k.article_id ASC, k.ordinal ASC`,
+    ),
+    queryWrangler(
+      ["d1", "execute", "DB", "--remote"],
+      `SELECT ${claimColumns.map((column) => `k.${column}`).join(", ")}
+       FROM article_claim k
        INNER JOIN article a ON a.id = k.article_id
        ${articleWhere}
        ORDER BY a.updated_at ASC, k.article_id ASC, k.ordinal ASC`,
@@ -117,13 +129,14 @@ if (articles.length > 0 || snapshots.length > 0) {
   const statements = ["PRAGMA defer_foreign_keys=TRUE;"];
   if (articles.length > 0) {
     statements.push(upsertSql("article", articleColumns, articles, ["id"]));
-    statements.push(
-      `DELETE FROM keyword WHERE article_id IN (${articles
-        .map((article) => sqlLiteral(article.id))
-        .join(", ")});`,
-    );
-    if (keywords.length > 0) {
-      statements.push(insertSql("keyword", keywordColumns, keywords));
+    const ids = articles.map((article) => sqlLiteral(article.id)).join(", ");
+    statements.push(`DELETE FROM article_claim WHERE article_id IN (${ids});`);
+    statements.push(`DELETE FROM article_node WHERE article_id IN (${ids});`);
+    if (nodes.length > 0) {
+      statements.push(insertSql("article_node", nodeColumns, nodes));
+    }
+    if (claims.length > 0) {
+      statements.push(insertSql("article_claim", claimColumns, claims));
     }
   }
   if (snapshots.length > 0) {
@@ -152,7 +165,7 @@ if (articles.length > 0 || snapshots.length > 0) {
 if (!remoteUnavailable) {
   const modeLabel = bootstrap ? "有限初始化" : "增量同步";
   console.log(
-    `${modeLabel}远程 D1：${articles.length} 篇文章、${keywords.length} 条关键词、${snapshots.length} 条热点快照。`,
+    `${modeLabel}远程 D1：${articles.length} 篇文章、${nodes.length} 个节点、${claims.length} 条因果主张、${snapshots.length} 条热点快照。`,
   );
 }
 

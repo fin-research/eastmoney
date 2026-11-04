@@ -40,7 +40,7 @@ OpenCode 配置如下，然后执行 `opencode mcp auth eastmoney`。不要设�
 
 ## 工具聚合
 
-Gateway 用无状态 MCP SDK 聚合 Dashboard 25 项和 Data 22 项工具，工具名单见 [mcp.ts](../src/mcp.ts)。目录按应用返回的当前用户权限筛选。Schema 和业务执行在应用层，经 `GatewayDashboard` / `GatewayData` 命名 Service Binding 调用，用户 token 不进入应用。
+Gateway 用无状态 MCP SDK 聚合 Dashboard 26 项和 Data 22 项工具，工具名单见 [mcp.ts](../src/mcp.ts)。目录按应用返回的当前用户权限筛选。Schema 和业务执行在应用层，经 `GatewayDashboard` / `GatewayData` 命名 Service Binding 调用，用户 token 不进入应用。
 
 - Dashboard 的授权桥接是 [mcp-bridge.ts](../src/mcp-bridge.ts)，经私有 `IDENTITY` binding 的 `/mcp/policies` 和 `/mcp/dispatch`，按当前角色缓存和真实路由策略校验，再执行原业务 handler。不开放管理员操作。
 - Data 使用 Gateway 注入的已验证用户和 Choice 准入上下文，不用 `InternalData`、机器身份或 CAMEL 上下文。

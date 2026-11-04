@@ -10,10 +10,28 @@ D1 schema 以 [migrations](../migrations) 为事实来源。本文件维护 Inge
 
 研报正文、R2 内容、AI Search 状态和上游原始 JSON 不写入 D1。政策正文留在 `policy_news`。
 
-## `keyword`
+## `article_node` 与 `article_claim`
 
-- 主键 `(article_id, ordinal)`，删除文章时级联清理。保存 `topic`、`fact`、`interpretation`、`impact`。
-- 同一文章重跑抽取时，用一个 D1 `batch()` 删除旧关键词并写入新特征与新关键词，避免半更新。
+- 两表主键均为 `(article_id, ordinal)`，删除文章时级联清理。`article_node` 保存节点 `label`、`kind`（policy、macro、market、sector、event）、`fact`、`impact`。`article_claim` 保存 `cause` / `effect`（必须是同篇节点的 label）、`cause_move`（rise、fall、occur）、`effect_move`（rise、fall）、`basis`（observed 已发生、expected 预期）和 `mechanism`。
+- 同一文章重跑抽取时，用一个 D1 `batch()` 删除旧主张和节点，并写入新特征、节点与主张，避免半更新。`prompt_version` 随之更新为当前版本。
+- 节点必须通过严格校验，缺失或类型错误按步骤重试。主张逐条校验，端点不在本文节点中、自环、重复、枚举或长度不合法的主张丢弃，不使文章失败，最多保留 6 条。
+- 旧 `keyword` 表不再写入，也没有读取方。Dashboard 与 Ingest 的读取都切到新表后，用单独的 migration 删除它。
+- 近 14 天出现最多的 40 个节点名附在抽取请求末尾，供模型沿用，系统提示词保持不变以命中缓存。
+
+## 图谱回填
+
+`ArticleBackfillWorkflow`（binding `ARTICLE_BACKFILL_WORKFLOW`，名称 `article-backfill`）从 R2 的研报 Markdown 重新抽取节点与主张，不访问 DM，不重跑政策关联，不改写归档。参数：
+
+- `from`：上海日期，含当日，默认 `2026-07-01`，更早的文章时效性不足，不回填。
+- `limit`：单次最多 200 篇，默认 200。每个实例的步骤数受 Workflow 上限约束，故分批。
+- `after`：上一批输出的 `lastId`，从其之后更早的文章续跑。
+
+只处理已有摘要且 `prompt_version` 不是当前版本的文章，按发布时间从新到旧，每 5 篇并发。近期文章先回填，热点和政策关联先恢复。节点复用提示取文章发布时点前 14 天的高频节点。标题首尾带空白的个别文章与归档 key 不一致，会记为 `missing`。R2 对象缺失记为 `missing`，三次尝试仍失败记为 `failed`，二者留待下次触发。输出 `{from, listed, processed, missing, failed, lastId}`，`listed` 小于 `limit` 时回填完成。
+
+```bash
+pnpm exec wrangler workflows trigger article-backfill '{"from":"2026-07-01","limit":200}'
+pnpm exec wrangler workflows trigger article-backfill '{"from":"2026-07-01","limit":200,"after":"<上一批 lastId>"}'
+```
 
 ## `telegram_delivery`
 

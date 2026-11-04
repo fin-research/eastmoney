@@ -125,6 +125,42 @@ test('hotspot scope tabs and detail dialog support keyboard dismissal and restor
 });
 
 
+test('hotspot causal graph tab lists edges, selects one with its claims and highlights by hotspot',async({page})=>{
+  const edge=(source,sourceMove,target,effectMove,articleId,contested=false)=>({source,sourceMove,target,effectMove,weight:1.2,riseWeight:0,fallWeight:1.2,contested,trend:'new',observed:1,expected:0,articleIds:[articleId],authorCount:2,lastSeenAt:'2026-09-15T02:00:00.000Z',claims:[{articleId,title:`研报${articleId}`,author:'机构甲',publishedAt:'2026-09-15T02:00:00.000Z',mechanism:`${source}压低${target}。`,basis:'observed'}]});
+  await page.route('**/api/rag/hotspots',route=>route.fulfill({json:{
+    date:'2026-09-15',generatedAt:'2026-09-15T10:00:00+08:00',marketSummary:'资金价格平稳。',
+    scope:{mode:'rolling',rollingCount:20,articleCount:20,firstPublishedAt:'2026-09-14',lastPublishedAt:'2026-09-15'},
+    hotspots:[{keyword:'资金面',aliases:[],explanation:'说明。',drivers:['公开市场操作'],conflicts:[],heat:85,confidence:'high',sourceLabel:'多来源',assetImpacts:{fixedIncome:'短端',equities:'流动性'},evidence:[{articleId:'A001',evidence:'短端资金价格平稳。'}]}],relationships:[],watchItems:[],coverage:{analyzedArticleIds:['A001'],articleCount:1}
+  }}));
+  await page.route('**/api/rag/knowledge-graph**',route=>route.fulfill({json:{
+    window:{start:'2026-09-02',end:'2026-09-15',anchor:'2026-09-15T02:00:00.000Z'},
+    coverage:{articleCount:12,claimArticleCount:5,claimCount:3,nodeCount:3},
+    nodes:[{key:'降准',label:'降准',kind:'policy',weight:1.2,articleCount:1,lastSeenAt:''},{key:'dr007',label:'DR007',kind:'market',weight:2.4,articleCount:2,lastSeenAt:''},{key:'存单利率',label:'存单利率',kind:'market',weight:1.2,articleCount:1,lastSeenAt:''}],
+    edges:[edge('降准','occur','dr007','fall','A001'),edge('dr007','fall','存单利率','fall','A002',true)],
+    chains:[{nodes:['降准','dr007','存单利率'],edges:[0,1],weight:1.2}]
+  }}));
+  await page.goto('/trading-research/market-hotspots');
+  await page.getByRole('tab',{name:'传导图'}).click();
+  await expect(page.getByText('3 条主张 · 5/12 篇')).toBeVisible();
+  const first=page.getByRole('button',{name:/降准● 传导至 DR007↓/});
+  const second=page.getByRole('button',{name:/DR007↓ 传导至 存单利率↓.*多空冲突/});
+  await expect(first).toBeVisible();
+  await expect(second).toBeVisible();
+  await first.focus();
+  await page.keyboard.press('Enter');
+  await expect(first).toHaveAttribute('aria-pressed','true');
+  await expect(page.getByLabel('边的研报主张').getByText('降准压低dr007。')).toBeVisible();
+  await expect(page.getByLabel('边的研报主张').getByText('研报A001')).toBeVisible();
+  await page.getByRole('button',{name:'资金面',exact:true}).click();
+  await expect(page.getByRole('button',{name:'资金面',exact:true})).toHaveAttribute('aria-pressed','true');
+  await expect(second).toHaveClass(/dim/);
+  await page.getByRole('tab',{name:'词云'}).click();
+  await page.getByRole('button',{name:'资金面，热度 85',exact:true}).click();
+  await expect(page.getByRole('heading',{name:/传导链/})).toBeVisible();
+  await expect(page.getByText('降准● → DR007↓ → 存单利率↓')).toBeVisible();
+});
+
+
 test('available buttons expose hover feedback and disabled controls keep a neutral cursor',async({page})=>{
  await page.goto('/ui-contracts');
  const button=page.getByRole('button',{name:'打开表单',exact:true});
