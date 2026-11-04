@@ -13,11 +13,11 @@ const quota: {percent:string} = JSON.parse(readFileSync(new URL('./fixtures/choi
 const fromHex = (hex:string) => new Uint8Array(Buffer.from(hex,'hex'));
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 beforeEach(() => vi.clearAllMocks());
-function createActor(): ChoiceSession {
+function createActor(limit: () => Promise<{success: boolean}> = async () => ({success:true})): ChoiceSession {
   const values = new Map<string,unknown>();
   const storage = {get:async(key:string)=>values.get(key), put:async(key:string,value:unknown)=>{values.set(key,value);},delete:async(key:string)=>values.delete(key)};
   const servers = Object.fromEntries(['3','6','19','20'].map(type=>[type,{hostname:'synthetic.invalid',port:Number(type)}]));
-  const env = {CHOICE_SERVERS:JSON.stringify({...servers,statisticsOrigin:'https://synthetic.invalid/'}),CHOICE_CREDENTIALS:JSON.stringify({mode:'auto',uid:'fixture',ctoken:'synthetic',utoken:'synthetic',deviceId:'synthetic',deviceModel:'MACMD5'}),CHOICE_OTHER_LIMIT:{limit:async()=>({success:true})}} as unknown as Cloudflare.Env;
+  const env = {CHOICE_SERVERS:JSON.stringify({...servers,statisticsOrigin:'https://synthetic.invalid/'}),CHOICE_CREDENTIALS:JSON.stringify({mode:'auto',uid:'fixture',ctoken:'synthetic',utoken:'synthetic',deviceId:'synthetic',deviceModel:'MACMD5'}),CHOICE_OTHER_LIMIT:{limit}} as unknown as Cloudflare.Env;
   return new ChoiceSession({storage} as unknown as DurableObjectState,env);
 }
 function nativeFrame(body: Uint8Array) {
@@ -81,8 +81,10 @@ it.each([false,true])('EDB publish-date query, quota order and failed accounting
     if(command.startsWith('$-edb')) { calls.push('values'); return nativeFrame(fromHex(tables.edb!)); }
     throw new Error('Unexpected synthetic EDB query');
   });
-  const response = await createActor().fetch(new Request('https://choice.session.internal/query/edb',{method:'POST',body:JSON.stringify({edbIds:'EMM00000012',startDate:'2026-10-01',endDate:'2026-10-30',options:'IsPublishDate=1,FixDate=0'})}));
+  const limit = vi.fn(async () => ({success:false})); // the Data entry already counted this query
+  const response = await createActor(limit).fetch(new Request('https://choice.session.internal/query/edb',{method:'POST',body:JSON.stringify({edbIds:'EMM00000012',startDate:'2026-10-01',endDate:'2026-10-30',options:'IsPublishDate=1,FixDate=0'})}));
   expect(calls).toEqual(['/api/auth','publish','values','/api/auth','/api/count']);
+  expect(limit).not.toHaveBeenCalled();
   if(denied) {
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({error:{upstreamCode:10001012}});

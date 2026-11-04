@@ -27,6 +27,7 @@ describe("upstream rate limits", () => {
     expect(edb.status).toBe(429);
     expect(fast.limit).toHaveBeenCalledWith({ key: "css" });
     expect(other.limit).toHaveBeenCalledWith({ key: "edb" });
+    expect(other.limit).toHaveBeenCalledTimes(1);
     expect(rpc).not.toHaveBeenCalled();
   });
 
