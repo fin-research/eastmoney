@@ -346,21 +346,174 @@
     }
   },
   "coupon_link": {
-    "coupons": 376,
-    "premium_mad_bp": 12.8504,
-    "forecast_slope": {
-      "slope": -0.122,
+    "coupons": 712,
+    "deviation_mad_bp": 6.1996,
+    "catch_up_slope": {
+      "slope": 1.4105,
       "ci95": [
-        -3.857,
-        2.798
+        0.753,
+        2.158
       ]
     },
     "realized_slope": {
-      "slope": 1.6157,
+      "slope": 0.9897,
       "ci95": [
-        0.614,
-        2.745
+        0.643,
+        1.319
       ]
+    },
+    "mae_last_quote": 6.1996,
+    "mae_with_catch_up": 6.0711
+  },
+  "coupon_signal_backtest": {
+    "issuances": 712,
+    "wait_calls": 257,
+    "wait_saving_bp": 1.2991,
+    "issue_calls": 193,
+    "issue_call_saving_from_waiting_bp": -1.6261,
+    "spread_bp": 2.9252,
+    "spread_ci95": [
+      0.724,
+      5.636
+    ],
+    "policy_mean_saving_bp": 0.4689,
+    "policy_mean_saving_ci95": [
+      0.151,
+      0.809
+    ],
+    "always_wait_mean_saving_bp": 0.2089,
+    "policy_interest_saved_10k_yuan": 19142.301
+  },
+  "versus_deployed": {
+    "wait_3": {
+      "2021_2026": {
+        "catch_up_model": {
+          "origins": 1430,
+          "spearman": 0.1484,
+          "tercile_spread_bp": 1.4914
+        },
+        "deployed_package": {
+          "origins": 1430,
+          "spearman": 0.2242,
+          "tercile_spread_bp": 2.2803
+        }
+      },
+      "2023_2026": {
+        "catch_up_model": {
+          "origins": 950,
+          "spearman": 0.1142,
+          "tercile_spread_bp": 0.7405
+        },
+        "deployed_package": {
+          "origins": 950,
+          "spearman": 0.1855,
+          "tercile_spread_bp": 1.4967
+        }
+      },
+      "2026": {
+        "catch_up_model": {
+          "origins": 201,
+          "spearman": 0.1537,
+          "tercile_spread_bp": 0.7655
+        },
+        "deployed_package": {
+          "origins": 201,
+          "spearman": 0.1341,
+          "tercile_spread_bp": 0.0643
+        }
+      }
+    },
+    "window_30d": {
+      "2021_2026": {
+        "catch_up_model": {
+          "origins": 1397,
+          "spearman": 0.0473,
+          "tercile_spread_bp": 1.029
+        },
+        "deployed_package": {
+          "origins": 1397,
+          "spearman": 0.1903,
+          "tercile_spread_bp": 3.584
+        }
+      },
+      "2023_2026": {
+        "catch_up_model": {
+          "origins": 934,
+          "spearman": 0.0372,
+          "tercile_spread_bp": 1.07
+        },
+        "deployed_package": {
+          "origins": 934,
+          "spearman": 0.1402,
+          "tercile_spread_bp": 1.4718
+        }
+      },
+      "2026": {
+        "catch_up_model": {
+          "origins": 185,
+          "spearman": 0.2719,
+          "tercile_spread_bp": 1.292
+        },
+        "deployed_package": {
+          "origins": 185,
+          "spearman": 0.054,
+          "tercile_spread_bp": -0.0774
+        }
+      }
+    },
+    "frozen_split": {
+      "wait_3": {
+        "train_2021_2025": {
+          "catch_up_model": {
+            "origins": 1249,
+            "spearman": 0.1983,
+            "tercile_spread_bp": 2.2229
+          },
+          "deployed_package": {
+            "origins": 1249,
+            "spearman": 0.228,
+            "tercile_spread_bp": 2.6672
+          }
+        },
+        "test_2026": {
+          "catch_up_model": {
+            "origins": 201,
+            "spearman": 0.1544,
+            "tercile_spread_bp": 0.6793
+          },
+          "deployed_package": {
+            "origins": 201,
+            "spearman": 0.1341,
+            "tercile_spread_bp": 0.0643
+          }
+        }
+      },
+      "window_30d": {
+        "train_2021_2025": {
+          "catch_up_model": {
+            "origins": 1249,
+            "spearman": 0.1166,
+            "tercile_spread_bp": 2.3935
+          },
+          "deployed_package": {
+            "origins": 1249,
+            "spearman": 0.1908,
+            "tercile_spread_bp": 4.0745
+          }
+        },
+        "test_2026": {
+          "catch_up_model": {
+            "origins": 185,
+            "spearman": 0.2676,
+            "tercile_spread_bp": 1.1922
+          },
+          "deployed_package": {
+            "origins": 185,
+            "spearman": 0.054,
+            "tercile_spread_bp": -0.0774
+          }
+        }
+      }
     }
   },
   "latest": {
