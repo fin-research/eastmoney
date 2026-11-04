@@ -10,7 +10,7 @@ import { projectCommentaryResult } from './mcp-commentary.ts';
 import { mcpOperations, operationPath, type McpOperation } from './mcp-catalog.ts';
 
 const publishedNames = new Set([
-  'credit_report', 'market_report', 'save_market_report', 'hotspots', 'knowledge_graph', 'policies', 'research_search', 'policy_articles',
+  'credit_report', 'market_report', 'save_market_report', 'knowledge_graph', 'policies', 'research_search', 'policy_articles',
   'update_policy_articles', 'article', 'news', 'commentaries', 'commentary', 'commentary_revisions',
   'create_commentary', 'update_commentary', 'economic_indicators', 'bond_ledger', 'file_upload_request', 'bond_ledger_import', 'bond_investor_reference', 'create_bond_investor', 'update_bond_investor', 'financing_clients', 'create_client', 'update_client',
 ]);

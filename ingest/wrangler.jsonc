@@ -50,11 +50,6 @@
       "class_name": "ArticleWorkflow"
     },
     {
-      "binding": "ARTICLE_BACKFILL_WORKFLOW",
-      "name": "article-backfill",
-      "class_name": "ArticleBackfillWorkflow"
-    },
-    {
       "binding": "TELEGRAM_WORKFLOW",
       "name": "telegram",
       "class_name": "TelegramWorkflow"

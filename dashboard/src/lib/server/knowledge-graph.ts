@@ -14,8 +14,10 @@ const DAY_MS = 86_400_000;
 const HALF_LIFE_DAYS = 3;
 const RECENT_DAYS = 3;
 const CONTESTED_RATIO = 0.3;
-const MAX_EDGES = 80;
-const CHAIN_EDGE_POOL = 60;
+// The page draws at most this many edges, and chains are built only from them, so every
+// listed chain and hot node is on screen.
+const MAX_EDGES = 40;
+const CHAIN_EDGE_POOL = MAX_EDGES;
 const MAX_HOPS = 3;
 const MAX_CHAINS = 10;
 const CLAIMS_PER_EDGE = 5;
@@ -369,7 +371,7 @@ export async function loadKnowledgeGraph(database: Env["DB"], query: GraphQuery)
       .prepare(
         `SELECT c.article_id, c.cause, c.cause_move, c.effect, c.effect_move, c.basis, c.mechanism,
                 a.title, a.author, a.published_at, a.importance
-         FROM article_claim c JOIN article a ON a.id = c.article_id
+         FROM claim c JOIN article a ON a.id = c.article_id
          WHERE date(a.published_at, '+8 hours') BETWEEN ? AND ?
          ORDER BY a.published_at DESC, c.article_id ASC, c.ordinal ASC
          LIMIT ${ROW_LIMIT}`,
@@ -379,7 +381,7 @@ export async function loadKnowledgeGraph(database: Env["DB"], query: GraphQuery)
     database
       .prepare(
         `SELECT n.article_id, n.label, n.kind
-         FROM article_node n JOIN article a ON a.id = n.article_id
+         FROM node n JOIN article a ON a.id = n.article_id
          WHERE date(a.published_at, '+8 hours') BETWEEN ? AND ?
          ORDER BY a.published_at DESC
          LIMIT ${NODE_ROW_LIMIT}`,
@@ -389,7 +391,7 @@ export async function loadKnowledgeGraph(database: Env["DB"], query: GraphQuery)
     database
       .prepare(
         `SELECT COUNT(*) AS article_count,
-                SUM(EXISTS (SELECT 1 FROM article_claim c WHERE c.article_id = a.id)) AS claim_article_count
+                SUM(EXISTS (SELECT 1 FROM claim c WHERE c.article_id = a.id)) AS claim_article_count
          FROM article a
          WHERE a.summary IS NOT NULL AND date(a.published_at, '+8 hours') BETWEEN ? AND ?`,
       )

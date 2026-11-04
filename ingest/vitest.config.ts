@@ -21,7 +21,6 @@ export default defineConfig({
         workflows: {
           OMO_WORKFLOW: { name: "omo", className: "OmoWorkflow" },
           ARTICLE_WORKFLOW: { name: "article", className: "ArticleWorkflow" },
-          ARTICLE_BACKFILL_WORKFLOW: { name: "article-backfill", className: "ArticleBackfillWorkflow" },
           TELEGRAM_WORKFLOW: { name: "telegram", className: "TelegramWorkflow" },
           POLICY_WORKFLOW: { name: "policy-aggregation", className: "PolicyWorkflow" },
         },

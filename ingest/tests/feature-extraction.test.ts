@@ -66,7 +66,7 @@ describe("article feature extraction", () => {
     expect(articleFeatureSchema.safeParse(validFeatures).success).toBe(true);
     expect(request.schemaName).toBe("article_features");
     expect(request.promptCacheKey).toBe(
-      "article-features:v6-causal-claims",
+      "article-features:v8-causal-claims",
     );
     expect(request.taskType).toBe("summary");
     expect(request.enableThinking).toBe(false);
@@ -163,6 +163,8 @@ describe("article feature extraction", () => {
     ["unknown basis", { basis: "maybe" }],
     ["over-long endpoint", { cause: "一".repeat(161) }],
     ["empty mechanism", { mechanism: "  " }],
+    ["mechanism that denies the link", { mechanism: "原文未明确陈述二者之间的因果关系。" }],
+    ["mechanism that says the text is silent", { mechanism: "正文并未说明二者关系。" }],
     ["over-long mechanism", { mechanism: "字".repeat(161) }],
   ])("drops a claim with %s without failing the article", (_name, patch) => {
     const good = { ...validClaim, effect: "银行股" };
@@ -173,6 +175,11 @@ describe("article feature extraction", () => {
 
     expect(features.nodes).toEqual(validFeatures.nodes);
     expect(features.claims).toEqual([good]);
+  });
+
+  it("keeps a claim whose mechanism is about something that did not happen", () => {
+    const kept = { ...validClaim, mechanism: "美联储并未降息，美元走强压制人民币汇率。" };
+    expect(normalizeClaims([kept], nodeKeys)).toEqual([kept]);
   });
 
   it("matches claim endpoints to nodes ignoring width, case and spaces", () => {
@@ -190,6 +197,24 @@ describe("article feature extraction", () => {
     expect(normalizeClaims(many, keys)).toHaveLength(6);
     expect(normalizeClaims("claims", keys)).toEqual([]);
     expect(normalizeClaims([null, 3, []], keys)).toEqual([]);
+  });
+
+  it("strips a month prefix from node labels and claim endpoints so one indicator is one node", () => {
+    const features = validateArticleFeatures(
+      {
+        ...validFeatures,
+        nodes: [
+          { ...validFeatures.nodes[0], label: "10月CPI" },
+          { ...validFeatures.nodes[1], label: "12月 美联储加息" },
+          { ...validFeatures.nodes[2], label: "10月" },
+        ],
+        claims: [{ ...validClaim, cause: "10月CPI", effect: "美联储加息" }],
+      },
+      validFeatures.title,
+    );
+
+    expect(features.nodes.map((node) => node.label)).toEqual(["CPI", "美联储加息", "10月"]);
+    expect(features.claims.map((claim) => [claim.cause, claim.effect])).toEqual([["CPI", "美联储加息"]]);
   });
 
   it("normalizes node keys across width, case and whitespace", () => {

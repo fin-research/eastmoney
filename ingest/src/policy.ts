@@ -886,7 +886,7 @@ export class D1PolicyAssociationRepository {
     const placeholders = articles.map(() => "?").join(", ");
     const nodes = await this.database.prepare(`
       SELECT article_id, label, kind, fact, impact
-      FROM article_node
+      FROM node
       WHERE article_id IN (${placeholders})
       ORDER BY article_id ASC, ordinal ASC
     `).bind(...articles.map((article) => article.id)).all<NodeRow>();

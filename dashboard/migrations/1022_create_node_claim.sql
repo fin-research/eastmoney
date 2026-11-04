@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS article_node (
+CREATE TABLE IF NOT EXISTS node (
   article_id TEXT NOT NULL,
   ordinal INTEGER NOT NULL CHECK (ordinal >= 0),
   label TEXT NOT NULL,
@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS article_node (
   FOREIGN KEY (article_id) REFERENCES article(id) ON DELETE CASCADE
 ) WITHOUT ROWID;
 
-CREATE TABLE IF NOT EXISTS article_claim (
+CREATE TABLE IF NOT EXISTS claim (
   article_id TEXT NOT NULL,
   ordinal INTEGER NOT NULL CHECK (ordinal >= 0),
   cause TEXT NOT NULL,

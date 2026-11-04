@@ -10,28 +10,27 @@ D1 schema 以 [migrations](../migrations) 为事实来源。本文件维护 Inge
 
 研报正文、R2 内容、AI Search 状态和上游原始 JSON 不写入 D1。政策正文留在 `policy_news`。
 
-## `article_node` 与 `article_claim`
+## `node` 与 `claim`
 
-- 两表主键均为 `(article_id, ordinal)`，删除文章时级联清理。`article_node` 保存节点 `label`、`kind`（policy、macro、market、sector、event）、`fact`、`impact`。`article_claim` 保存 `cause` / `effect`（必须是同篇节点的 label）、`cause_move`（rise、fall、occur）、`effect_move`（rise、fall）、`basis`（observed 已发生、expected 预期）和 `mechanism`。
+- 两表主键均为 `(article_id, ordinal)`，删除文章时级联清理。`node` 保存节点 `label`、`kind`（policy、macro、market、sector、event）、`fact`、`impact`。`claim` 保存 `cause` / `effect`（必须是同篇节点的 label）、`cause_move`（rise、fall、occur）、`effect_move`（rise、fall）、`basis`（observed 已发生、expected 预期）和 `mechanism`。
 - 同一文章重跑抽取时，用一个 D1 `batch()` 删除旧主张和节点，并写入新特征、节点与主张，避免半更新。`prompt_version` 随之更新为当前版本。
 - 节点必须通过严格校验，缺失或类型错误按步骤重试。主张逐条校验，端点不在本文节点中、自环、重复、枚举或长度不合法的主张丢弃，不使文章失败，最多保留 6 条。
-- 旧 `keyword` 表不再写入，也没有读取方。Dashboard 与 Ingest 的读取都切到新表后，用单独的 migration 删除它。
+- 旧 `keyword` 表不再写入，也没有读取方，由 `1023_drop_keyword.sql` 删除。两个项目都部署新代码后才执行，之前保留，以免旧版本读到不存在的表。
 - 近 14 天出现最多的 40 个节点名附在抽取请求末尾，供模型沿用，系统提示词保持不变以命中缓存。
 
 ## 图谱回填
 
-`ArticleBackfillWorkflow`（binding `ARTICLE_BACKFILL_WORKFLOW`，名称 `article-backfill`）从 R2 的研报 Markdown 重新抽取节点与主张，不访问 DM，不重跑政策关联，不改写归档。参数：
-
-- `from`：上海日期，含当日，默认 `2026-07-01`，更早的文章时效性不足，不回填。
-- `limit`：单次最多 200 篇，默认 200。每个实例的步骤数受 Workflow 上限约束，故分批。
-- `after`：上一批输出的 `lastId`，从其之后更早的文章续跑。
-
-只处理已有摘要且 `prompt_version` 不是当前版本的文章，按发布时间从新到旧，每 5 篇并发。近期文章先回填，热点和政策关联先恢复。节点复用提示取文章发布时点前 14 天的高频节点。标题首尾带空白的个别文章与归档 key 不一致，会记为 `missing`。R2 对象缺失记为 `missing`，三次尝试仍失败记为 `failed`，二者留待下次触发。输出 `{from, listed, processed, missing, failed, lastId}`，`listed` 小于 `limit` 时回填完成。
+`scripts/backfill-graph.mjs` 在本机从 R2 的研报 Markdown 重新抽取节点与主张，不走 Workflow，不访问 DM，不重跑政策关联，也不改 `summary`、`importance` 和归档。D1、R2 用本机 `wrangler` 登录，模型经 AI Gateway，`CF_AIG_TOKEN` 取自根目录未跟踪的 `.env`。
 
 ```bash
-pnpm exec wrangler workflows trigger article-backfill '{"from":"2026-07-01","limit":200}'
-pnpm exec wrangler workflows trigger article-backfill '{"from":"2026-07-01","limit":200,"after":"<上一批 lastId>"}'
+node --env-file=<根 .env 路径> --import tsx scripts/backfill-graph.mjs --from 2026-07-01 --concurrency 8
 ```
+
+- `--from`：上海日期，默认 `2026-07-01`，更早的文章时效性不足，不回填。`--limit N` 只处理最新的 N 篇，`--dry-run` 不写 D1，`--out file.jsonl` 把每篇结果追加到文件，便于抽查。
+- 只处理已有摘要且 `prompt_version` 不是当前版本的文章，按发布时间从新到旧。每 25 篇用一个 `d1 execute --file` 写入，每篇先替换节点与主张，最后才更新 `prompt_version`，中断后重跑只会补未完成的文章。
+- 近期高频节点名取本次运行已抽取的结果，作为复用提示附在请求末尾。
+- R2 对象缺失记为 `missing`，三次尝试仍失败记为 `failed`，二者留待下次运行。归档 key 与 D1 标题首尾含控制字符时不一致，脚本会试带换行的变体，`%` 按 URL 转义。
+- 改了抽取提示词就升 `ARTICLE_FEATURE_PROMPT_VERSION`，文章会重新进入待处理。
 
 ## `telegram_delivery`
 

@@ -3,12 +3,13 @@ import { z } from "zod";
 import {
   AI_GATEWAY_MODEL,
   generateAiGatewayObject,
+  type AiGatewayCredentials,
   type AiGatewayTaskType,
   type AiGatewayMessage,
 } from "./ai-gateway";
 
 export const ARTICLE_FEATURE_MODEL = AI_GATEWAY_MODEL;
-export const ARTICLE_FEATURE_PROMPT_VERSION = "v6-causal-claims";
+export const ARTICLE_FEATURE_PROMPT_VERSION = "v8-causal-claims";
 
 const MAX_NODES = 10;
 export const MAX_CLAIMS = 6;
@@ -83,6 +84,13 @@ export type ArticleFeatures = z.infer<typeof articleFeatureSchema>;
 export type ArticleNode = ArticleFeatures["nodes"][number];
 export type ArticleClaim = z.infer<typeof claimSchema>;
 
+/** A month prefix makes the same indicator a new node every month; the concept is the indicator. */
+export function cleanLabel(label: string): string {
+  const trimmed = label.trim();
+  const stripped = trimmed.replace(/^\d{1,2}月(?:份)?/, "").trim();
+  return stripped.length >= 2 ? stripped : trimmed;
+}
+
 /** Directionless node key: the same concept written differently maps to one key. */
 export function nodeKey(label: string): string {
   return label.normalize("NFKC").replaceAll(/\s+/g, "").toLowerCase();
@@ -127,8 +135,8 @@ importance 评分（0-100 的整数）：
 9. 输出必须是一个合法 JSON 对象，不要输出 Markdown、代码围栏、注释或思考过程。
 
 因果主张规则（claims）：
-10. claim 只记录正文明确陈述的因果链接，最多 6 条，没有就输出空数组。不得自行推演或串联多步链条，一条 claim 只写相邻的一步。
-11. cause 和 effect 必须逐字取自本文 nodes 的 label，所以出现在 claim 中的概念都要先成为 node。方向只写在 causeMove 和 effectMove：rise 上升、fall 下降。政策动作或事件本身用 causeMove=occur，effectMove 只能是 rise 或 fall。
+10. claim 只记录正文明确陈述的因果链接，最多 6 条，没有就输出空数组。不得自行推演或串联多步链条，一条 claim 只写相邻的一步。正文没有明确说明二者的因果关系时，不要输出该 claim；mechanism 不得出现“未明确”“未说明”“未陈述”之类的话，只能这样写就删除该 claim。
+11. cause 和 effect 必须逐字取自本文 nodes 的 label，所以出现在 claim 中的概念都要先成为 node。label 不含时间和涨跌词：同一指标不同月份是同一个节点，写“CPI”“工业增加值”，不写“10月CPI”；写“美股科技股”，不写“美股科技股反弹”，“反弹、下行、回落、走高、压缩、上升”等方向词只能放在 causeMove 和 effectMove：rise 上升、fall 下降。政策动作或事件本身用 causeMove=occur，effectMove 只能是 rise 或 fall。
 12. 用户消息末尾若给出“近期已有节点”，同一概念必须沿用其中的写法作为 label，不得另起同义名称。
 13. kind 取 policy 政策、macro 宏观数据、market 利率汇率或资产价格、sector 行业板块、event 事件。
 14. basis=observed 仅当正文说明结果已经发生，预期、判断和推演一律用 expected。mechanism 写正文给出的传导机制或成立条件。`;
@@ -143,18 +151,17 @@ export async function extractArticleFeatures(
   return validateArticleFeatures(output, title);
 }
 
-/** Shared by ArticleWorkflow and the graph backfill: one extraction call with recent node labels. */
+/** Shared by ArticleWorkflow and the local backfill script: one extraction call. */
 export async function extractFeaturesForArticle(
-  env: Pick<Env, "DB" | "CLOUDFLARE_ACCOUNT_ID" | "AI_GATEWAY_ID" | "CF_AIG_TOKEN">,
+  credentials: AiGatewayCredentials,
   article: { id: string; title: string },
   markdown: string,
-  asOf: Date = new Date(),
+  recentLabels: string[] = [],
 ): Promise<ArticleFeatures> {
-  const recentLabels = await loadRecentNodeLabels(env.DB, asOf);
   return await extractArticleFeatures(
     async (input) =>
       await generateAiGatewayObject(
-        { accountId: env.CLOUDFLARE_ACCOUNT_ID, gatewayId: env.AI_GATEWAY_ID, token: env.CF_AIG_TOKEN },
+        credentials,
         input.messages,
         input.schema,
         input.schemaName,
@@ -249,6 +256,9 @@ export function normalizeClaims(value: unknown, nodeKeys: ReadonlySet<string>): 
   return claims;
 }
 
+// A mechanism that says the text does not state the link is not a claim.
+const DENIED_MECHANISM = /(?:原文|正文|文中|报告|文章)(?:并)?(?:未|没有|不曾)(?:明确|直接)?(?:陈述|说明|提及|给出|表明|指出)|未(?:明确|直接)(?:陈述|说明|提及|给出|表明|指出)|因果关系(?:并)?(?:不|未)明确/;
+
 function parseClaim(value: unknown, nodeKeys: ReadonlySet<string>): ArticleClaim | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const row = value as Record<string, unknown>;
@@ -259,10 +269,11 @@ function parseClaim(value: unknown, nodeKeys: ReadonlySet<string>): ArticleClaim
   const effectMove = claimEnum(EFFECT_MOVES, row.effectMove);
   const basis = claimEnum(CLAIM_BASES, row.basis);
   if (!cause || !effect || !mechanism || !causeMove || !effectMove || !basis) return null;
-  const causeKey = nodeKey(cause);
-  const effectKey = nodeKey(effect);
+  const causeKey = nodeKey(cleanLabel(cause));
+  const effectKey = nodeKey(cleanLabel(effect));
   if (causeKey === effectKey || !nodeKeys.has(causeKey) || !nodeKeys.has(effectKey)) return null;
-  return { cause, causeMove, effect, effectMove, basis, mechanism };
+  if (DENIED_MECHANISM.test(mechanism)) return null;
+  return { cause: cleanLabel(cause), causeMove, effect: cleanLabel(effect), effectMove, basis, mechanism };
 }
 
 function claimText(value: unknown, max: number): string | null {
@@ -281,7 +292,7 @@ export async function loadRecentNodeLabels(database: D1Database, asOf: Date): Pr
   const result = await database
     .prepare(`
       SELECT n.label
-      FROM article_node n JOIN article a ON a.id = n.article_id
+      FROM node n JOIN article a ON a.id = n.article_id
       WHERE julianday(a.published_at) >= julianday(?1) AND julianday(a.published_at) <= julianday(?2)
       GROUP BY n.label
       ORDER BY COUNT(*) DESC, n.label ASC
@@ -348,12 +359,12 @@ function featureStatements(
 ): D1PreparedStatement[] {
   return [
     update,
-    database.prepare("DELETE FROM article_claim WHERE article_id = ?").bind(articleId),
-    database.prepare("DELETE FROM article_node WHERE article_id = ?").bind(articleId),
+    database.prepare("DELETE FROM claim WHERE article_id = ?").bind(articleId),
+    database.prepare("DELETE FROM node WHERE article_id = ?").bind(articleId),
     ...features.nodes.map((node, ordinal) =>
       database
         .prepare(`
-          INSERT INTO article_node (article_id, ordinal, label, kind, fact, impact)
+          INSERT INTO node (article_id, ordinal, label, kind, fact, impact)
           VALUES (?, ?, ?, ?, ?, ?)
         `)
         .bind(articleId, ordinal, node.label, node.kind, node.fact, node.impact),
@@ -361,7 +372,7 @@ function featureStatements(
     ...features.claims.map((claim, ordinal) =>
       database
         .prepare(`
-          INSERT INTO article_claim (
+          INSERT INTO claim (
             article_id, ordinal, cause, cause_move, effect, effect_move, basis, mechanism
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `)
@@ -384,7 +395,7 @@ function validateNode(value: unknown, index: number): ArticleNode {
   const kind = claimEnum(NODE_KINDS, row.kind);
   if (!kind) throw new Error(`nodes[${index}].kind is invalid`);
   return {
-    label: requiredString(row.label, `nodes[${index}].label`, 16),
+    label: cleanLabel(requiredString(row.label, `nodes[${index}].label`, 16)),
     kind,
     fact: requiredString(row.fact, `nodes[${index}].fact`, 400),
     impact: requiredString(row.impact, `nodes[${index}].impact`, 500),

@@ -184,13 +184,13 @@ test("每条边最多保留 5 条最新主张证据，且边数受上限约束",
   assert.equal(edge.articleIds.length, 8);
 
   const wide = Array.from({ length: 100 }, (_, index) => claim({ article_id: `w${index}`, cause: `因${index}`, effect: `果${index}` }));
-  assert.equal(buildKnowledgeGraph(wide, [], options).edges.length, 80);
+  assert.equal(buildKnowledgeGraph(wide, [], options).edges.length, 40);
 });
 
 test("聚焦的边数同样受上限约束，截断标志原样带出", () => {
   const rows = Array.from({ length: 100 }, (_, index) => claim({ article_id: `f${index}`, cause: `债因${index}`, effect: `债果${index}` }));
   const graph = buildKnowledgeGraph(rows, [], { ...options, focus: "债", truncated: true });
-  assert.equal(graph.edges.length, 80);
+  assert.equal(graph.edges.length, 40);
   assert.equal(graph.coverage.truncated, true);
   assert.equal(buildKnowledgeGraph([], [], options).coverage.truncated, false);
 });

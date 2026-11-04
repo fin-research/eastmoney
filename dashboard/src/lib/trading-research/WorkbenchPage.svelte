@@ -43,7 +43,7 @@
   {:else if activeViewId === "trading"}
     <TradingView />
   {:else if activeViewId === "market-hotspots"}
-    <MarketHotspotsPage embedded />
+    <MarketHotspotsPage />
   {:else if activeViewId === "policy-tracking"}
     <PolicyTrackingPage embedded />
   {:else if activeViewId === "tracking-commentary"}

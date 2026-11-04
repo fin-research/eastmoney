@@ -14,6 +14,7 @@ import {
 import {
   buildR2Metadata,
   extractFeaturesForArticle,
+  loadRecentNodeLabels,
   saveArticleFeatures,
 } from "./feature-extraction";
 import { collectResearchReports, storeArticleMetadata, updateArticleLink } from "./ingest";
@@ -39,7 +40,6 @@ import { archivePolicyEvidence } from "./policy-archive";
 import { dataFetcher } from "./data-fetcher";
 import { startOpenMarketWorkflow } from "./open-market";
 export { OmoWorkflow } from "./open-market";
-export { ArticleBackfillWorkflow } from "./graph-backfill";
 
 export class ArticleWorkflow extends WorkflowEntrypoint<Env, ArticleMetadata> {
   override async run(event: Readonly<WorkflowEvent<ArticleMetadata>>, step: WorkflowStep) {
@@ -90,7 +90,17 @@ export class ArticleWorkflow extends WorkflowEntrypoint<Env, ArticleMetadata> {
     const extracted = await step.do(
       "extract article nodes and claims with Responses API",
       { retries: { limit: 2, delay: "15 seconds", backoff: "exponential" }, timeout: "5 minutes" },
-      async () => await extractFeaturesForArticle(this.env, article, markdown),
+      async () =>
+        await extractFeaturesForArticle(
+          {
+            accountId: this.env.CLOUDFLARE_ACCOUNT_ID,
+            gatewayId: this.env.AI_GATEWAY_ID,
+            token: this.env.CF_AIG_TOKEN,
+          },
+          article,
+          markdown,
+          await loadRecentNodeLabels(this.env.DB, new Date()),
+        ),
     );
 
     await step.do(

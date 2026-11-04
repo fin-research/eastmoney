@@ -909,21 +909,18 @@
       "evidence": [
         {
           "spec": "tests/visual/ui-contracts.spec.mjs",
-          "test": "hotspot scope tabs and detail dialog support keyboard dismissal and restore focus",
+          "test": "hotspot graph switches window, focuses a node, highlights a chain and lists the claims of an edge",
           "projects": [
             "desktop",
             "mobile"
           ]
         },
         {
-          "spec": "tests/visual/research-overlays.spec.mjs",
-          "test": "desktop hotspot scope selection is visible and details use readable width",
+          "spec": "tests/visual/ui-contracts.spec.mjs",
+          "test": "hotspot graph shows an empty state and an error with retry",
           "projects": [
-            "desktop"
-          ],
-          "snapshots": [
-            "hotspot-scope-desktop.png",
-            "hotspot-detail-desktop.png"
+            "desktop",
+            "mobile"
           ]
         }
       ]

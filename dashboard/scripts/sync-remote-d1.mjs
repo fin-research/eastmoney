@@ -33,16 +33,7 @@ const claimColumns = [
   "basis",
   "mechanism",
 ];
-const snapshotColumns = [
-  "snapshot_id",
-  "input_fingerprint",
-  "generated_at",
-  "model",
-  "scope",
-  "payload",
-];
 const bootstrapArticleLimit = 100;
-const bootstrapSnapshotLimit = 100;
 
 await runWrangler(["d1", "migrations", "apply", "DB", "--local"]);
 
@@ -50,11 +41,9 @@ const [localState] = await queryWrangler(
   ["d1", "execute", "DB", "--local"],
   `SELECT
      (SELECT MAX(updated_at) FROM article) AS article_updated_at,
-     (SELECT COUNT(*) FROM article) AS article_count,
-     (SELECT MAX(generated_at) FROM hotspot_snapshot) AS snapshot_generated_at`,
+     (SELECT COUNT(*) FROM article) AS article_count`,
 );
 const articleCutoff = optionalString(localState?.article_updated_at);
-const snapshotCutoff = optionalString(localState?.snapshot_generated_at);
 const bootstrap = Number(localState?.article_count ?? 0) === 0;
 const articleWhere = articleCutoff
   ? `WHERE a.updated_at > ${sqlLiteral(articleCutoff)}`
@@ -64,28 +53,18 @@ const articleWhere = articleCutoff
        WHERE candidate.summary IS NOT NULL
          AND candidate.importance IS NOT NULL
          AND EXISTS (
-           SELECT 1 FROM article_node candidate_node
+           SELECT 1 FROM node candidate_node
            WHERE candidate_node.article_id = candidate.id
          )
        ORDER BY candidate.updated_at DESC, candidate.id DESC
        LIMIT ${bootstrapArticleLimit}
      )`;
-const snapshotWhere = snapshotCutoff
-  ? `WHERE generated_at > ${sqlLiteral(snapshotCutoff)}`
-  : `WHERE snapshot_id IN (
-       SELECT candidate_snapshot.snapshot_id
-       FROM hotspot_snapshot candidate_snapshot
-       ORDER BY candidate_snapshot.generated_at DESC, candidate_snapshot.snapshot_id DESC
-       LIMIT ${bootstrapSnapshotLimit}
-     )`;
-
 let articles = [];
 let nodes = [];
 let claims = [];
-let snapshots = [];
 let remoteUnavailable = false;
 try {
-  [articles, nodes, claims, snapshots] = await Promise.all([
+  [articles, nodes, claims] = await Promise.all([
     queryWrangler(
       ["d1", "execute", "DB", "--remote"],
       `SELECT ${articleColumns.map((column) => `a.${column}`).join(", ")}
@@ -96,7 +75,7 @@ try {
     queryWrangler(
       ["d1", "execute", "DB", "--remote"],
       `SELECT ${nodeColumns.map((column) => `k.${column}`).join(", ")}
-       FROM article_node k
+       FROM node k
        INNER JOIN article a ON a.id = k.article_id
        ${articleWhere}
        ORDER BY a.updated_at ASC, k.article_id ASC, k.ordinal ASC`,
@@ -104,17 +83,10 @@ try {
     queryWrangler(
       ["d1", "execute", "DB", "--remote"],
       `SELECT ${claimColumns.map((column) => `k.${column}`).join(", ")}
-       FROM article_claim k
+       FROM claim k
        INNER JOIN article a ON a.id = k.article_id
        ${articleWhere}
        ORDER BY a.updated_at ASC, k.article_id ASC, k.ordinal ASC`,
-    ),
-    queryWrangler(
-      ["d1", "execute", "DB", "--remote"],
-      `SELECT ${snapshotColumns.join(", ")}
-       FROM hotspot_snapshot
-       ${snapshotWhere}
-       ORDER BY generated_at ASC, snapshot_id ASC`,
     ),
   ]);
 } catch (error) {
@@ -125,24 +97,19 @@ try {
   );
 }
 
-if (articles.length > 0 || snapshots.length > 0) {
+if (articles.length > 0) {
   const statements = ["PRAGMA defer_foreign_keys=TRUE;"];
   if (articles.length > 0) {
     statements.push(upsertSql("article", articleColumns, articles, ["id"]));
     const ids = articles.map((article) => sqlLiteral(article.id)).join(", ");
-    statements.push(`DELETE FROM article_claim WHERE article_id IN (${ids});`);
-    statements.push(`DELETE FROM article_node WHERE article_id IN (${ids});`);
+    statements.push(`DELETE FROM claim WHERE article_id IN (${ids});`);
+    statements.push(`DELETE FROM node WHERE article_id IN (${ids});`);
     if (nodes.length > 0) {
-      statements.push(insertSql("article_node", nodeColumns, nodes));
+      statements.push(insertSql("node", nodeColumns, nodes));
     }
     if (claims.length > 0) {
-      statements.push(insertSql("article_claim", claimColumns, claims));
+      statements.push(insertSql("claim", claimColumns, claims));
     }
-  }
-  if (snapshots.length > 0) {
-    statements.push(
-      upsertSql("hotspot_snapshot", snapshotColumns, snapshots, ["snapshot_id"]),
-    );
   }
 
   const temporaryDirectory = await mkdtemp(join(tmpdir(), "eastmoney-d1-sync-"));
@@ -165,7 +132,7 @@ if (articles.length > 0 || snapshots.length > 0) {
 if (!remoteUnavailable) {
   const modeLabel = bootstrap ? "有限初始化" : "增量同步";
   console.log(
-    `${modeLabel}远程 D1：${articles.length} 篇文章、${nodes.length} 个节点、${claims.length} 条因果主张、${snapshots.length} 条热点快照。`,
+    `${modeLabel}远程 D1：${articles.length} 篇文章、${nodes.length} 个节点、${claims.length} 条因果主张。`,
   );
 }
 

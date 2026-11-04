@@ -19,11 +19,11 @@ url = "https://eastmoney.hasbai.xyz/mcp"
 
 ## 发布范围
 
-Gateway 合并 Dashboard 的 26 个工具与 Data 的 22 个只读市场查询，共 48 项候选，实际目录按当前用户权限筛选。Data 资讯列表名为 `news_list`，Dashboard 的归档新闻详情为 `news`。旧公网 `/api/mcp` 与 `/data/mcp` 返回 410，内部路径只供命名 Service Binding 调用。
+Gateway 合并 Dashboard 的 25 个工具与 Data 的 22 个只读市场查询，共 47 项候选，实际目录按当前用户权限筛选。Data 资讯列表名为 `news_list`，Dashboard 的归档新闻详情为 `news`。旧公网 `/api/mcp` 与 `/data/mcp` 返回 410，内部路径只供命名 Service Binding 调用。
 
-Dashboard 的 26 个工具：
+Dashboard 的 25 个工具：
 
-- 市场研究（16）：`market_report`、`save_market_report`、`hotspots`、`knowledge_graph`、`policies`、`research_search`、`policy_articles`、`update_policy_articles`、`article`、`news`、`commentaries`、`commentary`、`commentary_revisions`、`create_commentary`、`update_commentary`、`economic_indicators`。
+- 市场研究（15）：`market_report`、`save_market_report`、`knowledge_graph`、`policies`、`research_search`、`policy_articles`、`update_policy_articles`、`article`、`news`、`commentaries`、`commentary`、`commentary_revisions`、`create_commentary`、`update_commentary`、`economic_indicators`。
 - 授信与二级池（4）：`credit_report`、`bond_ledger`、`file_upload_request`、`bond_ledger_import`。
 - 融资（6）：`bond_investor_reference`、`create_bond_investor`、`update_bond_investor`、`financing_clients`、`create_client`、`update_client`。
 
@@ -75,7 +75,7 @@ Dashboard 的 26 个工具：
 
 - `node --test tests/mcp.test.mjs tests/credit-masked.test.mjs`：SDK 发现与调用、发布白名单、输入校验、脱敏 SQL / 接口和字段白名单。ID 的 Unicode 校验在服务端执行，JSON Schema 不导出需要 Unicode 标志的 `pattern`，保留长度与路径限制。
 - 构建后运行 `node scripts/verify-mcp-integration.mjs`。它串联真实 Gateway、构建后的 SvelteKit 和私有授权桥接，配合 Data 处理器检查 47 项目录、参数校验和权限撤销。外部服务用内存夹具，`GATEWAY_CHECKOUT` / `DATA_CHECKOUT` 默认指向同级目录。
-- 生产只读验收用 Gateway 的程序化登录，带 API Bearer 直连本端点，核对当前权限下的 48 项候选目录并执行查询。ChatGPT 最后的 private-key token exchange 由 ChatGPT 主机完成，程序化验收不能代替界面连接。
+- 生产只读验收用 Gateway 的程序化登录，带 API Bearer 直连本端点，核对当前权限下的 47 项候选目录并执行查询。ChatGPT 最后的 private-key token exchange 由 ChatGPT 主机完成，程序化验收不能代替界面连接。
 
 ## AI Search 研究检索
 

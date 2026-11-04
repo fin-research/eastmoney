@@ -4,14 +4,18 @@
 
   interface Props {
     graph: KnowledgeGraphResponse;
-    highlightArticleIds?: Set<string>;
+    /** Node key whose incident edges stay lit. */
+    focusKey?: string;
+    /** Edge indexes of a chosen chain; they stay lit and everything else dims. */
+    chainEdges?: Set<number> | null;
     selectedEdge?: number | null;
     onSelectEdge: (index: number | null) => void;
+    onSelectNode: (key: string) => void;
   }
 
   const MAX_EDGES = 40;
 
-  let { graph, highlightArticleIds = new Set<string>(), selectedEdge = null, onSelectEdge }: Props = $props();
+  let { graph, focusKey = "", chainEdges = null, selectedEdge = null, onSelectEdge, onSelectNode }: Props = $props();
 
   const edges = $derived(graph.edges.slice(0, MAX_EDGES));
   const nodeKeys = $derived(new Set(edges.flatMap((edge) => [edge.source, edge.target])));
@@ -19,10 +23,16 @@
   const layout = $derived(layoutGraph(nodes, edges));
   const labels = $derived(new Map(nodes.map((node) => [node.key, node.label])));
   const maxWeight = $derived(Math.max(0.0001, ...edges.map((edge) => edge.weight)));
-  const highlighting = $derived(highlightArticleIds.size > 0);
+  const dimming = $derived(Boolean(chainEdges?.size) || Boolean(focusKey));
 
-  function isHighlighted(edge: KgEdge): boolean {
-    return edge.articleIds.some((id) => highlightArticleIds.has(id));
+  function isLit(edge: KgEdge, index: number): boolean {
+    if (chainEdges?.size) return chainEdges.has(index);
+    return !focusKey || edge.source === focusKey || edge.target === focusKey;
+  }
+
+  function nodeLit(key: string): boolean {
+    if (chainEdges?.size) return edges.some((edge, index) => chainEdges.has(index) && (edge.source === key || edge.target === key));
+    return !focusKey || key === focusKey || edges.some((edge) => (edge.source === focusKey && edge.target === key) || (edge.target === focusKey && edge.source === key));
   }
 
   function path(edge: KgEdge): string {
@@ -82,7 +92,7 @@
     </defs>
 
     {#each edges as edge, index (`${edge.source}|${edge.sourceMove}|${edge.target}|${edge.effectMove}`)}
-      {@const lit = isHighlighted(edge)}
+      {@const lit = isLit(edge, index)}
       {@const mid = midpoint(edge)}
       <g
         class="edge"
@@ -90,7 +100,7 @@
         class:expected={edge.observed === 0}
         class:thin={edge.authorCount < 2}
         class:selected={selectedEdge === index}
-        class:dim={highlighting && !lit}
+        class:dim={dimming && !lit}
         role="button"
         tabindex="0"
         aria-pressed={selectedEdge === index}
@@ -109,7 +119,22 @@
     {#each nodes as node (node.key)}
       {@const place = layout.nodes.get(node.key)}
       {#if place}
-        <g class={`node node--${node.kind}`} transform={`translate(${place.x} ${place.y})`}>
+        <g
+          class={`node node--${node.kind}`}
+          class:focused={focusKey === node.key}
+          class:dim={dimming && !nodeLit(node.key)}
+          transform={`translate(${place.x} ${place.y})`}
+          role="button"
+          tabindex="0"
+          aria-pressed={focusKey === node.key}
+          aria-label={`${node.label}，${node.articleCount} 篇研报`}
+          onclick={() => onSelectNode(node.key)}
+          onkeydown={(event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            onSelectNode(node.key);
+          }}
+        >
           <rect width={layout.nodeWidth} height={layout.nodeHeight} rx="8" />
           <text x={layout.nodeWidth / 2} y={layout.nodeHeight / 2 + 5} text-anchor="middle">{node.label}</text>
           <title>{node.label} · {node.articleCount} 篇</title>
@@ -131,6 +156,24 @@
     display: block;
     max-width: none;
     margin: 0 auto;
+  }
+
+  .node {
+    cursor: pointer;
+  }
+
+  .node:focus,
+  .node:focus-visible {
+    outline: none !important;
+  }
+
+  .node.dim {
+    opacity: 0.25;
+  }
+
+  .node.focused rect,
+  .node:focus-visible rect {
+    stroke-width: 3;
   }
 
   .node rect {
