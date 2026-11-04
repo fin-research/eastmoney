@@ -25,9 +25,6 @@ test('CSS sync requests only missing fields on confirmed trading dates and inser
   const paths = [];
   const request = vi.fn(async (path, params) => {
     paths.push([path, params]);
-    if (path === '/choice/data-statistics') return { function: 'DATASTATISTICS', rows: [
-      { FUNCENAME: 'EM_CSS', SECUTYPE: '全品种', PERIOD: 'W', STARTDATE: '2026-09-20', ENDDATE: '2026-09-27', AVAILABEDATA: '200000' },
-    ] };
     const requested = params.get('codes').split(',');
     const indicators = params.get('indicators').split(',');
     return { function: 'CSS', rows: requested.map((code, index) => ({ code,
@@ -49,16 +46,15 @@ test('CSS sync requests only missing fields on confirmed trading dates and inser
     numericValue: 2.982994, source: 'choice-api-css+edb' }));
 });
 
-test('CSS quota shortfall stops paid calls and reports the planned gaps', async () => {
+test('a failed CSS request stops later paid calls and reports the planned gaps', async () => {
   query.mockImplementation(async sql => sql.includes('FROM public.quant_input WHERE observation_date BETWEEN')
     ? { rows: [] } : { rows: [], rowCount: 0 });
   fetchChoiceTable.mockImplementation(async (_env, _method, payload) => ({ function: 'TRADEDATES',
     rows: payload.options.includes('CNSESH') ? [{ date: '2026-09-24' }] : [] }));
-  const request = vi.fn(async () => ({ function: 'DATASTATISTICS', rows: [
-    { FUNCENAME: 'EM_CSS', SECUTYPE: '全品种', PERIOD: 'W', STARTDATE: '2026-09-20', ENDDATE: '2026-09-27', AVAILABEDATA: '12' },
-  ] }));
+  const request = vi.fn(async () => { throw new Error('10001003 permission'); });
   const result = await syncQuantEquityCss(env, request, '2026-09-20', '2026-09-27');
   expect(request).toHaveBeenCalledTimes(1);
-  expect(result.failures).toEqual([{ source: 'equity-css-quota', error: 'CSS quota unavailable or below reserved budget' }]);
-  expect(result.missing).toHaveLength(3);
+  expect(request.mock.calls.some(([path]) => path === '/choice/data-statistics')).toBe(false);
+  expect(result.failures.map(failure => failure.kind)).toContain('execution');
+  expect(result.missing.length).toBeGreaterThan(0);
 });

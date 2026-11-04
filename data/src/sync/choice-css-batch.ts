@@ -14,7 +14,7 @@ export function isChoiceError(error: unknown, code: number): boolean {
   return new RegExp(`\\b${code}\\b`).test(error instanceof Error ? error.message : String(error));
 }
 
-// Include every level of a possible invalid-code split in the preflight quota budget.
+// Include every level of a possible invalid-code split in the static CSS point cap.
 export function cssIsolationPoints(count: number, fields: number, batchSize: number): number {
   let points = 0;
   for (let offset = 0; offset < count; offset += batchSize) {

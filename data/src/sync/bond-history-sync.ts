@@ -3,8 +3,7 @@ import { z } from 'zod';
 import type { DataApiRequest } from './economic-indicator-sync.ts';
 import type { DatabaseClient } from './postgres.ts';
 import { encodeExchangeBondCode } from './exchange-bond-code.ts';
-import { cssIsolationPoints, isChoiceError, syncChoiceCssBatch } from './choice-css-batch.ts';
-import { requestCssQuota } from './choice-css-quota.ts';
+import { isChoiceError, syncChoiceCssBatch } from './choice-css-batch.ts';
 import { economicIndicatorErrorDetails } from './economic-indicator-request.ts';
 import type { QuantSyncFailure } from './quant-sync-result.ts';
 
@@ -31,17 +30,6 @@ export function bondObservations(raw: unknown, codes: string[]): Observation[] {
   });
 }
 
-export function requireBondBudget(raw: unknown, date: string, points: number) {
-  const payload = table.parse(raw);
-  const quota = payload.rows.find(row => row.FUNCENAME === 'EM_CSS' && row.SECUTYPE === '全品种');
-  const remaining = Number(quota?.AVAILABEDATA);
-  if (payload.function !== 'DATASTATISTICS' || quota?.PERIOD !== 'W' ||
-    String(quota.STARTDATE ?? '') > date || String(quota.ENDDATE ?? '') < date ||
-    quota.AVAILABEDATA == null || !Number.isFinite(remaining) || remaining < points + 100_000) {
-    throw new Error('Bond CSS quota unavailable or below shared reserve');
-  }
-}
-
 const gapsSql = `WITH dates AS (SELECT unnest($1::date[]) AS observation_date),
   known AS MATERIALIZED (SELECT * FROM public.bond_history_observations($1::date[])), candidates AS (
   SELECT d.observation_date::text AS date,i.bond_code AS code,ci.bond_code AS canonical_code
@@ -54,8 +42,6 @@ const gapsSql = `WITH dates AS (SELECT unnest($1::date[]) AS observation_date),
   WHERE public.exchange_bond_code(i.bond_code) IS NOT NULL AND i.history_invalid_code=false AND ci.history_invalid_code=false
     AND i.actual_issuance_status<>'not_issued' AND ci.actual_issuance_status<>'not_issued'
     AND ($3::text[] IS NULL OR i.bond_code=ANY($3::text[]))
-    AND ($4::jsonb IS NULL OR EXISTS(SELECT 1 FROM jsonb_to_recordset($4::jsonb) a(date date,code text)
-      WHERE a.date=d.observation_date AND a.code=i.bond_code))
     AND coalesce(prev.outstanding_balance_cny,1)>0
     AND (i.maturity_date IS NULL OR i.maturity_date>=d.observation_date)
     AND NOT EXISTS (SELECT 1 FROM known h
@@ -98,7 +84,7 @@ const incompleteSql = `SELECT h.valuation_date::text AS date,i.bond_code AS code
       OR h.remaining_term_years IS NULL)
   ORDER BY date DESC,code LIMIT 6000`;
 
-export async function syncBondHistory(request: DataApiRequest, db: Database, endDate: string, dates: string[], quotaDate = endDate, allowedCodes?: readonly string[], allowedPairs?: readonly Gap[]) {
+export async function syncBondHistory(request: DataApiRequest, db: Database, endDate: string, dates: string[], allowedCodes?: readonly string[]) {
   const first = new Date(Date.parse(`${endDate}T00:00:00Z`) - 7 * 86400000).toISOString().slice(0, 10);
   if (!dates.length || new Set(dates).size !== dates.length || dates.some(date =>
     !/^\d{4}-\d{2}-\d{2}$/.test(date) || date < first || date >= endDate ||
@@ -106,14 +92,12 @@ export async function syncBondHistory(request: DataApiRequest, db: Database, end
     throw new Error('Bond history trading calendar unavailable or outside completed window');
   }
   const discovered = await db(client => client.query<Gap>(gapsSql,
-    [dates,Boolean(allowedCodes || allowedPairs),allowedCodes ?? null,allowedPairs ? JSON.stringify(allowedPairs) : null]));
-  const allowedKeys = allowedPairs && new Set(allowedPairs.map(pair => `${pair.date}/${pair.code}`));
-  const eligible = discovered.rows.filter(row => (!allowedCodes || allowedCodes.includes(row.code))
-    && (!allowedKeys || allowedKeys.has(`${row.date}/${row.code}`)));
+    [dates,Boolean(allowedCodes),allowedCodes ?? null]));
+  const eligible = discovered.rows.filter(row => !allowedCodes || allowedCodes.includes(row.code));
   // Frozen recoveries keep their actual authorized source codes. A new daily
   // plan requests each evidenced canonical security once; intents bind those codes.
   const gaps = { rows: [...new Map(eligible.map(row => {
-    const pair = { date: row.date, code: allowedCodes || allowedPairs ? row.code : row.canonical_code ?? row.code };
+    const pair = { date: row.date, code: allowedCodes ? row.code : row.canonical_code ?? row.code };
     return [`${pair.date}/${pair.code}`, pair] as const;
   })).values()] };
   let stored = 0;
@@ -121,17 +105,7 @@ export async function syncBondHistory(request: DataApiRequest, db: Database, end
   const invalidCodes = new Set<string>();
   let previousServiceFailure = false;
   const missingDates = [...new Set(gaps.rows.map(row => row.date))];
-  let quotaAvailable = true;
-  if (gaps.rows.length) {
-    const points = missingDates.reduce((sum, date) => sum + cssIsolationPoints(
-      gaps.rows.filter(row => row.date === date).length, indicators.length, 200), 0);
-    try { requireBondBudget(await requestCssQuota(request), quotaDate, points); }
-    catch (error) {
-      quotaAvailable = false;
-      failures.push({ source: 'bond-history', error: economicIndicatorErrorDetails(error).message, kind: 'execution' });
-    }
-  }
-  paid: for (const date of quotaAvailable ? missingDates : []) {
+  paid: for (const date of missingDates) {
     const allCodes = gaps.rows.filter(row => row.date === date && !invalidCodes.has(row.code)).map(row => row.code);
     for (let offset = 0; offset < allCodes.length; offset += 200) {
       const codes = allCodes.slice(offset, offset + 200);
@@ -164,7 +138,7 @@ export async function syncBondHistory(request: DataApiRequest, db: Database, end
     }
   }
   async function coverage<T extends Gap>(sql: string, phase: string) {
-    try { return (await db(client => client.query<T>(sql, sql === gapsSql ? [dates,false,null,null] : [dates]))).rows; }
+    try { return (await db(client => client.query<T>(sql, sql === gapsSql ? [dates,false,null] : [dates]))).rows; }
     catch (error) {
       failures.push({ source: 'bond-history-coverage', error: `${phase}: ${economicIndicatorErrorDetails(error).message}`, kind: 'execution' });
       return [] as T[];

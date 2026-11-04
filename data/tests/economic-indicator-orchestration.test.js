@@ -52,7 +52,7 @@ test('summary step failure cannot be reported as successful completion', async (
 });
 
 
-test('explicit archive replay branches before every normal paid, quota and calendar runner', async () => {
+test('explicit archive replay branches before every normal paid and calendar runner', async () => {
   indicators.mockImplementation(() => { throw new Error('Normal EDB upstream forbidden during replay'); });
   quant.mockImplementation(() => { throw new Error('Normal Quant or quota upstream forbidden during replay'); });
   replay.mockResolvedValue({ status: 'complete', paid_requests: 0 });
@@ -85,10 +85,20 @@ test('workflow passes the Choice completion barrier to Quant without waiting for
   expect((await pending).status).toBe('complete');
 });
 
-test.each(['bondHistoryRecoveryOf','issuanceReplayOf'])('rejects observation combined with %s before every runner',async mode=>{
+test('rejects an old daily bond recovery instance before every runner',async()=>{
  const workflow=new EconomicIndicatorSyncWorkflow({},{});
- await expect(workflow.run({instanceId:'test',payload:{bondFieldObservationPlan:'plan',[mode]:'original'}},{})).rejects.toThrow('Conflicting');
+ await expect(workflow.run({instanceId:'bond-history-recovery-1',payload:{bondHistoryRecoveryOf:'original'}},{})).rejects.toThrow('Unapproved');
  expect(indicators).not.toHaveBeenCalled();expect(quant).not.toHaveBeenCalled();expect(replay).not.toHaveBeenCalled();
+});
+
+test('a normal run with failed bond history starts no recovery instance',async()=>{
+ const create=vi.fn(),steps=[];
+ indicators.mockResolvedValue({status:'complete',groups:[]});
+ quant.mockResolvedValue({status:'partial',stored:0,failures:[],groups:[{name:'同步券商存续债估值',status:'partial',failures:[{source:'bond-history',error:'10000013'}],missing:[]}]});
+ const env={HYPERDRIVE:{connectionString:'test'},EASTMONEY:{},ECONOMIC_INDICATOR_SYNC:{create}};
+ await new EconomicIndicatorSyncWorkflow({},env).run({instanceId:'normal-1',payload:{scheduledTime:1},timestamp:new Date(1)},
+  {do:async(name,...rest)=>{steps.push(name);return rest.at(-1)();}});
+ expect(create).not.toHaveBeenCalled();expect(steps).toEqual(['汇总同步结果']);
 });
 
 test('DM child notifies only after its committed group returns, keeping notification retries outside the data run', async () => {

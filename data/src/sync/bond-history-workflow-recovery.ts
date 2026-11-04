@@ -31,7 +31,6 @@ export function bondRecoveryCodes(raw: unknown): string[] {
 
 export function restrictBondRecovery(request: DataApiRequest, codes: string[]): DataApiRequest {
   return async (path, parameters) => {
-    if (path === '/choice/data-statistics' && parameters.get('funcName') === 'EM_CSS') return request(path, parameters);
     if (path !== '/choice/css' || parameters.get('indicators') !== 'YIELDCNBD,BONDBALANCE,MATUCNBD'
       || parameters.get('options') !== `EndDate=${BOND_RECOVERY_DATE},CredType=1`
       || !parameters.get('codes') || parameters.get('codes')!.split(',').some(code => !codes.includes(code)))
@@ -50,12 +49,11 @@ export async function runBondHistoryWorkflowRecovery(step: Pick<WorkflowStep, 'd
     if (state.status !== 'complete') throw Error('Original bond-history Workflow has not completed');
     return bondRecoveryCodes(state.output);
   });
-  const date = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
-  const budgeted = workflowCssBudget(step, env.EASTMONEY, instanceId, request, date, { history: BOND_RECOVERY_POINTS });
+  const budgeted = workflowCssBudget(env.EASTMONEY, instanceId, request, { history: BOND_RECOVERY_POINTS });
   const scoped = restrictBondRecovery(budgeted('history'), codes);
   const result = await step.do('定向恢复10月22日逐债估值', STEP, () => syncBondHistory(scoped,
     operation => withPostgres(env.HYPERDRIVE.connectionString, 'bond-history-workflow-recovery', operation),
-    '2026-10-23', [BOND_RECOVERY_DATE], date, codes));
+    '2026-10-23', [BOND_RECOVERY_DATE], codes));
   return step.do('汇总逐债估值定向恢复', { retries: { limit: 0, delay: '1 second' } }, async () => ({
     ...result, status: result.failures.length || result.missing.length ? 'partial' : 'complete',
     originalInstanceId, targetDate: BOND_RECOVERY_DATE, scopeCodes: codes.length,

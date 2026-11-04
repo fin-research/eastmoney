@@ -26,7 +26,7 @@ it('requires evidence, preserves unknown coverage, and excludes source-confirmed
   await upsertBondIssuance(client as never,[input('ISSUER_NAME','测试证券'),input('BOND_NAME_ABBR','测试26债'),input('TENOR_YEAR',2),input('ACTUAL_ISSUE_SCALE',30)]);
   expect((await db.query(`SELECT actual_issuance_status FROM bond_issuance WHERE bond_code='123451.SH'`)).rows).toEqual([{actual_issuance_status:'not_issued'}]);
   await expect(upsertBondIssuance(client as never,[{...input('ISSUER_NAME','测试证券'),observationDate:'2026-10-15'},input('TENOR_YEAR',2)].map(x=>({...x,observationDate:'2026-10-15'})))).rejects.toThrow('identity conflicts');
-  const result=await syncBondHistory(request,async op=>op(client as never),'2026-10-23',['2026-10-22'],'2026-10-23',['123451.SH'],[{date:'2026-10-22',code:'123451.SH'}]);
+  const result=await syncBondHistory(request,async op=>op(client as never),'2026-10-23',['2026-10-22'],['123451.SH']);
   expect(request).not.toHaveBeenCalled();expect(result.stored).toBe(0);
   expect(result.notApplicable).toEqual([{date:'2026-10-22',code:'123451.SH',reason:'not_issued'}]);
   expect(result.missing.map(x=>x.codes)).toEqual([['123452.SH']]);

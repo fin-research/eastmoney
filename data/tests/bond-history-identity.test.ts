@@ -111,8 +111,8 @@ it('pins metadata and immutable evidence, shares daily coverage, and preserves f
       WHERE bond_code=public.exchange_bond_code('123456X.SH')`)).rows).toEqual([{ chinabond_yield_pct:null,remaining_term_years:null }]);
     const daily=await syncBondHistory(request,database,'2026-10-28',['2026-10-27']);
     expect(paid).toEqual([['123456.SH']]);expect(daily.stored).toBe(1);expect(daily.missing).toEqual([]);
-    const recovery=await syncBondHistory(request,database,'2026-10-29',['2026-10-28'],'2026-10-29',
-      ['123456X.SH'],[{date:'2026-10-28',code:'123456X.SH'}]);
+    const recovery=await syncBondHistory(request,database,'2026-10-29',['2026-10-28'],
+      ['123456X.SH']);
     expect(paid).toEqual([['123456.SH'],['123456X.SH']]);
     expect(recovery.missing).toEqual([{source:'bond-history',dates:['2026-10-28'],codes:['123456.SH'],
       fields:['BONDBALANCE'],reason:'stored_fields_incomplete'}]);

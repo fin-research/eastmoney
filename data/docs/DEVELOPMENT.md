@@ -23,6 +23,8 @@ Smoke 只返回连通性、HTTP 状态，不返回 DM 正文或凭据。`wrangle
 
 只提交任务文件，推送后核对远端。部署后检查线上版本、受影响资源和真实 VPC smoke。
 
+合并到 `main` 后，Cloudflare Workers Builds 自动部署 Data：触发路径为 `data/*`、根 `package.json`、`pnpm-workspace.yaml`、`pnpm-lock.yaml` 和 `vendor/*`，命令为 `pnpm --dir data exec wrangler deploy`。Workflow 的 step 名称变更会使进行中的实例重放，避免在上海时间 23:30–01:00 合并。
+
 ## Choice 运维
 
 Choice 会话由 `CHOICE_SESSION` 持有，机制、令牌有效期和排障见[原生协议](modules/choice-native.md)。

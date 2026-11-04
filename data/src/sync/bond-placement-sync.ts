@@ -1,11 +1,9 @@
 import { z } from 'zod';
 import type { DataApiRequest } from './economic-indicator-sync.ts';
 import type { DatabaseClient } from './postgres.ts';
-import { requireBondBudget } from './bond-history-sync.ts';
 import { pricingDate } from './quant-pricing.ts';
 import { updateBondPlacement } from './bond-issuance-repository.ts';
-import { cssIsolationPoints, syncChoiceCssBatch } from './choice-css-batch.ts';
-import { requestCssQuota } from './choice-css-quota.ts';
+import { syncChoiceCssBatch } from './choice-css-batch.ts';
 import { economicIndicatorErrorDetails } from './economic-indicator-request.ts';
 import type { BondRequestFactory } from './issuance-observation-contract.ts';
 import type { QuantSyncFailure } from './quant-sync-result.ts';
@@ -37,9 +35,6 @@ export async function syncBondPlacement(request: DataApiRequest, db: Database, d
       AND issue_date >= $1::date-90 AND issue_date <= $1::date
       AND placement_checked_at IS NULL AND placement_invalid_code=false
     ORDER BY placement_checked_at NULLS FIRST,issue_date DESC,bond_code LIMIT $2`, [date, limit]));
-  if (bonds.rows.length) {
-    requireBondBudget(await requestCssQuota(request), date, cssIsolationPoints(bonds.rows.length, 2, 100));
-  }
   let stored = 0;
   const failures: QuantSyncFailure[] = [];
   for (let offset = 0; offset < bonds.rows.length; offset += 100) {
