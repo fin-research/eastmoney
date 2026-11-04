@@ -8,7 +8,7 @@ Choice 周流量额度由上游账户控制。Data 的分钟限流只约束请�
 
 ## Data 分钟限流
 
-[Data 配置](../data/wrangler.jsonc)使用 Cloudflare Workers 原生 Rate Limiting binding。REST、GraphQL、MCP 和内部调用共用同一来源或函数的计数器。每次上游请求单独计数。参数校验失败而未请求上游时不计数。
+[Data 配置](../data/wrangler.jsonc)使用 Cloudflare Workers 原生 Rate Limiting binding。REST、GraphQL、MCP 和内部调用共用同一来源或函数的计数器。每次 Data 上游查询在入口计数一次，辅助请求按下文单独计数。参数校验失败而未请求上游时不计数。
 
 触限时 REST 返回 `429`、`RATE_LIMITED` 和 `Retry-After: 60`。GraphQL 保留字段错误契约。
 
@@ -37,4 +37,4 @@ Choice 周流量额度由上游账户控制。Data 的分钟限流只约束请�
 4. **按计划执行。** 历史序列优先用一次 CSD 取整段区间。仅在接口规模或超时要求时拆批，并记录原因。CSS 每次只返回一个 `EndDate` 截面，按日循环前先预算整个日期集。成功响应落盘为检查点，再按实际消耗调整剩余计划。
 5. **触限即停。** 遇分钟 `429`、周额度不足或权限错误时，保留错误、缓存和缺口清单。额度恢复后重新查询并续取。不要轮换账号或换函数来规避额度，也不要把权限或额度错误当作“无数据”而填零。
 
-参数和响应以 [Data Choice 路由](../data/src/choice/routes.ts)为准。交易日、元数据及 EDB 授权/计数辅助请求单独限流，映射见[辅助请求与本地限流](../data/docs/modules/choice-native.md#辅助请求与本地限流)。计划和额度证据存入任务的忽略目录，不提交账户详情或真实业务数据。
+参数和响应以 [Data Choice 路由](../data/src/choice/routes.ts)为准。CSD 交易日与 CSD/CSS 元数据辅助请求单独限流，EDB 辅助请求随主查询计数一次，映射见[辅助请求与本地限流](../data/docs/modules/choice-native.md#辅助请求与本地限流)。计划和额度证据存入任务的忽略目录，不提交账户详情或真实业务数据。

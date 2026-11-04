@@ -12,7 +12,7 @@ Data 拥有 `economic-indicator-sync` / `EconomicIndicatorSyncWorkflow`。Messen
 
 交易日的主 Workflow 按依赖编排八个业务组。拉取、规范化和 Neon upsert 在所属 durable step 内完成，最后的 `汇总同步结果` step 保存总结果和 Quant 日汇总。DM 组在独立子实例执行，其他七组在主实例执行。
 
-- `同步 Choice 经济指标`：按回看窗口和代码族请求，每批最多 8 个指标，同一 step 内并发。收齐成功批次后共享发布日期代理映射，统一入库。
+- `同步 Choice 经济指标`：按回看窗口和代码族请求，每批最多 8 个指标，同一 step 内并发，每批在 Data 入口计入一次 EDB 限流。日更批数不超过 `CHOICE_OTHER_LIMIT` 每分钟阈值，由测试守护。收齐成功批次后共享发布日期代理映射，统一入库。
 - `同步 DM 资金面`：由 `dm-funding-sync` / `DmFundingSyncWorkflow` 子实例执行 DR001、DR007、R007、SHIBOR O/N、1W、3M 六个请求，同一 step 内并发拉取并入库。
   - 主流程创建子实例后等待一次 `dm-funding-result` 事件，最长 15 分钟，不轮询状态。事件可在父流程开始等待前缓冲。
   - 子实例完成数据步骤后发送结果。通知步骤最多重试两次，只重发结果，不重取数据。

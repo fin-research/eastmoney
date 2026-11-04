@@ -76,7 +76,6 @@ export class ChoiceSession extends DurableObject<Cloudflare.Env> {
         let published: Uint8Array | undefined;
         const publicationQuery = name === 'edb' ? publishDateQueryForEdb(payload, session.uid) : undefined;
         if (publicationQuery) {
-          await requireUpstreamCapacity(this.env.CHOICE_OTHER_LIMIT, 'edb', 'Choice');
           const publication = await exchange(this.config.servers['6'], publicationQuery.frame, remaining(started + 60_000));
           assertQueryFrame(publication);
           published = publication.body;
@@ -87,7 +86,7 @@ export class ChoiceSession extends DurableObject<Cloudflare.Env> {
         return { value: decodeQuery(name, payload, result.body, expectedDates, percentByCode, published), sheets: name === 'edb' ? decodeChoiceSheets(result.body) : [] };
         };
         table = name === 'edb' ? await executeAccountedEdb(session.token, async request => {
-          await requireUpstreamCapacity(this.env.CHOICE_OTHER_LIMIT, 'edb', 'Choice');
+          // EDB is counted once at the Data entry (client.ts); never interrupt the vendor auth/query/count sequence.
           const response = await fetch(new URL(request.path, this.config.servers.statisticsOrigin), { method: 'POST', redirect: 'manual', headers: { 'Content-Type': 'application/json' }, body: request.body, signal: AbortSignal.timeout(remaining(started + 60_000)) });
           if (!response.ok) { await response.body?.cancel(); throw new Error('Choice quota HTTP error'); }
           return readUpstreamJson(response, [session.token]);

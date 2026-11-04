@@ -1,6 +1,8 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { persistEconomicIndicators } from "../src/sync/economic-indicators-repository.ts";
+import { economicIndicatorRequests } from "../src/sync/economic-indicator-run.ts";
 import { fetchChoiceEconomicIndicatorRows, fetchDmFundingRateRows } from "../src/sync/economic-indicator-sync.ts";
 test("增量同步在单事务和 advisory lock 内只做 upsert", async () => {
   const calls = [];
@@ -167,4 +169,12 @@ test('2019 macro releases use verified PBC dates and never observation dates', a
   }
   assert.equal(normalizeChoiceEconomicIndicatorRows(raw, '2019-02-14').length, 0);
   assert.equal(normalizeChoiceEconomicIndicatorRows([{code: 'EMM00087086',date:'2018-12-01',RESULT:1}], '2020-01-16').length, 0);
+});
+
+test("每日 EDB 批数不超过 CHOICE_OTHER_LIMIT 每分钟阈值", () => {
+  const limit = JSON.parse(readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8"))
+    .ratelimits.find((binding) => binding.name === "CHOICE_OTHER_LIMIT").simple.limit;
+  const batches = economicIndicatorRequests(Date.UTC(2026, 10, 3, 16)).filter((spec) => spec.source === "choice-edb");
+  assert.ok(batches.length > 0);
+  assert.ok(batches.length < limit, "保留至少一个限流余量");
 });
