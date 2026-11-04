@@ -51,5 +51,215 @@
     "workflow_resource": "dc0ed884-d155-4494-b943-334a5ad2293e",
     "module_sha256": "d00e0d1a99732d802431ac602202ad67789573bbd77634352e3aa793075e43e9",
     "identifiers": "Worker version and Workflow version are distinct resources from the same serialized deployment and actual successful instance; deployed module matches verified dry package."
+  },
+  "post_training_check": {
+    "script": "scripts/timing_diagnostics.py",
+    "as_of_quote": "2026-11-03",
+    "package_on_matured_labels": {
+      "train_2021_2025": {
+        "origins": 1249,
+        "accuracy": 0.5364,
+        "majority_accuracy": 0.4972,
+        "logloss": 0.9777,
+        "ex_ante_prior_logloss": 0.9705,
+        "label_entropy": 0.9705,
+        "class_share": {
+          "暂缓": 0.3819,
+          "等待": 0.4972,
+          "尽快": 0.1209
+        },
+        "pick_share": {
+          "暂缓": 0.3034,
+          "等待": 0.6837,
+          "尽快": 0.0128
+        },
+        "spearman_issue_minus_defer": 0.1908,
+        "label_std_bp": 9.3482
+      },
+      "holdout_2026": {
+        "origins": 185,
+        "accuracy": 0.7351,
+        "majority_accuracy": 0.9135,
+        "logloss": 0.897,
+        "ex_ante_prior_logloss": 0.7216,
+        "label_entropy": 0.2943,
+        "class_share": {
+          "暂缓": 0.0865,
+          "等待": 0.9135,
+          "尽快": 0.0
+        },
+        "pick_share": {
+          "暂缓": 0.2541,
+          "等待": 0.7459,
+          "尽快": 0.0
+        },
+        "spearman_issue_minus_defer": 0.054,
+        "label_std_bp": 2.3527
+      }
+    },
+    "range_model": {
+      "origins": 1333,
+      "coverage_50": 0.5679,
+      "coverage_80": 0.8455,
+      "material_brier": 0.2236,
+      "material_brier_expanding_frequency": 0.2513,
+      "by_year": {
+        "2021": {
+          "origins": 149,
+          "coverage_80": 0.8792,
+          "predicted_material": 0.619,
+          "realized_material": 0.6309
+        },
+        "2022": {
+          "origins": 250,
+          "coverage_80": 0.748,
+          "predicted_material": 0.6406,
+          "realized_material": 0.656
+        },
+        "2023": {
+          "origins": 250,
+          "coverage_80": 0.924,
+          "predicted_material": 0.6519,
+          "realized_material": 0.54
+        },
+        "2024": {
+          "origins": 251,
+          "coverage_80": 0.8367,
+          "predicted_material": 0.6226,
+          "realized_material": 0.6653
+        },
+        "2025": {
+          "origins": 248,
+          "coverage_80": 0.8669,
+          "predicted_material": 0.4671,
+          "realized_material": 0.3548
+        },
+        "2026": {
+          "origins": 185,
+          "coverage_80": 0.827,
+          "predicted_material": 0.1392,
+          "realized_material": 0.1027
+        }
+      }
+    },
+    "current_range": {
+      "source_date": "2026-11-03",
+      "daily_sigma_bp": 1.5525,
+      "label_count": 750,
+      "material_bp": 5.0,
+      "bands_bp": {
+        "50": [
+          -3.596,
+          3.596
+        ],
+        "80": [
+          -6.529,
+          6.529
+        ]
+      },
+      "p_material_move": 0.3373,
+      "p_issue_now_better": 0.1687,
+      "p_waiting_better": 0.1687
+    },
+    "direction_stability": {
+      "gov_1y": {
+        "2003_2010": {
+          "samples": 96,
+          "spearman": 0.2134,
+          "ci95": [
+            -0.0201,
+            0.4291
+          ]
+        },
+        "2011_2018": {
+          "samples": 96,
+          "spearman": 0.1111,
+          "ci95": [
+            -0.0862,
+            0.2979
+          ]
+        },
+        "2019_2026": {
+          "samples": 93,
+          "spearman": -0.081,
+          "ci95": [
+            -0.2824,
+            0.1356
+          ]
+        }
+      },
+      "gov_30y": {
+        "2003_2010": {
+          "samples": 96,
+          "spearman": 0.029,
+          "ci95": [
+            -0.2068,
+            0.2485
+          ]
+        },
+        "2011_2018": {
+          "samples": 96,
+          "spearman": 0.1227,
+          "ci95": [
+            -0.0739,
+            0.298
+          ]
+        },
+        "2019_2026": {
+          "samples": 93,
+          "spearman": 0.0674,
+          "ci95": [
+            -0.1506,
+            0.269
+          ]
+        }
+      },
+      "gov_10y": {
+        "2003_2010": {
+          "samples": 96,
+          "spearman": 0.034,
+          "ci95": [
+            -0.1753,
+            0.2338
+          ]
+        },
+        "2011_2018": {
+          "samples": 96,
+          "spearman": 0.0916,
+          "ci95": [
+            -0.1115,
+            0.286
+          ]
+        },
+        "2019_2026": {
+          "samples": 93,
+          "spearman": -0.0441,
+          "ci95": [
+            -0.2436,
+            0.1461
+          ]
+        }
+      }
+    },
+    "curve_smoothness": {
+      "sector_3y": {
+        "autocorr_lag1": 0.4025,
+        "autocorr_lag2": 0.2119,
+        "autocorr_lag3": 0.1425,
+        "variance_ratio_5": 2.0371
+      },
+      "cdb_3y": {
+        "autocorr_lag1": 0.1861,
+        "autocorr_lag2": 0.004,
+        "autocorr_lag3": 0.017,
+        "variance_ratio_5": 1.3217
+      },
+      "gov_3y": {
+        "autocorr_lag1": 0.1804,
+        "autocorr_lag2": 0.0189,
+        "autocorr_lag3": 0.0103,
+        "variance_ratio_5": 1.343
+      }
+    }
   }
 }

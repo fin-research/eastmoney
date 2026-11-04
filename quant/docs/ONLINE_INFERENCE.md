@@ -33,6 +33,7 @@ pnpm exec wrangler workflows trigger quant-bond-inference-trial '{"as_of_date":"
 
 待办：
 
+- 2026 年留出检验显示三档边界在低波动期失效（见 [README](../README.md#2026年留出检验)）。是否继续沿用该包、暂停，或改为只给波动区间的无方向输出，须由业务决定。区间输出需要新的结果契约、Dashboard migration 和 Worker 推理，当前不在线上。
 - Data 日更修复的自然完整链路和生产 CPU，仍须取得实际运行证据。
 - Data 的证券身份映射按官方生效日期使用，保留原始代码、真实值、NULL 和冲突，不相加别名余额。新映射尚未接入封存的 Quant 消费者，不能据此恢复预测。
 
