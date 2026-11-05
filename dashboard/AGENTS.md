@@ -23,6 +23,7 @@
 - 生成式 AI 只经 `src/lib/server/ai-gateway.ts`。传输、重试与检索见 [共享 AI](../docs/AI.md)，业务 Prompt 和 Schema 留在目标模块。
 - 融资模型的 Quant / Dashboard 写入分工见 [共享数据库](../docs/DATABASE.md#融资模型跨仓库写入)，页面契约见 [融资模型](docs/modules/financing-model.md)。
 - 卖方观点用研究库检索，授信助手用独立授信材料库，证据来源和权限不通用。见融资模型模块与 [授信助手](docs/CREDIT_ASSISTANT.md)。
+- 图标只按文件导入（`@lucide/svelte/icons/<name>`），禁止 `from '@lucide/svelte'`：总入口让构建加载约 7800 个文件，云端构建机会报 `EMFILE`。
 - `worker-configuration.d.ts` 是生成文件。绑定变化后运行 `pnpm worker:typegen`。
 - `pnpm dev` 不同步远程 D1。需要本地证据时才运行 `pnpm db:sync:remote`。
 - 推送前，代码变更运行 `pnpm check:quick` 和直接相关的轻量单元测试，纯文档修改运行 `git diff --check`。视觉改动用 `pnpm visual:local` 审阅受影响页，完整验收由合并队列的 `Dashboard CI` 执行。见 [DEVELOPMENT](docs/DEVELOPMENT.md) 和 [TESTING](docs/TESTING.md)。

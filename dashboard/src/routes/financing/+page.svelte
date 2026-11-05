@@ -7,10 +7,14 @@
 	import { page } from '$app/state';
 	import { withBase } from '$lib/financing/app-paths';
 	import { scrollableRegion } from '$lib/scrollable-region';
-	import {
-		CalendarClock, ChevronLeft, ChevronRight, CircleAlert, CircleDollarSign, Clock3,
-		Landmark, Percent
-	} from '@lucide/svelte';
+	import CalendarClock from '@lucide/svelte/icons/calendar-clock';
+	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import CircleAlert from '@lucide/svelte/icons/circle-alert';
+	import CircleDollarSign from '@lucide/svelte/icons/circle-dollar-sign';
+	import Clock3 from '@lucide/svelte/icons/clock-3';
+	import Landmark from '@lucide/svelte/icons/landmark';
+	import Percent from '@lucide/svelte/icons/percent';
 	import DebtPresetFilter from '$lib/financing/DebtPresetFilter.svelte';
 	import './dashboard.css';
 import { financingCalendarDates } from '$lib/financing/calendar';

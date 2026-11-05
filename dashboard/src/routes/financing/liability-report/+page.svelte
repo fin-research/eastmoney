@@ -3,7 +3,7 @@ import { getContext } from 'svelte';
 import { CLIENT_SESSION_CONTEXT, type ClientSession } from '$lib/client-session';
 	import './weekly-report.css';
 	import { withBase } from '$lib/financing/app-paths';
-	import { FileText } from '@lucide/svelte';
+	import FileText from '@lucide/svelte/icons/file-text';
 	import { liabilityTypeColor } from '../../../charts/financing/report';
 	import { emptyLiabilityWeeklyReport } from '$lib/financing/liability-report-data.js';
 	import { hasPermission } from '$lib/permissions';

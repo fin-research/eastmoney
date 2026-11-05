@@ -1,4 +1,17 @@
-import { Banknote, Building2, CalendarClock, CheckCheck, ClipboardCheck, Clock, FileText, GitBranch, Landmark, ListChecks, MessageSquare, Send, ShieldCheck, Wallet } from '@lucide/svelte';
+import Banknote from '@lucide/svelte/icons/banknote';
+import Building2 from '@lucide/svelte/icons/building-2';
+import CalendarClock from '@lucide/svelte/icons/calendar-clock';
+import CheckCheck from '@lucide/svelte/icons/check-check';
+import ClipboardCheck from '@lucide/svelte/icons/clipboard-check';
+import Clock from '@lucide/svelte/icons/clock';
+import FileText from '@lucide/svelte/icons/file-text';
+import GitBranch from '@lucide/svelte/icons/git-branch';
+import Landmark from '@lucide/svelte/icons/landmark';
+import ListChecks from '@lucide/svelte/icons/list-checks';
+import MessageSquare from '@lucide/svelte/icons/message-square';
+import Send from '@lucide/svelte/icons/send';
+import ShieldCheck from '@lucide/svelte/icons/shield-check';
+import Wallet from '@lucide/svelte/icons/wallet';
 import { isInquiry, type WorkflowNode } from './model';
 
 export const workflowIcons = {

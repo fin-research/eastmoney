@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button/index.js";
-	import { ArrowLeft } from '@lucide/svelte';
+	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import ModuleCard from '../../../../components/ModuleCard.svelte';
 	import PanelHeading from '$lib/trading-research/PanelHeading.svelte';
 	import { withBase } from '$lib/financing/app-paths';

@@ -12,7 +12,8 @@ import { roleLabel } from '$lib/permissions/permission-tree';
 import PermissionExplorer from '$lib/permissions/PermissionExplorer.svelte';
 import { hasPermission } from '$lib/permissions';
 import { globalMessages } from '$lib/global-messages';
-import { ExternalLink, RefreshCw } from '@lucide/svelte';
+import ExternalLink from '@lucide/svelte/icons/external-link';
+import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 let { data }: { data: {
   tab: 'people' | 'roles'; people: DirectoryPerson[]; roles: Auth0Role[];
   configurations: Record<string, { permissions: string[] }>; permissions: string[];

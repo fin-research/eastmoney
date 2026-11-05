@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount, tick, untrack } from 'svelte';
   import { scrollableRegion } from '../scrollable-region';
-  import { ChevronLeft, ChevronRight } from '@lucide/svelte';
+  import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+  import ChevronRight from '@lucide/svelte/icons/chevron-right';
   import type { InquiryRow, InquiryDirectory } from './inquiries';
   import type { ShiborRate } from '../../data-contracts';
   import { SvelteFlow } from '@xyflow/svelte';

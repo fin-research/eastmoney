@@ -3,7 +3,12 @@
  import { Button } from '$lib/components/ui/button/index.js';
  import { Input } from '$lib/components/ui/input/index.js';
  import { NativeSelect } from '$lib/components/ui/native-select/index.js';
- import { ArrowDown, ArrowUp, ArrowUpDown, EyeOff, Filter, X } from '@lucide/svelte';
+ import ArrowDown from '@lucide/svelte/icons/arrow-down';
+ import ArrowUp from '@lucide/svelte/icons/arrow-up';
+ import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
+ import EyeOff from '@lucide/svelte/icons/eye-off';
+ import Filter from '@lucide/svelte/icons/filter';
+ import X from '@lucide/svelte/icons/x';
  import type { FieldConfig } from './data-admin';
  let { field, sortDirection, filter = {}, onsort, onfilter, onhide }: {
   field: FieldConfig; sortDirection?: 'asc'|'desc'; filter?: {value?:string;min?:string;max?:string};

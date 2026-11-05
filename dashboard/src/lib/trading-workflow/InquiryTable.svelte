@@ -3,7 +3,7 @@
   import { onMount, tick, untrack } from 'svelte';
   import { fly } from 'svelte/transition';
   import { flip } from 'svelte/animate';
-  import { Plus } from '@lucide/svelte';
+  import Plus from '@lucide/svelte/icons/plus';
   import type { ShiborRate } from '../../data-contracts';
   import { blankInquiry, displayField, fieldError, hasInquiryValue, invalidField, previousValues, suggestions, type InquiryDirectory, type InquiryField, type InquiryRow } from './inquiries';
   let { rows, loan, directory, rates, date, now, onRows, onRemember }: {

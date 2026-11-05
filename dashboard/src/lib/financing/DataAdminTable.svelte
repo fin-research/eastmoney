@@ -1,5 +1,9 @@
 <script lang="ts">
- import { Search, SlidersHorizontal, RefreshCw, Download, Plus } from '@lucide/svelte';
+ import Search from '@lucide/svelte/icons/search';
+ import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
+ import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+ import Download from '@lucide/svelte/icons/download';
+ import Plus from '@lucide/svelte/icons/plus';
  import ModuleCard from '../../components/ModuleCard.svelte';
  import { goto } from '$app/navigation';
  import { Button } from '$lib/components/ui/button/index.js';

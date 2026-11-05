@@ -3,15 +3,13 @@
   import { Button } from "$lib/components/ui/button/index.js";
   import { NativeSelect } from "$lib/components/ui/native-select/index.js";
 import { formatFinancingTimestamp } from '$lib/financing/time.js';
-	import {
-		ArrowLeft,
-		CheckCircle2,
-		Clock3,
-		LoaderCircle,
-		Mail,
-		Search,
-		TriangleAlert
-	} from '@lucide/svelte';
+	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+	import CheckCircle2 from '@lucide/svelte/icons/check-circle-2';
+	import Clock3 from '@lucide/svelte/icons/clock-3';
+	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
+	import Mail from '@lucide/svelte/icons/mail';
+	import Search from '@lucide/svelte/icons/search';
+	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
 	import { globalMessages } from '$lib/global-messages';
 	import { withBase } from '$lib/financing/app-paths';
 	import { untrack } from 'svelte';

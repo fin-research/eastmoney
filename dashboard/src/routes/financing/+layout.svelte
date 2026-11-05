@@ -5,7 +5,7 @@ import { Button } from '$lib/components/ui/button/index.js';
 import { Badge } from '$lib/components/ui/badge/index.js';
 import { CLIENT_SESSION_CONTEXT, type ClientSession } from '$lib/client-session';
 import './layout.css';
-import { Bell } from '@lucide/svelte';
+import Bell from '@lucide/svelte/icons/bell';
 import { navigating, page } from '$app/state';
 import WorkbenchShell from '$lib/workbench/WorkbenchShell.svelte';
 import type { WorkbenchIconName } from '$lib/trading-research/demo-data';

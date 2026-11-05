@@ -9,15 +9,13 @@ import { formatFinancingTimestamp } from '$lib/financing/time.js';
 	import { invalidate } from '$app/navigation';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { getContext, untrack } from 'svelte';
-	import {
-		ArrowLeft,
-		CalendarDays,
-		ClipboardList,
-		Clock3,
-		Plus,
-		UserRound,
-		UsersRound
-	} from '@lucide/svelte';
+	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+	import CalendarDays from '@lucide/svelte/icons/calendar-days';
+	import ClipboardList from '@lucide/svelte/icons/clipboard-list';
+	import Clock3 from '@lucide/svelte/icons/clock-3';
+	import Plus from '@lucide/svelte/icons/plus';
+	import UserRound from '@lucide/svelte/icons/user-round';
+	import UsersRound from '@lucide/svelte/icons/users-round';
 	import { autoSave, completeAutoSave, getAutoSaveRevision } from '$lib/financing/auto-save';
 	import { globalMessages } from '$lib/global-messages';
 		import { hasPermission } from '$lib/permissions';

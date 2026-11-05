@@ -13,23 +13,21 @@ import ModuleCard from '../../../components/ModuleCard.svelte';
 	import { invalidate } from '$app/navigation';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { getContext, untrack, tick } from 'svelte';
-	import {
-		ArrowRight,
-		CalendarDays,
-		CheckCircle2,
-		ChevronDown,
-		ChevronRight,
-		CircleDashed,
-		Clock3,
-		Filter,
-		Flag,
-		LoaderCircle,
-		Pencil,
-		Plus,
-		Search,
-		Trash2,
-		Users
-	} from '@lucide/svelte';
+	import ArrowRight from '@lucide/svelte/icons/arrow-right';
+	import CalendarDays from '@lucide/svelte/icons/calendar-days';
+	import CheckCircle2 from '@lucide/svelte/icons/check-circle-2';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import CircleDashed from '@lucide/svelte/icons/circle-dashed';
+	import Clock3 from '@lucide/svelte/icons/clock-3';
+	import Filter from '@lucide/svelte/icons/filter';
+	import Flag from '@lucide/svelte/icons/flag';
+	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
+	import Pencil from '@lucide/svelte/icons/pencil';
+	import Plus from '@lucide/svelte/icons/plus';
+	import Search from '@lucide/svelte/icons/search';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import Users from '@lucide/svelte/icons/users';
 	import MultiSelectFilter from '$lib/financing/MultiSelectFilter.svelte';
 	import { autoSave, completeAutoSave, getAutoSaveRevision } from '$lib/financing/auto-save';
 	import { withBase } from '$lib/financing/app-paths';

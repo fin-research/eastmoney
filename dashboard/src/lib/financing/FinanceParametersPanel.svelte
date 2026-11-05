@@ -7,7 +7,11 @@
 	import ModuleCard from "../../components/ModuleCard.svelte";
 	import PanelHeading from "../trading-research/PanelHeading.svelte";
 	import { onMount } from 'svelte';
-	import { LoaderCircle, Pencil, Plus, RefreshCw, X } from '@lucide/svelte';
+	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
+	import Pencil from '@lucide/svelte/icons/pencil';
+	import Plus from '@lucide/svelte/icons/plus';
+	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+	import X from '@lucide/svelte/icons/x';
 	import type { DataRow } from './data-admin';
 	import { FINANCE_PARAMETER_CONFIG, FINANCIAL_INPUT_FIELDS, FINANCIAL_RATIO_FIELDS, financeParameterPayload, financialReconciliation, financialValue, hasFinancialValue } from './finance-parameters';
 	import { NeonDataApi } from './neon-data-api';

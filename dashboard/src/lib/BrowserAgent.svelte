@@ -1,6 +1,19 @@
 <script lang="ts">
   import { tick, untrack } from 'svelte';
-  import { ArrowUp, BookOpen, Building2, ChartLine, Check, ChevronDown, Copy, FileText, FolderOpen, Plus, Search, Settings2, Square, Trash } from '@lucide/svelte';
+  import ArrowUp from '@lucide/svelte/icons/arrow-up';
+  import BookOpen from '@lucide/svelte/icons/book-open';
+  import Building2 from '@lucide/svelte/icons/building-2';
+  import ChartLine from '@lucide/svelte/icons/chart-line';
+  import Check from '@lucide/svelte/icons/check';
+  import ChevronDown from '@lucide/svelte/icons/chevron-down';
+  import Copy from '@lucide/svelte/icons/copy';
+  import FileText from '@lucide/svelte/icons/file-text';
+  import FolderOpen from '@lucide/svelte/icons/folder-open';
+  import Plus from '@lucide/svelte/icons/plus';
+  import Search from '@lucide/svelte/icons/search';
+  import Settings2 from '@lucide/svelte/icons/settings-2';
+  import Square from '@lucide/svelte/icons/square';
+  import Trash from '@lucide/svelte/icons/trash';
   import type { ModelMessage } from 'ai';
   import { listBrowserTools, runBrowserAgent, type BrowserTool } from './browser-agent';
 

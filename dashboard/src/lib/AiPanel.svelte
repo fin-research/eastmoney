@@ -1,5 +1,12 @@
 <script lang="ts">
-  import { ArrowLeft, Bot, Check, ChevronRight, Circle, Expand, Square, X } from "@lucide/svelte";
+  import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+  import Bot from '@lucide/svelte/icons/bot';
+  import Check from '@lucide/svelte/icons/check';
+  import ChevronRight from '@lucide/svelte/icons/chevron-right';
+  import Circle from '@lucide/svelte/icons/circle';
+  import Expand from '@lucide/svelte/icons/expand';
+  import Square from '@lucide/svelte/icons/square';
+  import X from '@lucide/svelte/icons/x';
   import { cubicIn, cubicOut } from "svelte/easing";
   import { tick } from "svelte";
   import { fade, fly } from "svelte/transition";
