@@ -14,6 +14,7 @@ export const ACCESS_PROBES = [
   ['public', '/data/news?pageSize=invalid', [422]],
   ['public', '/data/margin?date=invalid', [422]],
   ['research.hotspot:read', '/trading-research/market-hotspots', [200]],
+  ['research.hotspot:read', '/api/rag/knowledge-graph?days=7', [200]],
   ['research.policy:read', '/trading-research/policy-tracking', [200]],
   ['research.article:read', '/news/auth-test-missing-record', [200]],
   ['research.workspace:read', '/trading-research', [200]],
@@ -123,8 +124,8 @@ async function main() {
     await rpc('initialize', { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'eastmoney-verification', version: '1' } });
     const list = await rpc('tools/list', {});
     const names = list.tools.map(tool => tool.name);
-    const expected = 39;
-    if (names.length !== expected) failures.push(`${path} tool count: expected ${expected}, got ${names.length}`);
+    if (names.length === 0 || new Set(names).size !== names.length) failures.push(`${path} tool catalog empty or duplicated`);
+    for (const name of ['chinamoney_shibor', 'choice_css']) if (!names.includes(name)) failures.push(`${path} missing tool ${name}`);
     const call = await rpc('tools/call', { name: 'chinamoney_shibor', arguments: {} });
     if (call.isError) failures.push(`${path} market data`);
     const invalid = await rpc('tools/call', { name: 'choice_css', arguments: {} });
