@@ -2,6 +2,7 @@ import type {
   CauseMove,
   EdgeTrend,
   EffectMove,
+  KgArticle,
   KgChain,
   KgClaim,
   KgDay,
@@ -16,15 +17,17 @@ const HALF_LIFE_DAYS = 3;
 const RECENT_DAYS = 3;
 const CONTESTED_RATIO = 0.3;
 // The page draws at most this many edges, and chains are built only from them, so every
-// listed chain and hot node is on screen.
+// listed chain is on screen.
 const MAX_EDGES = 80;
 const CHAIN_EDGE_POOL = MAX_EDGES;
 const MAX_HOPS = 3;
 const MAX_CHAINS = 10;
 const CLAIMS_PER_EDGE = 5;
-const ROW_LIMIT = 5000;
-const NODE_ROW_LIMIT = 8000;
-export const GRAPH_MAX_DAYS = 90;
+const ROW_LIMIT = 8000;
+const NODE_ROW_LIMIT = 20000;
+export const GRAPH_MAX_DAYS = 730;
+const ARTICLES_PER_NODE = 10;
+const MIN_TIMELINE_DAYS = 14;
 
 // Common macro terms that models write in several ways. Keys are already node-normalized.
 const ALIASES: Record<string, string> = {
@@ -163,6 +166,7 @@ export function buildKnowledgeGraph(
 
   const labelCounts = new Map<string, Map<string, number>>();
   const nodeArticles = new Map<string, Set<string>>();
+  const nodeArticleInfo = new Map<string, Map<string, KgArticle & { time: number }>>();
   const nodeLastSeen = new Map<string, number>();
   const accumulators = new Map<string, EdgeAccumulator>();
 
@@ -221,6 +225,15 @@ export function buildKnowledgeGraph(
       const articles = nodeArticles.get(nodeKey) ?? new Set<string>();
       articles.add(row.article_id);
       nodeArticles.set(nodeKey, articles);
+      const info = nodeArticleInfo.get(nodeKey) ?? new Map<string, KgArticle & { time: number }>();
+      info.set(row.article_id, {
+        id: row.article_id,
+        title: row.title,
+        author: row.author ?? "",
+        publishedAt: row.published_at,
+        time: published,
+      });
+      nodeArticleInfo.set(nodeKey, info);
       nodeLastSeen.set(nodeKey, Math.max(nodeLastSeen.get(nodeKey) ?? 0, published));
     }
   }
@@ -299,6 +312,10 @@ export function buildKnowledgeGraph(
       weight: round(weight),
       articleCount: nodeArticles.get(key)?.size ?? 0,
       lastSeenAt: new Date(nodeLastSeen.get(key) ?? anchorMs).toISOString(),
+      articles: [...(nodeArticleInfo.get(key)?.values() ?? [])]
+        .sort((left, right) => right.time - left.time || left.id.localeCompare(right.id))
+        .slice(0, ARTICLES_PER_NODE)
+        .map(({ time: _time, ...article }) => article),
     }))
     .sort((left, right) => right.weight - left.weight || left.key.localeCompare(right.key));
 
@@ -379,8 +396,12 @@ export function fillTimeline(
   rows: Array<{ day: string; articles: number; claims: number }>,
 ): KgDay[] {
   const byDay = new Map(rows.map((row) => [row.day, row]));
-  return Array.from({ length: GRAPH_MAX_DAYS }, (_, index) => {
-    const date = addDays(end, index - (GRAPH_MAX_DAYS - 1));
+  const first = rows.map((row) => row.day).filter((day) => day <= end).sort()[0] ?? end;
+  const floor = addDays(end, -(GRAPH_MAX_DAYS - 1));
+  const start = [first, addDays(end, -(MIN_TIMELINE_DAYS - 1))].sort()[0]!;
+  const length = Math.round((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start < floor ? floor : start}T00:00:00Z`)) / DAY_MS) + 1;
+  return Array.from({ length }, (_, index) => {
+    const date = addDays(end, index - (length - 1));
     const row = byDay.get(date);
     return { date, articles: row?.articles ?? 0, claims: row?.claims ?? 0 };
   });

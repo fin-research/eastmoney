@@ -104,7 +104,7 @@ const hotspotGraph=(start,end)=>{
   return {
     window:{start,end,anchor:`${end}T02:00:00.000Z`},
     coverage:{articleCount:12,claimArticleCount:5,claimCount:days,nodeCount:4,truncated:false},
-    nodes:[{key:'降准',label:'降准',kind:'policy',weight:1.2,articleCount:1,lastSeenAt:''},{key:'dr007',label:'DR007',kind:'market',weight:2.4,articleCount:7,lastSeenAt:''},{key:'存单利率',label:'存单利率',kind:'market',weight:1.2,articleCount:3,lastSeenAt:''},{key:'地产债',label:'地产债',kind:'sector',weight:0.5,articleCount:1,lastSeenAt:''}],
+    nodes:[{key:'降准',label:'降准',kind:'policy',weight:1.2,articleCount:1,lastSeenAt:'',articles:[]},{key:'dr007',label:'DR007',kind:'market',weight:2.4,articleCount:7,lastSeenAt:'',articles:[{id:'A001',title:'研报A001',author:'机构甲',publishedAt:'2026-09-15T02:00:00.000Z'},{id:'A002',title:'研报A002',author:'',publishedAt:'2026-09-14T02:00:00.000Z'}]},{key:'存单利率',label:'存单利率',kind:'market',weight:1.2,articleCount:3,lastSeenAt:'',articles:[]},{key:'地产债',label:'地产债',kind:'sector',weight:0.5,articleCount:1,lastSeenAt:'',articles:[]}],
     edges:[hotspotEdge('降准','occur','dr007','fall','A001'),hotspotEdge('dr007','fall','存单利率','fall','A002',true),hotspotEdge('地产销售','fall','地产债','fall','A003')],
     chains:[{nodes:['降准','dr007','存单利率'],edges:[0,1],weight:1.2}],
     timeline:Array.from({length:90},(_,index)=>({date:day(index-89),articles:index%3,claims:index%5+1}))
@@ -126,8 +126,8 @@ test('hotspot graph sizes nodes by mentions, traces paths on click, searches nod
   expect(requested).toEqual(['?days=14']);
   await expect(page.getByRole('img',{name:/节点大小表示研报出现次数/})).toBeVisible();
 
-  const hot=page.getByRole('region',{name:'热点节点'});
-  await hot.getByRole('button',{name:/DR007/}).click();
+  await page.getByRole('searchbox',{name:'搜索节点'}).fill('DR007');
+  await page.getByRole('list',{name:'搜索结果'}).getByRole('button',{name:/DR007/}).click();
   const detail=page.getByRole('region',{name:'节点详情'});
   await expect(detail).toContainText('DR007');
   await expect(detail).toContainText('7 篇');
@@ -135,6 +135,11 @@ test('hotspot graph sizes nodes by mentions, traces paths on click, searches nod
   await expect(detail.getByRole('button',{name:/DR007↓ → 存单利率↓/})).toBeVisible();
   // Nodes outside the traced paths fade to a tenth of their opacity.
   await expect(page.locator('.graph-chart svg [fill-opacity="0.1"]')).toHaveCount(1);
+  const related=page.getByRole('region',{name:'关联文章'});
+  await expect(related.getByRole('link',{name:'研报A001'})).toHaveAttribute('href','/articles/A001');
+  await expect(related.getByText('未署名')).toBeVisible();
+  await expect(page.getByRole('region',{name:'热点节点'})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'回放'})).toHaveCount(0);
 
   await detail.getByRole('button',{name:/降准● → DR007↓/}).click();
   await expect(page.getByLabel('边的研报主张').getByText('研报A001')).toBeVisible();
@@ -167,11 +172,22 @@ test('hotspot graph sizes nodes by mentions, traces paths on click, searches nod
   expect(Math.round((Date.parse('2026-09-15')-Date.parse(query.get('start')))/86400000)+1).toBe(15);
   await expect(page.getByText('15 条主张 · 4 个节点')).toBeVisible();
 
+  // Dragging the start handle to the far left selects every day back to the first claim.
+  const handle=await page.getByRole('slider',{name:'起始日'}).boundingBox();
+  const track=await page.locator('.range-track').boundingBox();
+  await page.mouse.move(handle.x+handle.width/2,handle.y+handle.height/2);
+  await page.mouse.down();
+  await page.mouse.move(track.x+2,handle.y+handle.height/2,{steps:6});
+  await page.mouse.up();
+  await expect.poll(()=>requested.length).toBe(3);
+  expect(new URLSearchParams(requested[2]).get('start')).toBe('2026-06-18');
+  await expect(page.getByRole('slider',{name:'起始日'})).toHaveAttribute('aria-valuenow','0');
+
   const to=page.getByRole('slider',{name:'结束日'});
   await to.focus();
   await page.keyboard.press('ArrowLeft');
-  await expect.poll(()=>requested.length).toBe(3);
-  expect(new URLSearchParams(requested[2]).get('end')).toBe('2026-09-14');
+  await expect.poll(()=>requested.length).toBe(4);
+  expect(new URLSearchParams(requested[3]).get('end')).toBe('2026-09-14');
 });
 
 test('hotspot graph shows an empty state and an error with retry',async({page})=>{

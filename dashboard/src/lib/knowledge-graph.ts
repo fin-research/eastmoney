@@ -3,6 +3,13 @@ export type CauseMove = "rise" | "fall" | "occur";
 export type EffectMove = "rise" | "fall";
 export type EdgeTrend = "new" | "rising" | "steady" | "fading";
 
+export interface KgArticle {
+  id: string;
+  title: string;
+  author: string;
+  publishedAt: string;
+}
+
 export interface KgNode {
   key: string;
   label: string;
@@ -10,6 +17,8 @@ export interface KgNode {
   weight: number;
   articleCount: number;
   lastSeenAt: string;
+  /** Newest articles whose claims mention the node. */
+  articles: KgArticle[];
 }
 
 export interface KgClaim {
@@ -66,7 +75,7 @@ export interface KnowledgeGraphResponse {
   nodes: KgNode[];
   edges: KgEdge[];
   chains: KgChain[];
-  /** Daily claim counts for the 90 days ending at `window.end`, oldest first. */
+  /** Daily claim counts from the first day with claims (at least 14 days) to `window.end`, oldest first. */
   timeline: KgDay[];
 }
 

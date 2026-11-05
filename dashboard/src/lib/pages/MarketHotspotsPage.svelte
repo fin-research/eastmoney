@@ -23,10 +23,7 @@
   } from "$lib/knowledge-graph";
 
   const DEFAULT_DAYS = 14;
-  const MIN_DOMAIN = 14;
-  const HOT_NODES = 8;
   const LISTED_EDGES = 6;
-  const REPLAY_MS = 1600;
 
   let graph = $state.raw<KnowledgeGraphResponse | null>(null);
   let domain = $state.raw<KgDay[]>([]);
@@ -37,17 +34,13 @@
   let edgeIndex = $state<number | null>(null);
   let chainIndex = $state<number | null>(null);
   let query = $state("");
-  let playing = $state(false);
   let host: HTMLElement | undefined;
   let request: AbortController | null = null;
-  let replay: ReturnType<typeof setInterval> | undefined;
   const wired = new WeakSet<object>();
 
   const view = $derived<GraphView>({ node, edge: edgeIndex, chain: chainIndex });
   const labels = $derived(new Map((graph?.nodes ?? []).map((item) => [item.key, item.label])));
   const label = (key: string): string => labels.get(key) ?? key;
-  const hot = $derived([...(graph?.nodes ?? [])].sort((a, b) => b.articleCount - a.articleCount).slice(0, HOT_NODES));
-  const hotMax = $derived(Math.max(1, ...hot.map((item) => item.articleCount)));
   const selectedNode = $derived(graph?.nodes.find((item) => item.key === node) ?? null);
   const selectedEdge = $derived(graph && edgeIndex !== null ? (graph.edges[edgeIndex] ?? null) : null);
   const traced = $derived(graph && node ? tracePaths(graph, node) : null);
@@ -68,10 +61,7 @@
   const downstream = $derived(neighbours("down"));
 
   onMount(() => void load({ days: DEFAULT_DAYS }));
-  onDestroy(() => {
-    request?.abort();
-    stopReplay();
-  });
+  onDestroy(() => request?.abort());
 
   async function load(window: { days: number } | { start: string; end: string }): Promise<void> {
     request?.abort();
@@ -95,20 +85,16 @@
     } catch (error) {
       if (!isAiRequestCancelled(error)) {
         errorMessage = error instanceof Error ? error.message : String(error);
-        stopReplay();
       }
     } finally {
       if (request === mine) loading = false;
     }
   }
 
-  /** The slider covers the days from the first claim to today, never fewer than two weeks. */
+  /** The slider covers every day from the first claim to today. */
   function setDomain(payload: KnowledgeGraphResponse): void {
-    const timeline = payload.timeline;
-    if (timeline.length === 0) return;
-    const first = timeline.findIndex((day) => day.claims > 0);
-    const start = Math.min(first < 0 ? timeline.length - MIN_DOMAIN : first, timeline.length - MIN_DOMAIN);
-    domain = timeline.slice(Math.max(0, start));
+    if (payload.timeline.length === 0) return;
+    domain = payload.timeline;
     const from = domain.findIndex((day) => day.date === payload.window.start);
     const to = domain.findIndex((day) => day.date === payload.window.end);
     range = { from: Math.max(0, from), to: to < 0 ? domain.length - 1 : to };
@@ -124,24 +110,6 @@
   function reload(): void {
     if (domain.length > 0) commit(range.from, range.to);
     else void load({ days: DEFAULT_DAYS });
-  }
-
-  function stopReplay(): void {
-    clearInterval(replay);
-    replay = undefined;
-    playing = false;
-  }
-
-  function toggleReplay(): void {
-    if (playing) return stopReplay();
-    if (domain.length === 0) return;
-    playing = true;
-    if (range.to >= domain.length - 1) commit(0, range.to - range.from);
-    replay = setInterval(() => {
-      if (loading) return;
-      if (range.to >= domain.length - 1) return stopReplay();
-      commit(range.from + 1, range.to + 1);
-    }, REPLAY_MS);
   }
 
   function wire(chart: ReturnType<typeof import("../../charts/charting").getChart> & object, element: HTMLElement): void {
@@ -242,12 +210,7 @@
 
     {#if domain.length > 0}
       <div class="stage-range">
-        <Button variant="outline" class="ui-button replay" type="button" aria-pressed={playing} onclick={toggleReplay}>
-          {playing ? "暂停" : "回放"}
-        </Button>
-        <div class="stage-slider">
-          <TimeRangeSlider days={domain} from={range.from} to={range.to} onchange={commit} />
-        </div>
+        <TimeRangeSlider days={domain} from={range.from} to={range.to} onchange={commit} />
       </div>
     {/if}
   </div>
@@ -313,6 +276,18 @@
           </ul>
         {/if}
       </section>
+
+      <section class="panel" aria-label="关联文章">
+        <h2>关联文章 <span class="count">{selectedNode.articleCount}</span></h2>
+        <ul class="articles">
+          {#each selectedNode.articles as article (article.id)}
+            <li>
+              <a href={`/articles/${encodeURIComponent(article.id)}`}>{article.title}</a>
+              <span class="meta">{article.author || "未署名"} · {formatTime(article.publishedAt)}</span>
+            </li>
+          {/each}
+        </ul>
+      </section>
     {/if}
 
     {#if selectedEdge}
@@ -325,30 +300,11 @@
           {#each selectedEdge.claims as claim, claimIndex (`${claim.articleId}|${claimIndex}`)}
             <li>
               <span class="meta">{claim.basis === "observed" ? "已发生" : "预期"} · {claim.author || "未署名"} · {formatTime(claim.publishedAt)}</span>
-              <strong>{claim.title}</strong>
+              <a href={`/articles/${encodeURIComponent(claim.articleId)}`}>{claim.title}</a>
               <p>{claim.mechanism}</p>
             </li>
           {/each}
         </ul>
-      </section>
-    {/if}
-
-    {#if hot.length > 0}
-      <section class="panel" aria-label="热点节点">
-        <h2>热点</h2>
-        <ol class="rows">
-          {#each hot as item (item.key)}
-            <li>
-              <Button variant="ghost" class="ui-button row" type="button" aria-pressed={node === item.key}
-                onclick={() => pick(item.key)}>
-                <span class="swatch" style:background={KIND_STYLE[item.kind].color}></span>
-                <span class="row-label">{item.label}</span>
-                <span class="heat" style:--heat={`${(item.articleCount / hotMax) * 100}%`}></span>
-                <span class="count">{item.articleCount}</span>
-              </Button>
-            </li>
-          {/each}
-        </ol>
       </section>
     {/if}
 
@@ -424,8 +380,7 @@
     gap: 6px;
   }
 
-  :global(.graph-zoom-button),
-  :global(.replay) {
+  :global(.graph-zoom-button) {
     min-width: 44px;
     min-height: 44px;
     border-color: #2a3753;
@@ -434,16 +389,10 @@
     font-size: 1.125rem;
   }
 
-  :global(.graph-zoom-button:hover),
-  :global(.replay:hover),
-  :global(.replay[aria-pressed="true"]) {
+  :global(.graph-zoom-button:hover) {
     border-color: #5b9dff;
     background: rgba(91, 157, 255, 0.18);
     color: #ffffff;
-  }
-
-  :global(.replay) {
-    font-size: 0.875rem;
   }
 
   .graph-state {
@@ -470,17 +419,8 @@
   }
 
   .stage-range {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-    gap: 6px;
-    padding-left: 14px;
-    border-top: 1px solid #1c2a44;
-  }
-
-  .stage-slider {
     min-width: 0;
-    padding-right: 14px;
+    border-top: 1px solid #1c2a44;
   }
 
   .side {
@@ -585,19 +525,15 @@
     background: var(--brand-soft);
   }
 
-  .row-label {
-    min-width: 0;
-    flex: 0 1 auto;
+  .articles {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    gap: 0;
+    list-style: none;
   }
 
-  .heat {
-    flex: 1;
-    height: 6px;
-    min-width: 24px;
-    border-radius: 3px;
-    background: linear-gradient(90deg, var(--brand-deep) var(--heat), var(--border-color) var(--heat));
-  }
-
+  .articles li,
   .claims li {
     display: grid;
     gap: 2px;
@@ -605,8 +541,19 @@
     border-top: 1px solid var(--border-color);
   }
 
+  .articles li:first-child,
   .claims li:first-child {
     border-top: 0;
+  }
+
+  .panel a {
+    color: var(--brand-deep);
+    font-weight: bold;
+    text-decoration: none;
+  }
+
+  .panel a:hover {
+    text-decoration: underline;
   }
 
   .claims p {

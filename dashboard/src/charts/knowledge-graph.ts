@@ -21,12 +21,12 @@ export const GRAPH_STAGE = {
 
 export const KIND_ORDER: readonly NodeKind[] = ["policy", "macro", "market", "sector", "event"];
 
-export const KIND_STYLE: Record<NodeKind, { name: string; color: string; symbol: string }> = {
-  policy: { name: "政策", color: "#5b9dff", symbol: "path://M50 2 L93 26 L93 74 L50 98 L7 74 L7 26 Z" },
-  macro: { name: "宏观", color: "#f5b942", symbol: "roundRect" },
-  market: { name: "市场", color: "#2dd4bf", symbol: "circle" },
-  sector: { name: "板块", color: "#b794f6", symbol: "diamond" },
-  event: { name: "事件", color: "#94a3b8", symbol: "triangle" },
+export const KIND_STYLE: Record<NodeKind, { name: string; color: string }> = {
+  policy: { name: "政策", color: "#5b9dff" },
+  macro: { name: "宏观", color: "#f5b942" },
+  market: { name: "市场", color: "#2dd4bf" },
+  sector: { name: "板块", color: "#b794f6" },
+  event: { name: "事件", color: "#94a3b8" },
 };
 
 export interface GraphView {
@@ -100,7 +100,7 @@ export function knowledgeGraphOption(graph: KnowledgeGraphResponse, view: GraphV
       name: node.key,
       value: node.articleCount,
       category: KIND_ORDER.indexOf(node.kind),
-      symbol: style.symbol,
+      symbol: "circle",
       symbolSize: size,
       x: place?.x,
       y: place?.y,
@@ -140,7 +140,7 @@ export function knowledgeGraphOption(graph: KnowledgeGraphResponse, view: GraphV
   return {
     animationDurationUpdate: 240,
     legend: {
-      data: KIND_ORDER.map((kind) => ({ name: KIND_STYLE[kind].name, icon: KIND_STYLE[kind].symbol })),
+      data: KIND_ORDER.map((kind) => ({ name: KIND_STYLE[kind].name, icon: "circle" })),
       left: 12,
       top: 10,
       itemWidth: 14,
@@ -178,7 +178,7 @@ export function knowledgeGraphOption(graph: KnowledgeGraphResponse, view: GraphV
         scaleLimit: { min: 0.35, max: 6 },
         categories: KIND_ORDER.map((kind) => ({
           name: KIND_STYLE[kind].name,
-          symbol: KIND_STYLE[kind].symbol,
+          symbol: "circle",
           itemStyle: { color: KIND_STYLE[kind].color },
         })),
         data,

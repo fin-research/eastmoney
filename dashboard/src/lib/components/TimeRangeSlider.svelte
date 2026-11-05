@@ -113,10 +113,6 @@
 </script>
 
 <div class="range">
-  <div class="range-readout" aria-live="polite">
-    <strong>{dateOf(shownFrom).slice(5)} – {dateOf(shownTo).slice(5)}</strong>
-    <span>{shownTo - shownFrom + 1} 天</span>
-  </div>
   <div class="range-track" bind:this={track} role="presentation" onpointerdown={jump}>
     <ChartHost renderer={renderTimeline} args={[days, { from: shownFrom, to: shownTo }]} ariaLabel="每日研报主张数" className="range-chart" />
     <div
@@ -177,22 +173,6 @@
     gap: 4px;
     padding: 6px 28px 10px 16px;
     color: #e6edf7;
-  }
-
-  .range-readout {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .range-readout strong {
-    font-size: 1rem;
-  }
-
-  .range-readout span {
-    color: #8b9ab3;
-    font-size: 0.875rem;
   }
 
   .range-track {
