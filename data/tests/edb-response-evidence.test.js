@@ -38,8 +38,8 @@ test.each(['exception','conflict'])('all archive writes failing (%s) preserves p
 test('HTTP failure remains the original source error when archive also fails and retains original retry policy',async()=>{
  const h=harness({archiveFails:true,bad:true});const r=await h.run();expect(h.calls).toHaveLength(specs.length*3);expect(r.failures).toHaveLength(specs.length);expect(r.failures[0].error.message).toContain('original-http-error');expect(r.failures[0].error.message).not.toContain('archive');expect(h.saved).toHaveLength(0);
 });
-test('true source retry produces separate attempt keys without cross-wiring concurrent sources',async()=>{
- const h=harness({recover:true});const r=await h.run();expect(r.status).toBe('complete');expect(h.calls).toHaveLength(specs.length*2);expect(new Set(h.objects.map(x=>x.key)).size).toBe(specs.length*2);expect(h.objects.some(x=>x.body.attempt===1 && x.body.status===503)).toBe(true);expect(h.objects.some(x=>x.body.attempt===2 && x.body.status===200)).toBe(true);
+test('a failed batch retries alone and produces separate attempt keys without cross-wiring other batches',async()=>{
+ const h=harness({recover:true});const r=await h.run();expect(r.status).toBe('complete');expect(h.calls).toHaveLength(specs.length+1);expect(new Set(h.objects.map(x=>x.key)).size).toBe(specs.length+1);expect(h.objects.some(x=>x.body.attempt===1 && x.body.status===503)).toBe(true);expect(h.objects.some(x=>x.body.attempt===2 && x.body.status===200)).toBe(true);
 });
 test('transport redaction preserves distinct received-byte and stored-body hashes',async()=>{
  const objects=[];const body='{"token":"sensitive-sentinel","rows":[{"date":"2026-10-11"}]}';

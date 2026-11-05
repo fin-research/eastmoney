@@ -10,23 +10,12 @@ import { runEconomicIndicatorSync } from './economic-indicator-run.ts';
 import { runQuantInputSync } from './quant-input-run.ts';
 import { replayIssuanceObservations } from './issuance-observation-replay.ts';
 import { notifyDmFundingParent, runDmFundingChild, type DmFundingSyncParams } from './dm-funding-child.ts';
-import { runDailyBondRecovery, startDailyBondRecovery, dailyRecoveryIdentity, quotaUnavailable } from './bond-history-daily-recovery.ts';
-import {runBondFieldObservation} from './bond-field-observation.ts';
 import { runBondHistoryWorkflowRecovery } from './bond-history-workflow-recovery.ts';
 
 export class EconomicIndicatorSyncWorkflow extends WorkflowEntrypoint<Cloudflare.Env, EconomicIndicatorSyncParams> {
   override async run(event: Readonly<WorkflowEvent<EconomicIndicatorSyncParams>>, step: WorkflowStep) {
-    if(event.payload?.bondFieldObservationPlan!==undefined){
-      if(event.payload.bondHistoryRecoveryOf!==undefined||event.payload.issuanceReplayOf!==undefined)throw Error('Conflicting Workflow observation/recovery modes');
-      return runBondFieldObservation(step,this.env,event.instanceId,event.payload.bondFieldObservationPlan,
-        (path,parameters,capture)=>requestEconomicIndicatorData({fetch:input=>handleRequest(input,this.env)},path,parameters,capture),
-        operation=>withPostgres(this.env.HYPERDRIVE.connectionString,'bond-field-observation-readonly',operation));
-    }
     if (event.payload?.bondHistoryRecoveryOf !== undefined) {
       if (event.payload.issuanceReplayOf !== undefined) throw new Error('Conflicting Workflow recovery modes');
-      const request: DataApiRequest = (path, parameters, capture) => requestEconomicIndicatorData({ fetch: input => handleRequest(input, this.env) }, path, parameters, capture);
-      if (event.instanceId === dailyRecoveryIdentity(event.payload.bondHistoryRecoveryOf).id)
-        return runDailyBondRecovery(step, this.env, event.instanceId, event.payload.bondHistoryRecoveryOf, request);
       return runBondHistoryWorkflowRecovery(step, this.env, event.instanceId, event.payload.bondHistoryRecoveryOf,
         (path, parameters, capture) => requestEconomicIndicatorData({ fetch: input => handleRequest(input, this.env) }, path, parameters, capture));
     }
@@ -64,8 +53,6 @@ export class EconomicIndicatorSyncWorkflow extends WorkflowEntrypoint<Cloudflare
       log(JSON.stringify({ event: 'economic_indicators_workflow_result', ...result }));
       return result;
     });
-    if (quotaUnavailable(result)) await step.do('登记唯一逐债估值日内补偿', { retries: { limit: 0, delay: '1 second' } },
-      () => startDailyBondRecovery(this.env, event.instanceId, result));
     if (result.status === 'failed') throw new Error(JSON.stringify(result));
     return result;
   }

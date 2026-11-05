@@ -44,7 +44,7 @@ export async function runQuantInputSync(
   const startDate = new Date(Date.parse(`${endDate}T00:00:00Z`) - 7 * 86400000).toISOString().slice(0, 10);
   const completedDate = new Date(Date.parse(`${endDate}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
   const db: Database = (operation) => withPostgres(env.HYPERDRIVE.connectionString, 'quant-input-sync', operation);
-  const css = workflowCssBudget(step, env.EASTMONEY, instanceId ?? `quant-${scheduledTime}`, request, endDate);
+  const css = workflowCssBudget(env.EASTMONEY, instanceId ?? `quant-${scheduledTime}`, request);
   const issuanceRequest = css('issuance');
   // The midnight run cannot observe issuance for the day that has just started.
   const specs = quantMarketRequests(startDate, completedDate);

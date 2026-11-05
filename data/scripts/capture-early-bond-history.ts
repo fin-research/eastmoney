@@ -3,7 +3,6 @@ import { readFile, writeFile, mkdir, access } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { historicalCells, type HistoryRequest } from '../src/sync/bond-history-restoration.ts';
-import { requireBondBudget } from '../src/sync/bond-history-sync.ts';
 
 const [directory, sessionFile, quotaFile, confirmation] = process.argv.slice(2);
 if (!directory || !sessionFile || !quotaFile || confirmation !== '--execute')
@@ -20,7 +19,14 @@ if (plan.newPoints !== points || plan.maximumPoints !== 300000 || points + plan.
 const quota = JSON.parse(await readFile(quotaFile, 'utf8'));
 if (quota.status !== 200 || Date.now() - Date.parse(quota.time) > 15 * 60000 || Date.parse(quota.time) > Date.now())
   throw Error('Fresh quota evidence required');
-requireBondBudget(JSON.parse(quota.rawBody), new Date().toISOString().slice(0, 10), points);
+// Manual operator script: the operator supplies fresh quota evidence. Automated Workflows never read quota.
+const report = JSON.parse(quota.rawBody) as { function?: string; rows?: Record<string, unknown>[] };
+const today = new Date().toISOString().slice(0, 10);
+const css = report.rows?.find(row => row.FUNCENAME === 'EM_CSS' && row.SECUTYPE === '全品种');
+const remaining = Number(css?.AVAILABEDATA);
+if (report.function !== 'DATASTATISTICS' || css?.PERIOD !== 'W' || String(css.STARTDATE ?? '') > today
+  || String(css.ENDDATE ?? '') < today || css.AVAILABEDATA == null || !Number.isFinite(remaining) || remaining < points + 100_000)
+  throw Error('CSS quota unavailable or below shared reserve');
 const headers = JSON.parse(await readFile(sessionFile, 'utf8')) as Record<string, string>;
 await mkdir(path.join(directory, 'responses'), { recursive: true });
 let attemptedPoints = plan.priorProbePoints, failed = 0, failures = 0, successful = 0, calls = 0;

@@ -28,12 +28,13 @@ test('paid source errors stay isolated; report read failure is recorded in the p
   expect(specs.find(spec => spec.id === 'secondary')).toBeDefined();
   expect(request.mock.calls.some(([_path, params]) => params.get('reportName') === 'BondTradingStatistics')).toBe(false);
   expect(request.mock.calls.some(([path]) => path === '/choice/csd')).toBe(false);
-  expect(request).toHaveBeenCalledTimes(scheduled.length + 1); // One free, shared quota preflight.
+  expect(request).toHaveBeenCalledTimes(scheduled.length);
+  expect(request.mock.calls.some(([path]) => path === '/choice/data-statistics')).toBe(false);
   expect(configurations.every(({ config }) => config.retries.limit === 0)).toBe(true);
   expect(result.status).toBe('partial');
   expect(result.failures).toHaveLength(scheduled.length + 1);
   expect(result.failures.at(-1)).toEqual({ source: 'fund-reports/2026-09-15.html', error: 'R2 unavailable', kind: 'execution' });
-  expect(configurations.map(x => x.name).sort()).toEqual(['同步 Quant 权益行情与估值', '同步 Quant 一级市场', '同步 Quant 券商发行与利差', '同步 Quant 资金日报', '同步中债券商曲线', '同步券商存续债估值', '读取已结束上交所交易日', '读取本流程共享CSS额度'].sort());
+  expect(configurations.map(x => x.name).sort()).toEqual(['同步 Quant 权益行情与估值', '同步 Quant 一级市场', '同步 Quant 券商发行与利差', '同步 Quant 资金日报', '同步中债券商曲线', '同步券商存续债估值', '读取已结束上交所交易日'].sort());
 });
 
 
@@ -64,8 +65,8 @@ test('business groups run concurrently and primary dates share one fetch-and-upl
     Date.parse('2026-09-15T16:00:00Z'), request);
   await primaryDone.promise;
   expect(names).toContain('同步券商存续债估值');
-  expect(names).toHaveLength(8);
-  expect(names.filter(name => name === '读取本流程共享CSS额度')).toHaveLength(1);
+  expect(names).toHaveLength(7);
+  expect(names).not.toContain('读取本流程共享CSS额度');
   expect(primaryDays).toEqual(['2026-09-09','2026-09-10','2026-09-11','2026-09-12','2026-09-13','2026-09-14','2026-09-15']);
   const primaryWrites = query.mock.calls.filter(([sql, params]) => sql.startsWith('INSERT INTO public.quant_input\n')
     && JSON.parse(params[0]).some(row => row.dataset === 'primary'));
@@ -90,8 +91,6 @@ test('issuance rows commit before missing spread lookup, all within one business
   const names = [];
   const step = { do: async (name, _config, operation) => { names.push(name); return operation(); } };
   const request = async (path, params) => {
-    if (path.endsWith('data-statistics')) return { function:'DATASTATISTICS', rows:[{FUNCENAME:'EM_CSS',SECUTYPE:'全品种',
-      PERIOD:'W',STARTDATE:'2026-09-14',ENDDATE:'2026-09-20',AVAILABEDATA:1000000}] };
     if (params.get('reportName') === 'BondIssueDetail') return { function: 'CTR', fields: [], rows: [
       { SECUCODE: '123456.IB', ISSUE_DATE: '2026-09-15', ISSUER_NAME:'测试证券', BOND_TYPE: '证券公司债', ACTUAL_ISSUE_SCALE: 10 },
     ] };
@@ -197,7 +196,6 @@ test.each(['ok','archive-failed','database-failed'])('live observations preserve
  });
  const paid=[];
  const request=vi.fn(async(path,q)=>{
-  if(path.endsWith('data-statistics'))return{function:'DATASTATISTICS',rows:[{FUNCENAME:'EM_CSS',SECUTYPE:'全品种',PERIOD:'W',STARTDATE:'2026-09-28',ENDDATE:'2026-10-04',AVAILABEDATA:1000000}]};
   paid.push({path,parameters:Object.fromEntries(q)});
   if(q.get('reportName')==='BondIssueDetail')return{function:'CTR',fields:[],rows:[{SECUCODE:bond.code,ISSUE_DATE:bond.date,ISSUER_NAME:'测试证券',BOND_TYPE:'证券公司债'}]};
   if(q.get('indicators').includes('TENDERDATE'))return{function:'CSS',rows:[{code:bond.code,TENDERDATE:'2026/10/1',TENDERFINALCOUPON:2.1,ISSCORPCREDITRAT:'AAA',TENDERANNCDATE:'2026/9/28'}]};

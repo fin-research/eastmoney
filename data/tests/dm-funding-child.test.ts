@@ -120,7 +120,7 @@ test('parent delegation merges child rows and errors without issuing DM requests
     names.push(name); return operation({ attempt: 1 });
   } } as unknown as Pick<WorkflowStep, 'do'>;
   const result = await runEconomicIndicatorSync(step, parent, scheduledTime, request, vi.fn(), { dmGroup: async () => child });
-  expect(names).toEqual(['同步 Choice 经济指标']); expect(request).toHaveBeenCalledTimes(9);
+  expect(names).toEqual(Array.from({ length: 9 }, (_, index) => `同步 Choice 经济指标 choice-${index + 1}`)); expect(request).toHaveBeenCalledTimes(9);
   expect(result.status).toBe('partial'); expect(result.failures).toEqual(child.failures);
   expect(result.groups[1]).toEqual(child);
 });

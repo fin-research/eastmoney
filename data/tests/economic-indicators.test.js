@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { persistEconomicIndicators } from "../src/sync/economic-indicators-repository.ts";
 import { economicIndicatorRequests } from "../src/sync/economic-indicator-run.ts";
-import { fetchChoiceEconomicIndicatorRows, fetchDmFundingRateRows } from "../src/sync/economic-indicator-sync.ts";
+import { fetchChoiceEconomicIndicatorRows, fetchDmFundingRateRows, publishDateProxyByCode } from "../src/sync/economic-indicator-sync.ts";
 test("增量同步在单事务和 advisory lock 内只做 upsert", async () => {
   const calls = [];
   const client = {
@@ -177,4 +177,16 @@ test("每日 EDB 批数不超过 CHOICE_OTHER_LIMIT 每分钟阈值", () => {
   const batches = economicIndicatorRequests(Date.UTC(2026, 10, 3, 16)).filter((spec) => spec.source === "choice-edb");
   assert.ok(batches.length > 0);
   assert.ok(batches.length < limit, "保留至少一个限流余量");
+});
+
+test("发布日期代理与依赖指标同批，每批不超过 8 个指标", () => {
+  const batches = economicIndicatorRequests(Date.UTC(2026, 10, 3, 16)).filter((spec) => spec.source === "choice-edb");
+  const proxies = Object.fromEntries(publishDateProxyByCode);
+  assert.equal(batches.length, 9);
+  assert.ok(batches.every((batch) => batch.codes.length <= 8));
+  for (const [code, proxy] of Object.entries(proxies)) {
+    const batch = batches.find((item) => item.codes.includes(code));
+    assert.ok(batch, `${code} 须在日更批次内`);
+    assert.ok(batch.codes.includes(proxy), `${code} 与代理 ${proxy} 须同批`);
+  }
 });
