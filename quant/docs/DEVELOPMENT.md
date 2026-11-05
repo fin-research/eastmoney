@@ -54,7 +54,7 @@ git diff --check
 按改动范围增加：
 
 - 票面 pipeline、特征、解释或契约：运行 `uv run python main.py`（需要 `active` 的所选模型），并做模型导出与 Python/JS 一致性。
-- 择时包：`scripts/run_timing_advice.py` 和 `online/verify-timing.mjs`，命令见 [ONLINE_INFERENCE](ONLINE_INFERENCE.md#当前三档发行建议)。
+- 择时包：`scripts/adopt_timing_nowcast.py`（v2）、`scripts/run_timing_advice.py` 和 `online/verify-timing.mjs`，命令见 [ONLINE_INFERENCE](ONLINE_INFERENCE.md#当前三档发行建议)。
 - 择时包留出检验与区间校准：`uv run python scripts/timing_diagnostics.py <包目录> --output outputs/timing-diagnostics.json`。只读 Neon，不训练、不取 Choice，约 2 分钟。
 - 发行人报价 SQL：`QUANT_DATABASE_TESTS=1 uv run python -m unittest tests.test_issuer_quote_sql -v`。它读取根 `.env`，只对真实 PostgreSQL 执行合成 CTE。默认单测不连库。
 - 定价元数据增量逻辑：确需补取时才运行 `--primary-research --refresh-pricing-metadata`。

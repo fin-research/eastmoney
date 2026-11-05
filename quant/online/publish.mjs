@@ -19,7 +19,8 @@ const hashFile = async (file) =>
   createHash("sha256")
     .update(await readFile(file))
     .digest("hex");
-const timing = manifest.feature_version === "timing-advice-v1";
+const nowcast = manifest.feature_version === "timing-advice-v2";
+const timing = nowcast || manifest.feature_version === "timing-advice-v1";
 if (
   (!timing && (manifest.feature_version !== "issuance-coupon" ||
   manifest.market_model !== "unified_coupon")) ||
@@ -31,7 +32,7 @@ if (
   evidence.result_sha256 !== (await hashFile(join(directory, "result.json")))
 )
   throw new Error("Passing parity evidence for this exact bundle is required");
-for (const name of timing ? ["timing-advice.mjs", "timing-workflow.mjs", "sources.json", "publication.mjs", "model-eligibility.mjs", "worker.ts", "scheduled.ts", "cron-entry.ts"] : [
+for (const name of timing ? ["timing-nowcast.mjs", "timing-advice.mjs", "timing-workflow.mjs", "sources.json", "publication.mjs", "model-eligibility.mjs", "worker.ts", "scheduled.ts", "cron-entry.ts"] : [
   "features.mjs",
   "tree.mjs",
   "issuance.mjs",

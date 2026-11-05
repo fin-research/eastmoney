@@ -21,13 +21,6 @@ from timing_diagnostics import (  # noqa: E402
     sector_series,
 )
 
-CODES = {
-    "CDB3": "E1701708",
-    "G3": "E1000174",
-    "G1": "E1000172",
-    "G10": "E1000180",
-    "AAA3": "E1000413",
-}
 FIRST_FORECAST = "2021-01-01"
 
 
@@ -62,8 +55,10 @@ def spread(threshold):
 
 def inputs():
     sector = sector_series()
-    liquid = pd.DataFrame({name: edb_series(code) for name, code in CODES.items()})
-    return sector, liquid, edb_series("E1300004")
+    liquid = pd.DataFrame(
+        {name: edb_series(code) for name, code in nowcast.CODES.items()}
+    )
+    return sector, liquid, edb_series(nowcast.FUNDING_CODE)
 
 
 def r_squared(forecast, actual):

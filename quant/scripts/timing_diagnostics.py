@@ -70,6 +70,7 @@ def sector_series():
         (INDUSTRY_CURVE_CODE,),
     )
     frame = pd.DataFrame(rows, columns=["date", "yield_pct"])
+    frame = frame[frame.yield_pct != 0]
     return pd.Series(
         frame.yield_pct.to_numpy() * 100, index=pd.to_datetime(frame.date)
     ).sort_index()
@@ -249,7 +250,7 @@ def curve_smoothness(sector):
 
 
 def edb_series(code):
-    rows = edb_rows(code, "2018-06-01")
+    rows = [row for row in edb_rows(code, "2018-06-01") if row[3]]
     return pd.Series(
         [row[3] * 100 for row in rows], index=pd.to_datetime([row[1] for row in rows])
     ).sort_index()

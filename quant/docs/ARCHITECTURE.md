@@ -11,7 +11,7 @@ Data 同步 → Neon public.edb（资金利率）、public.bond_industry_curve�
   → financing_model.publish_online_result → Dashboard 页面、业务指标、人工记录与卖方观点
 ```
 
-Python 实现是 `model/timing_advice.py`，JS 实现是 `online/timing-advice.mjs`，两端须逐特征、逐概率一致（`online/verify-timing.mjs`）。`scripts/adopt_timing_model.py` 从指定研究目录按固定算法一次拟合并导出模型包。运行与发布见 [ONLINE_INFERENCE](ONLINE_INFERENCE.md)。
+Python 实现是 `model/timing_advice.py`，JS 实现是 `online/timing-advice.mjs`，两端须逐特征、逐概率一致（`online/verify-timing.mjs`）。`scripts/adopt_timing_model.py` 从指定研究目录按固定算法一次拟合并导出模型包。v2 的 Python 实现是 `model/timing_nowcast.py`，JS 实现是 `online/timing-nowcast.mjs`，`scripts/adopt_timing_nowcast.py` 读 Neon 一次拟合并导出模型包。运行与发布见 [ONLINE_INFERENCE](ONLINE_INFERENCE.md)。
 
 ## 票面研究管线（暂停）
 
