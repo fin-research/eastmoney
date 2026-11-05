@@ -4,7 +4,7 @@
 
 ## CI 命令
 
-合并队列在合并组提交上运行完整 `Dashboard CI`。普通分支 push 和 main 合并后不运行，PR 创建或更新只放行入队。Python / Node 覆盖率与类型 / 构建 / 视觉两条任务并行，统一门禁要求两项均成功。类型检查在构建前执行，构建阶段只打包。推送、CI 等待与核验由子代理负责，流程见 [DEVELOPMENT](DEVELOPMENT.md#默认验证与合并)。
+PR 创建或更新时运行完整 `Dashboard CI`。合并队列在树与已通过的PR运行相同时复用该结果，否则在合并组提交上重跑。普通分支 push 和 main 合并后不运行。Python / Node 覆盖率与类型 / 构建 / 视觉两条任务并行，统一门禁要求两项均成功。类型检查在构建前执行，构建阶段只打包。推送、CI 等待与核验由子代理负责，流程见 [DEVELOPMENT](DEVELOPMENT.md#默认验证与合并)。
 
 ```bash
 pnpm check:quick
@@ -43,18 +43,18 @@ pnpm test:visual:report
 - 页面改动后启动 Docker Desktop，运行 `pnpm visual:local`，按相对 `origin/main` 的页面文件差异在固定镜像中生成桌面和手机截图。
 - 共享组件、样式或视觉夹具改动须显式传 `--page src/routes/.../+page.svelte`（可重复）或 `--all`。
 - 截图写到忽略的 `.local-visual/<时间>/review/`。审阅后运行 `pnpm visual:baseline:import-local .local-visual/<时间> --reviewed`，校验源码与 PNG 后只导入本次截图。
-- 候选记录镜像 digest、源码 digest 和各 PNG 的 SHA-256。代码变化后须重新生成。导入不自动提交，也不替代合并组的严格比较。
+- 候选记录镜像 digest、源码 digest 和各 PNG 的 SHA-256。代码变化后须重新生成。导入不自动提交，也不替代CI的严格比较。
 - 有意的视觉变化先本地审阅、导入、提交，再推送入队。
-- 为消除差异而提高容差、屏蔽业务区域或盲目更新基线都不可接受，合并组和手动重跑的 `ci.yml` 不更新截图。镜像、字体或浏览器升级时统一重建基线。
+- 为消除差异而提高容差、屏蔽业务区域或盲目更新基线都不可接受，PR、合并组和手动重跑的 `ci.yml` 不更新截图。镜像、字体或浏览器升级时统一重建基线。
 
 ## CI 等待与收尾
 
 每次交付由一名代理负责 CI 等待和取证，其他代理不并行查询同一运行。派发时给出普通 checkout、允许提交的文件、目标 SHA、PR 与所需验收阶段。CI 失败后返回具体失败证据，由主代理修改，再派新子代理。本地截图待审时先完成审阅和导入，不提前启动必然因缺基线失败的验收。
 
-找到当前运行 ID 后，用仓库命令等待一次。SHA 用 GitHub 该运行的完整 head SHA，event 符合所需阶段：
+找到当前运行 ID 后，用仓库命令等待一次。SHA 用 GitHub 该运行的完整 head SHA，Dashboard 验收看 `pull_request` 运行；`merge_group` 运行只是入队确认，可能复用PR结果，不含验收证据：
 
 ```sh
-node scripts/wait-ci.mjs fin-research/eastmoney <run-id> <full-run-head-sha> merge_group
+node scripts/wait-ci.mjs fin-research/eastmoney <run-id> <full-run-head-sha> pull_request
 ```
 
 - 命令先核对仓库、run ID、SHA 和 event，对进行中的运行只启动一个 `gh run watch --interval 30`，结束后读取一次终态证据。默认最多等 20 分钟（可追加 1–1800 秒），不启动或重跑 CI。

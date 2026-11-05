@@ -25,7 +25,7 @@
 - 卖方观点用研究库检索，授信助手用独立授信材料库，证据来源和权限不通用。见融资模型模块与 [授信助手](docs/CREDIT_ASSISTANT.md)。
 - `worker-configuration.d.ts` 是生成文件。绑定变化后运行 `pnpm worker:typegen`。
 - `pnpm dev` 不同步远程 D1。需要本地证据时才运行 `pnpm db:sync:remote`。
-- 推送前，代码变更运行 `pnpm check:quick` 和直接相关的轻量单元测试，纯文档修改运行 `git diff --check`。视觉改动用 `pnpm visual:local` 审阅受影响页，完整验收由合并队列的 `Dashboard CI` 执行。见 [DEVELOPMENT](docs/DEVELOPMENT.md) 和 [TESTING](docs/TESTING.md)。
+- 推送前，代码变更运行 `pnpm check:quick` 和直接相关的轻量单元测试，纯文档修改运行 `git diff --check`。视觉改动用 `pnpm visual:local` 审阅受影响页，完整验收由PR的 `Dashboard CI` 执行。见 [DEVELOPMENT](docs/DEVELOPMENT.md) 和 [TESTING](docs/TESTING.md)。
 - 前端、共享 UI、API 契约及影响页面输出的改动，由新的子代理交付。子代理提交并推送任务分支，创建或更新 PR，加入合并队列并核对 CI。失败证据交回主代理修复。流程见 [DEVELOPMENT](docs/DEVELOPMENT.md)，CI 等待见 [CI 等待与收尾](docs/TESTING.md#ci-等待与收尾)。
 
 ## Commands

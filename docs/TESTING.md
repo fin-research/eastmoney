@@ -25,6 +25,10 @@
 
 PR 标签 `ci:gateway`、`ci:dashboard`、`ci:data`、`ci:messenger`、`ci:ingest`、`ci:quant`、`ci:all` 声明要运行的项目，取代路径推导的依赖扩展。合并队列读取同一 PR 的标签。增删标签会重新触发 PR CI。无标签时按 `scripts/ci/affected.mjs` 的路径规则。公开安全、gitleaks、依赖检查和 CI 脚本测试始终运行；改动 `.github/`、`scripts/` 或依赖文件时标签无效。
 
+合并队列不重复PR已通过的检查：PR的 `Monorepo CI` 通过后记录被测树（artifact `ci-tree`，含树和已测项目），队列提交的树相同且PR已测过队列所需的全部项目时，队列不再运行检查。Dashboard完整检查（单测、构建、视觉回归）在PR里运行。`main` 已前进、树不同、PR无通过记录或查询失败时，队列跑全量。
+
+PR开启或转为Ready后，`automerge.yml` 启用自动合并（squash）；必需CI通过后PR自动进入合并队列。需要暂停时保持Draft或取消自动合并。
+
 ## 各项目
 
 测试命令、覆盖率产物和验收边界由各项目维护：

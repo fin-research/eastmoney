@@ -2,8 +2,7 @@ import { pathToFileURL } from 'node:url';
 
 export function checkGate(event, needs, affected = true) {
   if (!affected) return 'No Dashboard changes require acceptance.';
-  if (event === 'pull_request') return 'PR admitted; full acceptance runs only in the merge queue.';
-  if (!['merge_group', 'workflow_dispatch'].includes(event)) throw new Error(`Unexpected CI event: ${event}`);
+  if (!['pull_request', 'merge_group', 'workflow_dispatch'].includes(event)) throw new Error(`Unexpected CI event: ${event}`);
   for (const job of ['unit', 'build-visual']) {
     if (needs[job]?.result !== 'success') throw new Error(`${job} did not pass: ${needs[job]?.result ?? 'missing'}`);
   }
