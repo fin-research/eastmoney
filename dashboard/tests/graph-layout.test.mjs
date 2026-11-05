@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { forceLayout, layoutGraph } from "../src/lib/graph-layout.ts";
-import { describeChain, litSets, matchingChains, nodeSize, tracePaths } from "../src/lib/knowledge-graph.ts";
+import { litSets, matchingChains, nodeSize, tracePaths } from "../src/lib/knowledge-graph.ts";
 
 const node = (key, weight = 1) => ({ key, weight });
 const edge = (source, target, weight = 1) => ({ source, target, weight });
@@ -55,10 +55,6 @@ const graph = {
   ],
   chains: [{ nodes: ["降准", "dr007", "存单利率"], edges: [0, 1], weight: 1 }],
 };
-
-test("传导链文字带出每个节点在链中的方向", () => {
-  assert.equal(describeChain(graph, graph.chains[0]), "降准● → DR007↓ → 存单利率↓");
-});
 
 test("按证据文章匹配传导链", () => {
   assert.equal(matchingChains(graph, ["a2"]).length, 1);

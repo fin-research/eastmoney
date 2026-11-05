@@ -79,7 +79,7 @@ export interface KnowledgeGraphResponse {
   timeline: KgDay[];
 }
 
-export const MOVE_GLYPH: Record<CauseMove, string> = { rise: "↑", fall: "↓", occur: "●" };
+export const MOVE_GLYPH: Record<CauseMove, string> = { rise: "↑", fall: "↓", occur: "" };
 
 /** Chains whose evidence overlaps the given articles, strongest first. */
 export function matchingChains(graph: KnowledgeGraphResponse, articleIds: Iterable<string>, limit = 3): KgChain[] {
@@ -87,19 +87,6 @@ export function matchingChains(graph: KnowledgeGraphResponse, articleIds: Iterab
   return graph.chains
     .filter((chain) => chain.edges.some((index) => graph.edges[index]?.articleIds.some((id) => wanted.has(id))))
     .slice(0, limit);
-}
-
-/** `降准● → DR007↓ → 存单利率↓`: each node carries the direction the chain gives it. */
-export function describeChain(graph: KnowledgeGraphResponse, chain: KgChain): string {
-  const labels = new Map(graph.nodes.map((node) => [node.key, node.label]));
-  const first = graph.edges[chain.edges[0]!];
-  const parts = [`${labels.get(chain.nodes[0]!) ?? chain.nodes[0]}${first ? MOVE_GLYPH[first.sourceMove] : ""}`];
-  chain.edges.forEach((edgeIndex, hop) => {
-    const edge = graph.edges[edgeIndex];
-    const key = chain.nodes[hop + 1]!;
-    parts.push(`${labels.get(key) ?? key}${edge ? MOVE_GLYPH[edge.effectMove] : ""}`);
-  });
-  return parts.join(" → ");
 }
 
 export interface TracedPaths {

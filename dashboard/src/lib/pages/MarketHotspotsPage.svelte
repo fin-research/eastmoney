@@ -14,7 +14,6 @@
   import { Button } from "$lib/components/ui/button/index.js";
   import { isAiRequestCancelled } from "$lib/ai-client.svelte";
   import {
-    describeChain,
     MOVE_GLYPH,
     tracePaths,
     type KgDay,
@@ -32,13 +31,12 @@
   let errorMessage = $state("");
   let node = $state("");
   let edgeIndex = $state<number | null>(null);
-  let chainIndex = $state<number | null>(null);
   let query = $state("");
   let host: HTMLElement | undefined;
   let request: AbortController | null = null;
   const wired = new WeakSet<object>();
 
-  const view = $derived<GraphView>({ node, edge: edgeIndex, chain: chainIndex });
+  const view = $derived<GraphView>({ node, edge: edgeIndex });
   const labels = $derived(new Map((graph?.nodes ?? []).map((item) => [item.key, item.label])));
   const label = (key: string): string => labels.get(key) ?? key;
   const selectedNode = $derived(graph?.nodes.find((item) => item.key === node) ?? null);
@@ -80,7 +78,6 @@
       graph = payload;
       if (domain.length === 0) setDomain(payload);
       edgeIndex = null;
-      chainIndex = null;
       if (node && !payload.nodes.some((item) => item.key === node)) node = "";
     } catch (error) {
       if (!isAiRequestCancelled(error)) {
@@ -129,30 +126,20 @@
   function clearSelection(): void {
     node = "";
     edgeIndex = null;
-    chainIndex = null;
   }
 
   function toggleNode(key: string): void {
-    node = node === key && edgeIndex === null && chainIndex === null ? "" : key;
+    node = node === key && edgeIndex === null ? "" : key;
     edgeIndex = null;
-    chainIndex = null;
   }
 
   function toggleEdge(index: number): void {
     edgeIndex = edgeIndex === index ? null : index;
-    chainIndex = null;
-    node = "";
-  }
-
-  function toggleChain(index: number): void {
-    chainIndex = chainIndex === index ? null : index;
-    edgeIndex = null;
     node = "";
   }
 
   function pick(key: string): void {
     query = "";
-    chainIndex = null;
     edgeIndex = null;
     node = key;
     if (host && graph) focusKnowledgeNode(host, key, graph);
@@ -183,9 +170,6 @@
           ariaLabel="研报因果传导图，节点大小表示研报出现次数"
           className="graph-chart"
         />
-        <div class="graph-stats" aria-live="polite">
-          {graph.coverage.claimCount} 条主张 · {graph.nodes.length} 个节点{graph.coverage.truncated ? " · 已截断" : ""}
-        </div>
         <div class="graph-zoom" role="group" aria-label="缩放">
           <Button variant="outline" class="ui-button graph-zoom-button" type="button" aria-label="放大"
             onclick={() => host && zoomKnowledgeGraph(host, 1.35)}>+</Button>
@@ -215,7 +199,7 @@
     {/if}
   </div>
 
-  <aside class="side" aria-label="节点与传导链">
+  <aside class="side" aria-label="节点详情与关联文章">
     <div class="side-search">
       <input
         class="search-input"
@@ -246,11 +230,8 @@
       <section class="panel" aria-label="节点详情">
         <h2>
           <span class="swatch" style:background={KIND_STYLE[selectedNode.kind].color}></span>{selectedNode.label}
-          <span class="count">{selectedNode.articleCount} 篇</span>
+          <span class="count">{KIND_STYLE[selectedNode.kind].name}</span>
         </h2>
-        <p class="meta">
-          {KIND_STYLE[selectedNode.kind].name} · 上游 {traced.upstream.size} 条 · 下游 {traced.downstream.size} 条传导路径
-        </p>
         {#if upstream.length > 0}
           <h3>上游</h3>
           <ul class="rows">
@@ -308,19 +289,6 @@
       </section>
     {/if}
 
-    {#if graph && graph.chains.length > 0}
-      <section class="panel" aria-label="传导链">
-        <h2>传导链 <span class="count">{graph.chains.length}</span></h2>
-        <ol class="rows">
-          {#each graph.chains as chain, index (index)}
-            <li>
-              <Button variant="ghost" class="ui-button row row--chain" type="button" aria-pressed={chainIndex === index}
-                onclick={() => toggleChain(index)}>{describeChain(graph, chain)}</Button>
-            </li>
-          {/each}
-        </ol>
-      </section>
-    {/if}
   </aside>
 </section>
 
@@ -360,16 +328,6 @@
   :global(.graph-chart) {
     position: absolute;
     inset: 0;
-  }
-
-  .graph-stats {
-    position: absolute;
-    bottom: 12px;
-    left: 14px;
-    color: #8b9ab3;
-    font-size: 0.875rem;
-    font-variant-numeric: tabular-nums;
-    pointer-events: none;
   }
 
   .graph-zoom {

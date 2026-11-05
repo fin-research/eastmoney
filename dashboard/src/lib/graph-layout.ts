@@ -146,7 +146,7 @@ export function forceLayout(
     .filter((link): link is readonly [number, number, number] => link[0] !== undefined && link[1] !== undefined && link[0] !== link[1]);
   const maxWeight = Math.max(0.0001, ...edges.map((edge) => edge.weight));
   const area = width * height;
-  const ideal = Math.sqrt(area / Math.max(1, nodes.length)) * 0.8;
+  const ideal = Math.sqrt(area / Math.max(1, nodes.length)) * 1.05;
 
   for (let step = 0; step < iterations; step += 1) {
     const cooling = 1 - step / iterations;
@@ -189,8 +189,8 @@ export function forceLayout(
     nodes.forEach((node, i) => {
       const level = levels?.get(node.key) ?? 0;
       const anchor = width * (0.15 + (0.7 * level) / maxLevel);
-      fx[i]! += (anchor - x[i]!) * 0.05;
-      fx[i]! += (width / 2 - x[i]!) * 0.12;
+      fx[i]! += (anchor - x[i]!) * 0.08;
+      fx[i]! += (width / 2 - x[i]!) * 0.04;
       fy[i]! += (height / 2 - y[i]!) * 0.12;
     });
 
@@ -200,6 +200,22 @@ export function forceLayout(
       x[i]! = clamp(x[i]! + (fx[i]! / magnitude) * move, nodes[i]!.radius, width - nodes[i]!.radius);
       y[i]! = clamp(y[i]! + (fy[i]! / magnitude) * move, nodes[i]!.radius, height - nodes[i]!.radius);
     }
+  }
+
+  // Stretch the bulk of the nodes (3rd to 97th percentile) over the full stage so a lone outlier
+  // cannot leave the rest bunched up; outliers end at the edge and the pass below separates them.
+  const edgeGap = Math.max(0, ...nodes.map((node) => node.radius));
+  for (const [axis, size] of [[x, width], [y, height]] as const) {
+    if (axis.length < 2) continue;
+    const sorted = [...axis].sort((a, b) => a - b);
+    const low = sorted[Math.floor(0.03 * (sorted.length - 1))]!;
+    const high = sorted[Math.ceil(0.97 * (sorted.length - 1))]!;
+    const room = size - 2 * edgeGap;
+    if (high - low < 1 || room <= 0) continue;
+    const scale = room / (high - low);
+    axis.forEach((value, i) => {
+      axis[i] = clamp(edgeGap + (value - low) * scale, nodes[i]!.radius, size - nodes[i]!.radius);
+    });
   }
 
   for (let pass = 0; pass < 120; pass += 1) {
