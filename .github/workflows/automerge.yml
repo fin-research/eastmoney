@@ -2,16 +2,18 @@ name: Auto-merge
 on:
   pull_request:
     branches: [main]
-    types: [opened, reopened, ready_for_review]
+    types: [opened, reopened, ready_for_review, synchronize]
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 jobs:
   enable:
     if: github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft
     runs-on: ubuntu-latest
     steps:
-      - run: gh pr merge "$PR" --auto --squash --repo "$GITHUB_REPOSITORY"
+      # A GITHUB_TOKEN request never enqueues the PR; the user's token does.
+      - run: |
+          test -n "$GH_TOKEN" || { echo 'Set the AUTOMERGE_TOKEN repository secret.'; exit 1; }
+          gh pr merge "$PR" --auto --squash --repo "$GITHUB_REPOSITORY"
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.AUTOMERGE_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
