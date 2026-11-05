@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { affected, declared, projects } from './affected.mjs';
+import { affected, declared, projects, covered } from './affected.mjs';
+import { passedRun, prNumber } from './reuse.mjs';
 import { verify } from './gate.mjs';
 
 test('service bindings and shared contracts include consumers without global imports', () => {
@@ -47,4 +48,32 @@ test('declared scope replaces dependency expansion but never narrows CI or depen
   assert.ok(projects.every(p => affected(['data/src/a.ts'], false, only(['ci:all']))[p]));
   assert.deepEqual(affected(['data/src/a.ts'], false, only(['bug'])), affected(['data/src/a.ts']));
   assert.throws(() => declared(['ci:unknown']), /Unknown CI scope label/);
+});
+
+test('a queue run that reuses a passed PR run skips every project', () => {
+  const plan = Object.fromEntries(projects.map(p => [p, 'false']));
+  const needs = Object.fromEntries(projects.map(p => [p, { result: p === 'dashboard' ? 'success' : 'skipped' }]));
+  needs.changes = { result: 'success' }; needs.integration = { result: 'skipped' };
+  assert.doesNotThrow(() => verify({ ...plan, reused: 'true' }, needs));
+  assert.throws(() => verify({ ...plan, gateway: 'true', reused: 'true' }, needs), /gateway/);
+});
+
+test('reuse needs the newest non-cancelled PR run to have passed', () => {
+  const run = (conclusion, id = 1, name = 'Eastmoney CI') => ({ id, name, conclusion });
+  assert.equal(passedRun([run('cancelled', 3), run('success', 2)]).id, 2);
+  assert.equal(passedRun([run('failure', 3), run('success', 2)]), null);
+  assert.equal(passedRun([run(null, 3), run('success', 2)]), null);
+  assert.equal(passedRun([run('success', 2, 'Other')]), null);
+  assert.equal(passedRun([]), null);
+  assert.equal(prNumber('gh-readonly-queue/main/pr-34-194354e9'), '34');
+  assert.equal(prNumber('refs/heads/main'), null);
+});
+
+test('reuse requires the PR run to have tested every project the queue run needs', () => {
+  const plan = Object.fromEntries(projects.map(p => [p, p === 'data' ? 'true' : 'false']));
+  assert.equal(covered(affected(['data/x.ts'], false, declared(['ci:data'])), plan), true);
+  assert.equal(covered(affected(['data/x.ts'], false, declared(['ci:data', 'ci:quant'])), plan), false);
+  assert.equal(covered(affected(['data/src/x.ts']), plan), false);
+  assert.equal(covered(affected(['README.md']), {}), true);
+  assert.equal(covered(affected(['data/src/x.ts']), undefined), false);
 });

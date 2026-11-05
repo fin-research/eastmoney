@@ -81,4 +81,4 @@ for (const scenario of scenarios) for (const evidence of scenario.evidence ?? []
   }
 }
 console.log(`Captured ${count} changed-page screenshots for ${[...ids].join(', ')}: ${review}`);
-console.log('Local screenshots are review evidence; merge-queue CI compares linux-ci baselines.');
+console.log('Local screenshots are review evidence; PR CI compares linux-ci baselines.');

@@ -26,8 +26,8 @@ pnpm dev
 合并流程：
 
 1. 在普通 checkout 串行开发，提交任务文件并推送分支。有意的视觉变化先在固定 Linux 镜像中审阅、导入基线并提交。
-2. 根 [Eastmoney CI](../../.github/workflows/ci.yml) 按影响范围运行项目检查，必需门禁为 `Monorepo CI`。PR 上的 Dashboard 检查直接放行，绿色仅表示可入队。
-3. 用 `gh pr merge <number> --repo fin-research/eastmoney --auto` 入队。队列基于最新 `main` 生成集成提交，运行受影响项目与跨服务检查。代码变更不用 `--admin` 绕过队列。管理员对文档类改动的例外见[项目组 AGENTS](../../AGENTS.md#集成与发布)。
+2. 根 [Eastmoney CI](../../.github/workflows/ci.yml) 按影响范围运行项目检查，必需门禁为 `Monorepo CI`。Dashboard 完整检查在PR里运行，PR 绿色即已验收。
+3. 用 `gh pr merge <number> --repo fin-research/eastmoney --auto` 入队。队列基于最新 `main` 生成集成提交；树与PR已通过的运行相同时复用PR结果，否则重跑受影响项目与跨服务检查。代码变更不用 `--admin` 绕过队列。管理员对文档类改动的例外见[项目组 AGENTS](../../AGENTS.md#集成与发布)。
 4. 子工作流 [dashboard.yml](../../.github/workflows/dashboard.yml) 并行运行 Python / Node 覆盖率与类型 / 构建 / 完整视觉套件。组件门禁 `Dashboard CI` 要求两项均成功，失败、取消、缺失或非预期跳过都拒绝合并。
 5. 规则集配置源是根 [main-ruleset.json](../../.github/main-ruleset.json)，应用后须回读。
 6. 按 [CI 等待与收尾](TESTING.md#ci-等待与收尾) 等待对应运行。记录 PR head、合并组 SHA、运行链接、合并提交和构建状态。CI 成功后核对实际发布。

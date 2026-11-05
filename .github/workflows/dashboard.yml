@@ -16,7 +16,7 @@ defaults:
 jobs:
   unit:
     name: Unit tests and coverage
-    if: inputs.affected && github.event_name != 'pull_request'
+    if: inputs.affected
     runs-on: macos-26
     timeout-minutes: 15
     steps:
@@ -35,7 +35,7 @@ jobs:
           retention-days: 14
   build-visual:
     name: Build and visual regression
-    if: inputs.affected && github.event_name != 'pull_request'
+    if: inputs.affected
     runs-on: ubuntu-24.04-arm
     container:
       image: ghcr.io/hasbai/financial-visual-ci@sha256:7c8b030fa654dfd7acb74db9fbca0fe413ca81024536f6d361712d0920fd6444
@@ -106,7 +106,7 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
-      - name: Admit pull requests or require every full check
+      - name: Require every full check
         env:
           CI_AFFECTED: ${{ inputs.affected }}
           CI_EVENT: ${{ github.event_name }}

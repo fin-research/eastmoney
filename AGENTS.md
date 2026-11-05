@@ -32,6 +32,10 @@ JavaScript六项目统一使用根pnpm workspace、精确catalog和单锁，工�
 | 研报与政策采集 | [Ingest](ingest/AGENTS.md) |
 | 本地量化研究与独立线上推理 | [Quant](quant/AGENTS.md) |
 
+## PR 迭代
+
+一个功能的修补、评审修改和CI失败修复都推到同一分支、同一PR，不另开新PR。只有独立的新任务才开新PR。
+
 ## 共享规范
 
 按任务读取：[架构](docs/ARCHITECTURE.md)、[存储](docs/DATABASE.md)、

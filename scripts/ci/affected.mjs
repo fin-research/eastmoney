@@ -40,12 +40,23 @@ export function affected(paths, all = false, scope = null) {
   return Object.fromEntries(projects.map(p => [p, final.has(p)]));
 }
 
+// Reuse only when the PR run tested every project this queue run needs.
+export function covered(full, tested) {
+  return projects.every(p => !full[p] || tested?.[p] === 'true');
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const base = process.env.CI_BASE_SHA;
   const all = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' || !base;
   const paths = all ? [] : execFileSync('git', ['diff', '--name-only', '-z', base, 'HEAD'], { encoding: 'utf8' }).split('\0').filter(Boolean);
   const labels = (process.env.CI_LABELS ?? '').split(/[\n,]/).map(l => l.trim()).filter(Boolean);
-  const plan = affected(paths, all, declared(labels));
-  if (process.env.GITHUB_OUTPUT) for (const [name, value] of Object.entries(plan)) appendFileSync(process.env.GITHUB_OUTPUT, `${name}=${value}\n`);
+  const full = affected(paths, all, declared(labels));
+  const reused = process.env.CI_REUSED === 'true' && covered(full, JSON.parse(process.env.CI_TESTED || '{}'));
+  if (process.env.CI_REUSED === 'true' && !reused) console.log('PR run did not test every needed project; running full CI.');
+  const plan = reused ? Object.fromEntries(projects.map(p => [p, false])) : full;
+  if (process.env.GITHUB_OUTPUT) {
+    for (const [name, value] of Object.entries(plan)) appendFileSync(process.env.GITHUB_OUTPUT, `${name}=${value}\n`);
+    appendFileSync(process.env.GITHUB_OUTPUT, `reused=${reused}\n`);
+  }
   console.log(JSON.stringify(plan));
 }

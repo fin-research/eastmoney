@@ -17,7 +17,9 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+      actions: read
     outputs:
+      reused: ${{ steps.plan.outputs.reused }}
       gateway: ${{ steps.plan.outputs.gateway }}
       dashboard: ${{ steps.plan.outputs.dashboard }}
       data: ${{ steps.plan.outputs.data }}
@@ -31,14 +33,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: python3 scripts/ci/public-safety.py
-      - uses: pnpm/action-setup@v4
+      - id: reuse
+        name: Skip checks a passed PR run already covered
+        run: node scripts/ci/reuse.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MERGE_GROUP_HEAD_REF: ${{ github.event.merge_group.head_ref }}
+      - if: steps.reuse.outputs.reused != 'true'
+        run: python3 scripts/ci/public-safety.py
+      - if: steps.reuse.outputs.reused != 'true'
+        uses: pnpm/action-setup@v4
         with:
           package_json_file: package.json
-      - run: pnpm --filter . install --frozen-lockfile
-      - run: pnpm check:dependencies
-      - run: node --test scripts/ci/*.test.mjs
-      - run: python3 -m unittest discover -s scripts/ci -p '*_test.py' -v
+      - if: steps.reuse.outputs.reused != 'true'
+        run: pnpm --filter . install --frozen-lockfile
+      - if: steps.reuse.outputs.reused != 'true'
+        run: pnpm check:dependencies
+      - if: steps.reuse.outputs.reused != 'true'
+        run: node --test scripts/ci/*.test.mjs
+      - if: steps.reuse.outputs.reused != 'true'
+        run: python3 -m unittest discover -s scripts/ci -p '*_test.py' -v
       - id: scope
         name: Read declared CI scope
         shell: bash
@@ -58,7 +72,10 @@ jobs:
         env:
           CI_LABELS: ${{ steps.scope.outputs.labels }}
           CI_BASE_SHA: ${{ github.event.merge_group.base_sha || github.event.pull_request.base.sha }}
+          CI_REUSED: ${{ steps.reuse.outputs.reused }}
+          CI_TESTED: ${{ steps.reuse.outputs.tested }}
       - name: Scan public Git content for credentials
+        if: steps.reuse.outputs.reused != 'true'
         shell: bash
         run: |
           curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz -o "$RUNNER_TEMP/gitleaks.tar.gz"
@@ -107,7 +124,7 @@ jobs:
     uses: ./.github/workflows/quant.yml
   integration:
     needs: changes
-    if: needs.changes.outputs.gateway == 'true' || needs.changes.outputs.dashboard == 'true' || needs.changes.outputs.data == 'true'
+    if: needs.changes.outputs.reused != 'true' && (needs.changes.outputs.gateway == 'true' || needs.changes.outputs.dashboard == 'true' || needs.changes.outputs.data == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -139,3 +156,18 @@ jobs:
         env:
           CI_PLAN: ${{ toJSON(needs.changes.outputs) }}
           CI_NEEDS: ${{ toJSON(needs) }}
+      - name: Record the tested tree for the merge queue
+        if: success() && github.event_name == 'pull_request'
+        run: |
+          mkdir "$RUNNER_TEMP/ci-tree"
+          jq -n --arg tree "$(git rev-parse 'HEAD^{tree}')" --argjson plan "$CI_PLAN" '{tree: $tree, plan: $plan}' > "$RUNNER_TEMP/ci-tree/tree.json"
+        env:
+          CI_PLAN: ${{ toJSON(needs.changes.outputs) }}
+      - uses: actions/upload-artifact@v4
+        if: success() && github.event_name == 'pull_request'
+        continue-on-error: true
+        with:
+          name: ci-tree
+          path: ${{ runner.temp }}/ci-tree/tree.json
+          overwrite: true
+          retention-days: 30

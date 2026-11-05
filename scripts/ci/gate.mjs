@@ -10,7 +10,7 @@ export function verify(plan, needs) {
     if (needs[project]?.result !== expected) throw new Error(`${project}: expected ${expected}, received ${needs[project]?.result}`);
   }
   if (needs.dashboard?.result !== 'success') throw new Error('Dashboard gate did not pass.');
-  const integration = ['gateway', 'dashboard', 'data'].some(p => plan[p] === 'true');
+  const integration = plan.reused !== 'true' && ['gateway', 'dashboard', 'data'].some(p => plan[p] === 'true');
   if (needs.integration?.result !== (integration ? 'success' : 'skipped')) throw new Error('Service integration did not pass.');
 }
 
