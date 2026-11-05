@@ -1,6 +1,19 @@
 # 线上推理
 
-## 当前三档发行建议
+## 有方向的发行建议 timing-advice-v2
+
+`timing-advice-v2` 预测行业曲线下一报价日变动和此后 3 个报价日变动（方法与检验见 [TIMING_NOWCAST](TIMING_NOWCAST.md)），预测值超过 ±0.5bp 才表态：大于 +0.5bp 尽快，小于 −0.5bp 暂缓，其余等待。三档概率是样本外残差落在阈值两侧的占比，不取最大项。输入同 v1：Neon 此前 90 日的报价，严格 T-1，缺报不填补；曲线必须到前一报价日。Python 实现 `model/timing_nowcast.py`，JS 实现 `online/timing-nowcast.mjs`，两端由 `online/verify-timing.mjs` 逐特征、逐数值核对，同一夹具 `online/tests/fixtures/timing-nowcast-parity.json` 防漂移。Dashboard migration `0018_timing_nowcast.sql` 拥有 v2 表和发布分派，须先于 v2 包应用。
+
+```sh
+# 构建固定参数包，读 Neon，不上传、不取 Choice
+uv run python scripts/adopt_timing_nowcast.py --output outputs/timing-nowcast-<日期> --as-of <日期>
+uv run python scripts/run_timing_advice.py outputs/timing-nowcast-<日期> --as-of <日期>
+cd online && node verify-timing.mjs ../outputs/timing-nowcast-<日期>
+```
+
+暂存、部署和切指针的顺序同下。回到 v1：Worker 已同时运行两版，只需切回 v1 指针；但运行时文件已变，须先对 v1 包重跑 `run_timing_advice.py` 和 `verify-timing.mjs` 生成新的 parity 证据，`publish.mjs` 才接受。同日发布会让 Dashboard 回到 v1 展示。
+
+## 三档发行建议 timing-advice-v1
 
 用户于 2026-10-28 暂停研究并授权选用 `778e5cd2116288b99576`。该包为 `timing-advice-v1`：固定 D_all_history 线性三分类，140 维原始利率路径，取概率最大的类别，不添加行情规则。训练标签截止 2025-12-31。162 个日期是内层开发检验，未通过原研究的稳定性门槛，也不是当前权重的新验证。
 
@@ -33,7 +46,7 @@ pnpm exec wrangler workflows trigger quant-bond-inference-trial '{"as_of_date":"
 
 待办：
 
-- 2026 年留出检验显示三档边界在低波动期失效（见 [README](../README.md#2026年留出检验)）。是否继续沿用该包、暂停，或改为只给波动区间的无方向输出，须由业务决定。短期延续预测见 [TIMING_NOWCAST](TIMING_NOWCAST.md)，区间或该信号上线都需要新的结果契约、Dashboard migration 和 Worker 推理，当前不在线上。
+- 2026 年留出检验显示三档边界在低波动期失效（见 [README](../README.md#2026年留出检验)）。是否继续沿用该包、暂停，或改为只给波动区间的无方向输出，须由业务决定。短期延续预测 `timing-advice-v2` 已有发布路径，见上节。
 - Data 日更修复的自然完整链路和生产 CPU，仍须取得实际运行证据。
 - Data 的证券身份映射按官方生效日期使用，保留原始代码、真实值、NULL 和冲突，不相加别名余额。新映射尚未接入封存的 Quant 消费者，不能据此恢复预测。
 

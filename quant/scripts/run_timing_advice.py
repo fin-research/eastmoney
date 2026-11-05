@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from data.issuance_calendar import IssuanceCalendar  # noqa: E402
 from data.online_inputs import SOURCES, INDUSTRY_CURVE_CODE  # noqa: E402
+from model import timing_nowcast  # noqa: E402
 from model.timing_advice import timing_features, timing_snapshot  # noqa: E402
 
 
@@ -76,10 +77,17 @@ def main():
         <= manifest["retrain_after"]
     ):
         raise ValueError("Invalid or expired timing bundle")
+    if manifest["feature_version"] == timing_nowcast.FEATURE_VERSION:
+        features = timing_nowcast.live_features(inputs)[model["columns"]]
+        features = features.to_numpy(float)[0].tolist()
+        snapshot = timing_nowcast.nowcast_snapshot(manifest, model, inputs)
+    else:
+        features = timing_features(inputs, model["features"]).tolist()
+        snapshot = timing_snapshot(manifest, model, inputs)
     for name, value in {
         "inputs.json": inputs,
-        "python-features.json": timing_features(inputs, model["features"]).tolist(),
-        "python-result.json": timing_snapshot(manifest, model, inputs),
+        "python-features.json": features,
+        "python-result.json": snapshot,
     }.items():
         (args.bundle / name).write_text(
             json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False)
@@ -90,7 +98,7 @@ def main():
                 "as_of_date": inputs["as_of_date"],
                 "source_date": inputs["required_source_date"],
                 "rows": {key: len(rows) for key, rows in inputs["datasets"].items()},
-                "decision": timing_snapshot(manifest, model, inputs)["decision"],
+                "decision": snapshot["decision"],
             },
             ensure_ascii=False,
         )

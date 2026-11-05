@@ -1,6 +1,7 @@
 import pg from 'pg';
 import sources from './sources.json' with { type: 'json' };
 import { inferTiming, previousTimingQuoteDay } from './timing-advice.mjs';
+import { inferNowcast } from './timing-nowcast.mjs';
 import { publishArchivedResult } from './publication.mjs';
 
 /** Small, immutable T-1 quote snapshot; no primary-issuance or imputed inputs. */
@@ -25,7 +26,7 @@ export async function runTimingWorkflow(env, step, event, manifest, io) {
   });
   const key=await step.do('predict-timing-advice',{retries:{limit:0,delay:'1 second'}},async()=>{
     const inputs=await io.readJson(env.ARTIFACTS,`${prefix}/inputs.json`,256*1024);
-    const result=inferTiming(manifest,model,inputs);
+    const result=(manifest.feature_version==='timing-advice-v2'?inferNowcast:inferTiming)(manifest,model,inputs);
     Object.assign(result.online_run,{runtime:'cloudflare-workflow',input_prefix:prefix,workflow_id:event.instanceId});
     return io.putJson(env.ARTIFACTS,`${prefix}/result.json`,result);
   });

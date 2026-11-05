@@ -16,6 +16,17 @@ changes, refit on matured targets only.
 import numpy as np
 import pandas as pd
 
+FEATURE_VERSION = "timing-advice-v2"
+CODES = {
+    "CDB3": "E1701708",
+    "G3": "E1000174",
+    "G1": "E1000172",
+    "G10": "E1000180",
+    "AAA3": "E1000413",
+}
+FUNDING_CODE = "E1300004"
+WAIT_TARGET = 3
+RESIDUAL_POINTS = 200
 SECTOR_LAGS = range(5)
 LIQUID_LAGS = range(4)
 LIQUID = ("CDB3", "G3", "G1", "G10", "AAA3")
@@ -109,3 +120,144 @@ def signal(wait_forecast_bp, threshold_bp=SIGNAL_BP):
     if wait_forecast_bp < -threshold_bp:
         return "暂缓"
     return "等待"
+
+
+def input_frames(inputs):
+    """Sector, liquid and funding curves in bp from an archived T-1 input snapshot."""
+    source = inputs["required_source_date"]
+    wanted = {*CODES.values(), FUNDING_CODE}
+    used = [r for r in inputs["datasets"]["funding"] if r["field"] in wanted]
+    for row in (*inputs["datasets"]["sector3"], *used):
+        if (
+            row["observation_date"] > source
+            or (row.get("published_date") or "") > source
+        ):
+            raise ValueError("Future timing input")
+    index = [row["observation_date"] for row in inputs["datasets"]["sector3"]]
+    if len(set(index)) != len(index):
+        raise ValueError("Duplicate sector quote")
+    sector = [r for r in inputs["datasets"]["sector3"] if r["yield_pct"]]
+    funding = [r for r in inputs["datasets"]["funding"] if r["value"]]
+    index = [row["observation_date"] for row in sector]
+    sector_bp = pd.Series(
+        [row["yield_pct"] * 100 for row in sector], index=pd.to_datetime(index)
+    ).sort_index()
+    columns = {}
+    for code in wanted:
+        rows = [row for row in funding if row["field"] == code]
+        dates = [row["observation_date"] for row in rows]
+        if len(set(dates)) != len(dates):
+            raise ValueError("Duplicate funding quote")
+        columns[code] = pd.Series(
+            [row["value"] * 100 for row in rows], index=pd.to_datetime(dates)
+        ).sort_index()
+    liquid = pd.DataFrame({name: columns[code] for name, code in CODES.items()})
+    return sector_bp, liquid, columns[FUNDING_CODE]
+
+
+def live_features(inputs):
+    """Feature row of the last quote; every input must reach the required source date."""
+    source = pd.Timestamp(inputs["required_source_date"])
+    if pd.Timestamp(inputs["as_of_date"]) <= source:
+        raise ValueError("Timing inputs must precede decision date")
+    sector, liquid, funding = input_frames(inputs)
+    if (
+        sector.empty
+        or sector.index[-1] != source
+        or sector.index[-1] >= pd.Timestamp(inputs["as_of_date"])
+    ):
+        raise ValueError("Stale market quote")
+    for series in (*(liquid[c].dropna() for c in liquid), funding.dropna()):
+        if series.empty or series.index[-1] != source:
+            raise ValueError("Stale market quote")
+    row = build_features(sector, liquid, funding).iloc[[-1]]
+    if row.isna().any().any():
+        raise ValueError("Incomplete timing history")
+    return row
+
+
+def export_model(features, target_frame, residuals, *, alpha=ALPHA):
+    """Two fixed ridge fits plus the out-of-sample wait residual quantiles."""
+
+    def part(name):
+        model = fit(features, target_frame[name], alpha=alpha)
+        return {
+            "mean": model["mean"].tolist(),
+            "std": model["std"].tolist(),
+            "beta": model["beta"].tolist(),
+            "intercept": model["intercept"],
+        }
+
+    points = (np.arange(RESIDUAL_POINTS) + 0.5) / RESIDUAL_POINTS
+    return {
+        "kind": "catch_up_ridge",
+        "columns": list(features),
+        "catch_up": part("catch_up"),
+        f"wait_{WAIT_TARGET}": part(f"wait_{WAIT_TARGET}"),
+        "residual_quantiles": np.quantile(
+            np.asarray(residuals, float), points
+        ).tolist(),
+        "threshold_bp": SIGNAL_BP,
+        "wait_quotes": WAIT_TARGET,
+    }
+
+
+def _predict(part, columns, row):
+    x = row[columns].to_numpy(float)[0]
+    z = (x - np.asarray(part["mean"])) / np.asarray(part["std"])
+    return float(part["intercept"] + z @ np.asarray(part["beta"]))
+
+
+def outcome_probabilities(model, wait_bp):
+    """Share of out-of-sample residuals that put the realised move beyond +-threshold."""
+    realised = wait_bp + np.asarray(model["residual_quantiles"])
+    n = len(realised)
+    defer = int((realised < -model["threshold_bp"]).sum())
+    issue = int((realised > model["threshold_bp"]).sum())
+    return {"defer": defer / n, "wait": (n - defer - issue) / n, "issue": issue / n}
+
+
+NARRATIVES = {
+    "暂缓": "预测此后3个报价日利率下行，建议暂缓发行。",
+    "尽快": "预测此后3个报价日利率上行，建议尽快发行。",
+    "等待": "预测此后3个报价日利率变动不大，建议等待。",
+}
+
+
+def nowcast_snapshot(manifest, model, inputs):
+    from data.issuance_calendar import IssuanceCalendar  # noqa: PLC0415
+
+    previous = IssuanceCalendar(manifest["calendar"]).previous_quote_day(
+        inputs["as_of_date"]
+    )
+    if str(previous.date()) != inputs["required_source_date"]:
+        raise ValueError("Wrong timing source date")
+    row = live_features(inputs)
+    columns = model["columns"]
+    if list(row.columns) != columns:
+        raise ValueError("Timing feature columns changed")
+    catch_up = _predict(model["catch_up"], columns, row)
+    wait = _predict(model[f"wait_{WAIT_TARGET}"], columns, row)
+    action = signal(wait, model["threshold_bp"])
+    return {
+        "schema_version": FEATURE_VERSION,
+        "as_of_date": inputs["as_of_date"],
+        "market_source_date": inputs["required_source_date"],
+        "model_version": manifest["model_version"],
+        "scope": "AAA证券公司债3Y",
+        "training_label_cutoff": manifest["training_label_cutoff"],
+        "forecast": {
+            "catch_up_bp": catch_up,
+            "wait_bp": wait,
+            "wait_quotes": model["wait_quotes"],
+            "threshold_bp": model["threshold_bp"],
+        },
+        "probabilities": outcome_probabilities(model, wait),
+        "decision": {"action": action},
+        "validation": manifest["validation"],
+        "base_conclusion": {
+            "verdict": action,
+            "preferred_window": "",
+            "narrative": NARRATIVES[action],
+        },
+    }

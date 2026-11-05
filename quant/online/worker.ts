@@ -10,6 +10,7 @@ import { CURVE_GRID_SQL, decodeCurveGrid } from "./curve-grid.mjs";
 import { segmentedCoupon, couponInputBatch } from "./segmented-coupon.mjs";
 import { requireActiveModel } from "./model-eligibility.mjs";
 import { validateTimingModel } from "./timing-advice.mjs";
+import { validateNowcastModel } from "./timing-nowcast.mjs";
 import { runTimingWorkflow } from "./timing-workflow.mjs";
 type Parameters = { as_of_date?: string; input_batch?: any; input_snapshot_prefix?: string; publish_result_key?: string; window_days?: number; issue_size_yi?: number; terms?: { issuer?: string; rating?: string; bond_type?: string; placement_type?: string; tenor?: number } };
 const prefix = "quant-trial";
@@ -59,6 +60,7 @@ async function modelFile(bucket: R2Bucket, manifest, name: string) {
     throw new NonRetryableError("Model checksum mismatch");
   const model = JSON.parse(new TextDecoder().decode(bytes));
   if(manifest.feature_version==='timing-advice-v1') validateTimingModel(manifest,model);
+  else if(manifest.feature_version==='timing-advice-v2') validateNowcastModel(manifest,model);
   else validateModel(manifest, model);
   return model;
 }
@@ -85,7 +87,7 @@ export class BondInferenceWorkflow extends WorkflowEntrypoint<Env, Parameters> {
       const pointer=await readJson(this.env.ARTIFACTS,this.env.MODEL_POINTER);
       if(!/^[a-f0-9]{20}$/.test(pointer.model_version)) throw new NonRetryableError("Invalid pointer");
       const value=await readJson(this.env.ARTIFACTS,`${prefix}/models/${pointer.model_version}/manifest.json`,128*1024,pointer.manifest_sha256);
-      if(!["issuance-coupon","timing-advice-v1"].includes(value.feature_version)||value.model_version!==pointer.model_version||date<value.training_as_of||date>value.retrain_after) throw new NonRetryableError("Invalid or expired issuance bundle");
+      if(!["issuance-coupon","timing-advice-v1","timing-advice-v2"].includes(value.feature_version)||value.model_version!==pointer.model_version||date<value.training_as_of||date>value.retrain_after) throw new NonRetryableError("Invalid or expired issuance bundle");
       await putJson(this.env.ARTIFACTS,`${runPrefix}/manifest.json`,value);
       return readJson(this.env.ARTIFACTS,`${runPrefix}/manifest.json`);
     });
@@ -98,7 +100,7 @@ export class BondInferenceWorkflow extends WorkflowEntrypoint<Env, Parameters> {
         throw new NonRetryableError(error instanceof Error?error.message:'Model eligibility unavailable');
       } finally {await client.end();}
     });
-    if(manifest.feature_version==='timing-advice-v1') return runTimingWorkflow(this.env,step,event,manifest,{putJson,readJson,modelFile});
+    if(manifest.feature_version==='timing-advice-v1'||manifest.feature_version==='timing-advice-v2') return runTimingWorkflow(this.env,step,event,manifest,{putJson,readJson,modelFile});
     const usesIndustry=(manifest.required_input_groups??[]).some((name:string)=>["industry_curve","industry_nodes"].includes(name));
     if(usesIndustry)validateIndustryProfile(manifest.industry_source_profile);
     await step.do("freeze-inputs",async()=>{
