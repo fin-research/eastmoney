@@ -47,6 +47,7 @@ export default defineConfig(({ command, mode }) => {
     build: {
       chunkSizeWarningLimit: 650,
       rollupOptions: {
+        maxParallelFileOps: 32,
         output: {
           manualChunks(id) {
             if (

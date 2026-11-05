@@ -1,7 +1,9 @@
 <script lang="ts">
   import { Calendar } from 'bits-ui';
   import { parseDate } from '@internationalized/date';
-  import { CalendarDays, ChevronLeft, ChevronRight } from '@lucide/svelte';
+  import CalendarDays from '@lucide/svelte/icons/calendar-days';
+  import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+  import ChevronRight from '@lucide/svelte/icons/chevron-right';
   import { Button } from '$lib/components/ui/button/index.js';
   import * as Popover from '$lib/components/ui/popover/index.js';
   import { creditQuarterDates } from '../credit/report-date.ts';

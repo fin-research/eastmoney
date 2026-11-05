@@ -2,7 +2,7 @@
   import { Textarea } from "$lib/components/ui/textarea/index.js";
   import { onMount } from 'svelte';
   import { Handle, Position, type NodeProps } from '@xyflow/svelte';
-  import { ChevronRight } from '@lucide/svelte';
+  import ChevronRight from '@lucide/svelte/icons/chevron-right';
   import InquiryTable from './InquiryTable.svelte';
   import { isInquiry } from './model';
   import { nodeIcon, workflowIcons } from './icons';

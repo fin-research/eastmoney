@@ -2,7 +2,7 @@
   import { Button } from '$lib/components/ui/button/index.js';
   import { Checkbox } from '$lib/components/ui/checkbox/index.js';
   import * as Popover from '$lib/components/ui/popover/index.js';
-  import { ChevronDown } from '@lucide/svelte';
+  import ChevronDown from '@lucide/svelte/icons/chevron-down';
   let { label, options, values = $bindable([]), allLabel = '全部', optionLabels = {} }: {
     label: string; options: string[]; values: string[]; allLabel?: string; optionLabels?: Record<string, string>;
   } = $props();

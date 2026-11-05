@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --env-file-if-exists=.env.local ./node_modules/vite/bin/vite.js --mode dev --host 127.0.0.1 --port 8765",
-    "build": "pnpm typecheck && pnpm worker:typecheck && node --max-old-space-size=4096 node_modules/vite/bin/vite.js build",
+    "build": "h=$(ulimit -Hn); [ \"$h\" = unlimited ] && h=65536; ulimit -n \"$h\" 2>/dev/null; pnpm typecheck && pnpm worker:typecheck && node --max-old-space-size=4096 node_modules/vite/bin/vite.js build",
     "preview": "pnpm build && wrangler dev",
     "test": "node --test tests/*.test.mjs tests/financing/*.test.mjs",
     "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

@@ -10,14 +10,12 @@ import { CLIENT_SESSION_CONTEXT, type ClientSession } from '$lib/client-session'
 	import { invalidate } from '$app/navigation';
 	import { getContext, tick, untrack } from 'svelte';
 	import type { SubmitFunction } from '@sveltejs/kit';
-	import {
-		ArrowLeft,
-		GitBranch,
-		GripVertical,
-		Plus,
-		Trash2,
-		X
-	} from '@lucide/svelte';
+	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+	import GitBranch from '@lucide/svelte/icons/git-branch';
+	import GripVertical from '@lucide/svelte/icons/grip-vertical';
+	import Plus from '@lucide/svelte/icons/plus';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import X from '@lucide/svelte/icons/x';
 	import { autoSave, completeAutoSave, getAutoSaveRevision } from '$lib/financing/auto-save';
 	import { globalMessages } from '$lib/global-messages';
 	import { withBase } from '$lib/financing/app-paths';

@@ -13,17 +13,15 @@ import ModuleCard from '../../../components/ModuleCard.svelte';
 	import { enhance } from '$app/forms';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { getContext, untrack } from 'svelte';
-	import {
-		ArrowRight,
-		BellRing,
-		Clock3,
-		GitBranch,
-		Mail,
-		Plus,
-		Trash2,
-		UserRound,
-		Workflow
-	} from '@lucide/svelte';
+	import ArrowRight from '@lucide/svelte/icons/arrow-right';
+	import BellRing from '@lucide/svelte/icons/bell-ring';
+	import Clock3 from '@lucide/svelte/icons/clock-3';
+	import GitBranch from '@lucide/svelte/icons/git-branch';
+	import Mail from '@lucide/svelte/icons/mail';
+	import Plus from '@lucide/svelte/icons/plus';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import UserRound from '@lucide/svelte/icons/user-round';
+	import Workflow from '@lucide/svelte/icons/workflow';
 	import { globalMessages } from '$lib/global-messages';
 	import { withBase } from '$lib/financing/app-paths';
 	import { MAX_REMINDER_PERIODS, reminderPeriodLabel } from '$lib/financing/reminder-periods.js';

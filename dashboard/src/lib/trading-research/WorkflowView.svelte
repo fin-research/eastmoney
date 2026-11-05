@@ -5,7 +5,7 @@
   import { blankDirectory, directoryKey, directorySchema, remember, type InquiryDirectory, type InquiryRow } from '../trading-workflow/inquiries';
   import { onMount, tick } from 'svelte';
   import ModuleCard from "../../components/ModuleCard.svelte";
-  import { Clock } from '@lucide/svelte';
+  import Clock from '@lucide/svelte/icons/clock';
   import { portal } from '../portal';
   import WorkflowCanvas from '../trading-workflow/WorkflowCanvas.svelte';
   import { workflowGroups } from '../trading-workflow/graph';

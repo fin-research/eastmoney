@@ -1,7 +1,12 @@
 <script lang="ts">
   import { Input } from "$lib/components/ui/input/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
-  import { Search, Check, Minus, Layers, Box, ShieldCheck } from '@lucide/svelte';
+  import Search from '@lucide/svelte/icons/search';
+  import Check from '@lucide/svelte/icons/check';
+  import Minus from '@lucide/svelte/icons/minus';
+  import Layers from '@lucide/svelte/icons/layers';
+  import Box from '@lucide/svelte/icons/box';
+  import ShieldCheck from '@lucide/svelte/icons/shield-check';
   import { permissionTree } from './permission-tree';
   let { permissions, grantedOnly = false }: { permissions: string[]; grantedOnly?: boolean } = $props();
   let query = $state('');
