@@ -2,6 +2,7 @@ import * as echarts from "echarts/core";
 import {
   BarChart,
   GaugeChart,
+  GraphChart,
   LineChart,
   PieChart,
   RadarChart,
@@ -27,6 +28,7 @@ echarts.use([
   AriaComponent,
   BarChart,
   GaugeChart,
+  GraphChart,
   GraphicComponent,
   GridComponent,
   LegendComponent,
@@ -64,6 +66,10 @@ function getResizeObserver(): ResizeObserver | null {
     }
   });
   return resizeObserver;
+}
+
+export function getChart(host: HTMLElement): ChartInstance | undefined {
+  return instances.get(host);
 }
 
 export function setChart(host: HTMLElement, option: ChartOption): ChartInstance {

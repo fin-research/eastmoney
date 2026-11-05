@@ -94,3 +94,135 @@ export function layoutGraph(nodes: LayoutNode[], edges: LayoutEdge[]): GraphLayo
     nodes: placed,
   };
 }
+
+export interface ForceNode {
+  key: string;
+  /** Collision radius in layout units. */
+  radius: number;
+}
+
+export interface ForceOptions {
+  width: number;
+  height: number;
+  /** Cause-to-effect levels from `layoutGraph`; they bias causes left and effects right. */
+  levels?: Map<string, number>;
+  iterations?: number;
+}
+
+function clamp(value: number, low: number, high: number): number {
+  return Math.max(low, Math.min(high, value));
+}
+
+function seeded(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Deterministic force layout run to completion: repulsion, springs along edges, a weak pull
+ * that keeps causes left of effects, gravity, and a final pass that separates overlapping nodes.
+ */
+export function forceLayout(
+  nodes: ForceNode[],
+  edges: LayoutEdge[],
+  { width, height, levels, iterations = 320 }: ForceOptions,
+): Map<string, { x: number; y: number }> {
+  const random = seeded(nodes.length * 7919 + edges.length);
+  const index = new Map(nodes.map((node, i) => [node.key, i]));
+  const maxLevel = Math.max(1, ...(levels ? [...levels.values()] : [1]));
+  const x = nodes.map((node) => {
+    const level = levels?.get(node.key) ?? 0;
+    return width * (0.15 + (0.7 * level) / maxLevel) + (random() - 0.5) * width * 0.2;
+  });
+  const y = nodes.map(() => height * (0.15 + random() * 0.7));
+  const linkList = edges
+    .map((edge) => [index.get(edge.source), index.get(edge.target), edge.weight] as const)
+    .filter((link): link is readonly [number, number, number] => link[0] !== undefined && link[1] !== undefined && link[0] !== link[1]);
+  const maxWeight = Math.max(0.0001, ...edges.map((edge) => edge.weight));
+  const area = width * height;
+  const ideal = Math.sqrt(area / Math.max(1, nodes.length)) * 0.8;
+
+  for (let step = 0; step < iterations; step += 1) {
+    const cooling = 1 - step / iterations;
+    const limit = ideal * 0.6 * cooling + 0.5;
+    const fx = new Array<number>(nodes.length).fill(0);
+    const fy = new Array<number>(nodes.length).fill(0);
+
+    for (let i = 0; i < nodes.length; i += 1) {
+      for (let j = i + 1; j < nodes.length; j += 1) {
+        let dx = x[i]! - x[j]!;
+        let dy = y[i]! - y[j]!;
+        let d2 = dx * dx + dy * dy;
+        if (d2 < 0.01) {
+          dx = random() - 0.5;
+          dy = random() - 0.5;
+          d2 = dx * dx + dy * dy + 0.01;
+        }
+        const d = Math.sqrt(d2);
+        const reach = nodes[i]!.radius + nodes[j]!.radius + 6;
+        const push = (ideal * ideal * 0.035) / d + (d < reach ? (reach - d) * 0.6 : 0);
+        fx[i]! += (dx / d) * push;
+        fy[i]! += (dy / d) * push;
+        fx[j]! -= (dx / d) * push;
+        fy[j]! -= (dy / d) * push;
+      }
+    }
+
+    for (const [a, b, weight] of linkList) {
+      const dx = x[b]! - x[a]!;
+      const dy = y[b]! - y[a]!;
+      const d = Math.sqrt(dx * dx + dy * dy) || 0.01;
+      const rest = (nodes[a]!.radius + nodes[b]!.radius) * 1.2 + ideal * (0.9 - 0.5 * (weight / maxWeight));
+      const pull = (d - rest) * 0.22;
+      fx[a]! += (dx / d) * pull;
+      fy[a]! += (dy / d) * pull;
+      fx[b]! -= (dx / d) * pull;
+      fy[b]! -= (dy / d) * pull;
+    }
+
+    nodes.forEach((node, i) => {
+      const level = levels?.get(node.key) ?? 0;
+      const anchor = width * (0.15 + (0.7 * level) / maxLevel);
+      fx[i]! += (anchor - x[i]!) * 0.05;
+      fx[i]! += (width / 2 - x[i]!) * 0.12;
+      fy[i]! += (height / 2 - y[i]!) * 0.12;
+    });
+
+    for (let i = 0; i < nodes.length; i += 1) {
+      const magnitude = Math.hypot(fx[i]!, fy[i]!) || 1;
+      const move = Math.min(limit, magnitude * 0.35);
+      x[i]! = clamp(x[i]! + (fx[i]! / magnitude) * move, nodes[i]!.radius, width - nodes[i]!.radius);
+      y[i]! = clamp(y[i]! + (fy[i]! / magnitude) * move, nodes[i]!.radius, height - nodes[i]!.radius);
+    }
+  }
+
+  for (let pass = 0; pass < 120; pass += 1) {
+    let moved = false;
+    for (let i = 0; i < nodes.length; i += 1) {
+      for (let j = i + 1; j < nodes.length; j += 1) {
+        const dx = x[j]! - x[i]!;
+        const dy = y[j]! - y[i]!;
+        const d = Math.sqrt(dx * dx + dy * dy) || 0.01;
+        const need = nodes[i]!.radius + nodes[j]!.radius + 6;
+        if (d >= need) continue;
+        const shift = (need - d) / 2;
+        const ux = dx / d || 1;
+        const uy = dy / d || 0;
+        x[i]! = clamp(x[i]! - ux * shift, nodes[i]!.radius, width - nodes[i]!.radius);
+        y[i]! = clamp(y[i]! - uy * shift, nodes[i]!.radius, height - nodes[i]!.radius);
+        x[j]! = clamp(x[j]! + ux * shift, nodes[j]!.radius, width - nodes[j]!.radius);
+        y[j]! = clamp(y[j]! + uy * shift, nodes[j]!.radius, height - nodes[j]!.radius);
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+
+  return new Map(nodes.map((node, i) => [node.key, { x: x[i]!, y: y[i]! }]));
+}

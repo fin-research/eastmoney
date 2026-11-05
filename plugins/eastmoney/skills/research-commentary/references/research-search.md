@@ -10,7 +10,7 @@
 
 ## 1. 检索步骤
 
-0. 问题涉及传导、因果或“某事件影响什么”时，先调用 eastmoney MCP 的 `knowledge_graph`（`query.focus` 填事件或资产名，可部分匹配；`days` 取 7、14 或 30）。边是各机构研报的主张，不是已证实的因果：`observed` 为正文称已发生，`expected` 为预期，`contested` 表示多空冲突。取返回的节点名、`claims[].title` 和 `publishedAt` 作为后续检索词与日期依据，引用时写明 `articleIds` 对应的研报。该工具无结果或不可用时，直接进入下列检索，不声称已核对传导图。
+0. 问题涉及传导、因果或“某事件影响什么”时，先调用 eastmoney MCP 的 `knowledge_graph`（`query.focus` 填事件或资产名，可部分匹配；`days` 取 1 到 730，或用 `start` 与 `end` 指定上海日期范围；默认 14 天）。边是各机构研报的主张，不是已证实的因果：`observed` 为正文称已发生，`expected` 为预期，`contested` 表示多空冲突。取返回的节点名、`claims[].title` 和 `publishedAt` 作为后续检索词与日期依据，引用时写明 `articleIds` 对应的研报。该工具无结果或不可用时，直接进入下列检索，不声称已核对传导图。
 
 1. 用户提供的材料优先参考。
 2. 用户指定截止日期或时间窗口时按其要求；否则以用户时区（默认 Asia/Shanghai）的当前日期为截止日，先检索最近 7 个自然日。必须在 `body.ai_search_options.retrieval.filters.published_at` 设置 `$gte` 和 `$lt`：起始日 00:00（含）到截止日次日 00:00（不含），先按用户时区计算，再转为 Unix 毫秒数值。指定精确截止时点时，不引用晚于该时点的材料。不传日期字符串，不靠相关性排序或事后筛选来控制日期。
