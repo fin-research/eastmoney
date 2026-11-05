@@ -153,7 +153,7 @@
     editNarrative = nextReport.conclusion.edited
       ? nextReport.conclusion.narrative
       : nextReport.model_status.status !== 'active' ? '数据不满足要求，暂停预测'
-      : nextReport.snapshot.schema_version === "timing-advice-v1" ? nextReport.conclusion.narrative : issuanceDecisionNarrative(nextReport.snapshot) ?? nextReport.conclusion.narrative;
+      : nextReport.snapshot.schema_version === "timing-advice-v1" || nextReport.snapshot.schema_version === "timing-advice-v2" ? nextReport.conclusion.narrative : issuanceDecisionNarrative(nextReport.snapshot) ?? nextReport.conclusion.narrative;
     conclusionRevision = 0;
     savedConclusionRevision = 0;
     resetSellSideEditor();
@@ -398,7 +398,10 @@
 
 
   let snapshot = $derived(report?.snapshot ?? null);
-  let timingSnapshot = $derived(snapshot?.schema_version === "timing-advice-v1" ? snapshot : null);
+  let timingSnapshot = $derived(snapshot?.schema_version === "timing-advice-v1" || snapshot?.schema_version === "timing-advice-v2" ? snapshot : null);
+  let timingV1 = $derived(snapshot?.schema_version === "timing-advice-v1" ? snapshot : null);
+  let nowcastSnapshot = $derived(snapshot?.schema_version === "timing-advice-v2" ? snapshot : null);
+  const signedBp = (value: number): string => `${value > 0 ? "+" : ""}${value.toFixed(2)}`;
   let couponSnapshot = $derived(snapshot?.schema_version === "issuance-forecast-v1" ? snapshot : null);
   let modelSuspended = $derived(report?.model_status.status !== 'active');
   let versions = $derived(report?.versions ?? []);
@@ -547,25 +550,47 @@
         </ModuleCard>
       </section>
 
-      {#if !modelSuspended && timingSnapshot}
+      {#if !modelSuspended && timingV1}
       <ModuleCard labelledBy="timing-probabilities-title">
         <PanelHeading id="timing-probabilities-title" title="发行建议概率" />
         <div class="timing-probabilities">
-          <MetricCard label="尽快" value={(timingSnapshot.probabilities.issue*100).toFixed(1)} unit="%" tone="teal" compact />
-          <MetricCard label="等待" value={(timingSnapshot.probabilities.wait*100).toFixed(1)} unit="%" tone="orange" compact />
-          <MetricCard label="暂缓" value={(timingSnapshot.probabilities.defer*100).toFixed(1)} unit="%" tone="purple" compact />
+          <MetricCard label="尽快" value={(timingV1.probabilities.issue*100).toFixed(1)} unit="%" tone="teal" compact />
+          <MetricCard label="等待" value={(timingV1.probabilities.wait*100).toFixed(1)} unit="%" tone="orange" compact />
+          <MetricCard label="暂缓" value={(timingV1.probabilities.defer*100).toFixed(1)} unit="%" tone="purple" compact />
         </div>
       </ModuleCard>
       <ModuleCard labelledBy="timing-validation-title">
         <PanelHeading id="timing-validation-title" title="开发检验" />
         <dl class="validation-grid">
           <div><dt>发布状态</dt><dd>用户选定试用</dd></div>
-          <div><dt>检验区间</dt><dd>{timingSnapshot.validation.prediction_start} — {timingSnapshot.validation.prediction_end}</dd></div>
-          <div><dt>检验样本</dt><dd>{timingSnapshot.validation.sample_count}</dd></div>
-          <div><dt>交叉熵</dt><dd>{timingSnapshot.validation.logloss.toFixed(4)}</dd></div>
-          <div><dt>Brier</dt><dd>{timingSnapshot.validation.brier.toFixed(4)}</dd></div>
-          <div><dt>尽快精确率</dt><dd>{(timingSnapshot.validation.immediate_precision*100).toFixed(1)}%</dd></div>
-          <div><dt>尽快召回率</dt><dd>{(timingSnapshot.validation.immediate_recall*100).toFixed(1)}%</dd></div>
+          <div><dt>检验区间</dt><dd>{timingV1.validation.prediction_start} — {timingV1.validation.prediction_end}</dd></div>
+          <div><dt>检验样本</dt><dd>{timingV1.validation.sample_count}</dd></div>
+          <div><dt>交叉熵</dt><dd>{timingV1.validation.logloss.toFixed(4)}</dd></div>
+          <div><dt>Brier</dt><dd>{timingV1.validation.brier.toFixed(4)}</dd></div>
+          <div><dt>尽快精确率</dt><dd>{(timingV1.validation.immediate_precision*100).toFixed(1)}%</dd></div>
+          <div><dt>尽快召回率</dt><dd>{(timingV1.validation.immediate_recall*100).toFixed(1)}%</dd></div>
+        </dl>
+      </ModuleCard>
+      {:else if !modelSuspended && nowcastSnapshot}
+      <ModuleCard labelledBy="timing-forecast-title">
+        <PanelHeading id="timing-forecast-title" title="利率走势预测" />
+        <div class="timing-probabilities">
+          <MetricCard label="下一报价日变动" value={signedBp(nowcastSnapshot.forecast.catch_up_bp)} unit="bp" tone="blue" compact />
+          <MetricCard label="此后3个报价日变动" value={signedBp(nowcastSnapshot.forecast.wait_bp)} unit="bp" tone="blue" compact />
+          <MetricCard label="此后3个报价日上行概率" value={(nowcastSnapshot.probabilities.issue*100).toFixed(1)} unit="%" tone="teal" compact />
+          <MetricCard label="此后3个报价日持平概率" value={(nowcastSnapshot.probabilities.wait*100).toFixed(1)} unit="%" tone="orange" compact />
+          <MetricCard label="此后3个报价日下行概率" value={(nowcastSnapshot.probabilities.defer*100).toFixed(1)} unit="%" tone="purple" compact />
+        </div>
+      </ModuleCard>
+      <ModuleCard labelledBy="timing-validation-title">
+        <PanelHeading id="timing-validation-title" title="样本外检验" />
+        <dl class="validation-grid">
+          <div><dt>检验区间</dt><dd>{nowcastSnapshot.validation.prediction_start} — {nowcastSnapshot.validation.prediction_end}</dd></div>
+          <div><dt>检验样本</dt><dd>{nowcastSnapshot.validation.sample_count}</dd></div>
+          <div><dt>下一报价日变动相关</dt><dd>{nowcastSnapshot.validation.catch_up_corr.toFixed(3)}</dd></div>
+          <div><dt>下一报价日变动 R²</dt><dd>{nowcastSnapshot.validation.catch_up_r2.toFixed(3)}</dd></div>
+          <div><dt>此后3个报价日变动相关</dt><dd>{nowcastSnapshot.validation.wait_corr.toFixed(3)}</dd></div>
+          <div><dt>暂缓与尽快信号收益差</dt><dd>{nowcastSnapshot.validation.spread_bp.toFixed(2)}bp [{nowcastSnapshot.validation.spread_ci_low_bp.toFixed(2)}, {nowcastSnapshot.validation.spread_ci_high_bp.toFixed(2)}]</dd></div>
         </dl>
       </ModuleCard>
       {:else if !modelSuspended && couponSnapshot}

@@ -26,7 +26,7 @@ export async function loadIssuanceModelReport(client:BondDatabaseClient,runId:st
     'conclusion',jsonb_build_object('verdict',r.conclusion_verdict,'preferredWindow',r.conclusion_preferred_window,'narrative',r.conclusion_narrative,'edited',r.conclusion_updated_at IS NOT NULL,'updatedAt',r.conclusion_updated_at),
     'sellSide',(SELECT payload FROM financing_model.sell_side_snapshot s WHERE s.run_id=r.id ORDER BY generated_at DESC,id DESC LIMIT 1),
     'versions',(SELECT jsonb_agg(jsonb_build_object('runId',v.id,'asOfDate',v.as_of_date,'generatedAt',v.generated_at) ORDER BY v.as_of_date DESC) FROM
-      (SELECT id,as_of_date,generated_at FROM financing_model.model_run WHERE ((schema_version=4 AND online_feature_version='issuance-coupon') OR (schema_version=5 AND online_feature_version='timing-advice-v1')) ORDER BY as_of_date DESC LIMIT 100) v)
+      (SELECT id,as_of_date,generated_at FROM financing_model.model_run WHERE ((schema_version=4 AND online_feature_version='issuance-coupon') OR (schema_version=5 AND online_feature_version IN ('timing-advice-v1','timing-advice-v2'))) ORDER BY as_of_date DESC LIMIT 100) v)
     ) AS report FROM financing_model.model_run r JOIN financing_model.issuance_run i ON i.run_id=r.id
     LEFT JOIN financing_model.model_eligibility q ON q.model_version=r.online_model_version
     WHERE r.schema_version=4 AND r.online_feature_version='issuance-coupon' AND ($1::uuid IS NULL OR r.id=$1::uuid) ORDER BY r.as_of_date DESC LIMIT 1`,[runId]);
