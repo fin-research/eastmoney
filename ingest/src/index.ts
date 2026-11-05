@@ -11,12 +11,10 @@ import {
   validateArticleDetail,
   validateArticleMetadata,
 } from "./article";
-import { generateAiGatewayObject } from "./ai-gateway";
 import {
-  ARTICLE_FEATURE_MODEL,
-  ARTICLE_FEATURE_PROMPT_VERSION,
   buildR2Metadata,
-  extractArticleFeatures,
+  extractFeaturesForArticle,
+  loadRecentNodeLabels,
   saveArticleFeatures,
 } from "./feature-extraction";
 import { collectResearchReports, storeArticleMetadata, updateArticleLink } from "./ingest";
@@ -90,35 +88,19 @@ export class ArticleWorkflow extends WorkflowEntrypoint<Env, ArticleMetadata> {
     const markdown = await new Response(documentStream).text();
 
     const extracted = await step.do(
-      "extract article features with Responses API",
+      "extract article nodes and claims with Responses API",
       { retries: { limit: 2, delay: "15 seconds", backoff: "exponential" }, timeout: "5 minutes" },
-      async () => {
-        return await extractArticleFeatures(
-          async (input) =>
-            await generateAiGatewayObject(
-              {
-                accountId: this.env.CLOUDFLARE_ACCOUNT_ID,
-                gatewayId: this.env.AI_GATEWAY_ID,
-                token: this.env.CF_AIG_TOKEN,
-              },
-              input.messages,
-              input.schema,
-              input.schemaName,
-              {
-                promptCacheKey: input.promptCacheKey,
-                requestTimeoutMs: 120_000,
-                taskType: input.taskType,
-                metadata: {
-                  article_id: article.id,
-                  prompt_version: ARTICLE_FEATURE_PROMPT_VERSION,
-                  tags: `eastmoney,feature-extraction,model:${ARTICLE_FEATURE_MODEL}`,
-                },
-              },
-            ),
-          article.title,
+      async () =>
+        await extractFeaturesForArticle(
+          {
+            accountId: this.env.CLOUDFLARE_ACCOUNT_ID,
+            gatewayId: this.env.AI_GATEWAY_ID,
+            token: this.env.CF_AIG_TOKEN,
+          },
+          article,
           markdown,
-        );
-      },
+          await loadRecentNodeLabels(this.env.DB, new Date()),
+        ),
     );
 
     await step.do(
@@ -126,7 +108,7 @@ export class ArticleWorkflow extends WorkflowEntrypoint<Env, ArticleMetadata> {
       { retries: { limit: 5, delay: "10 seconds", backoff: "exponential" }, timeout: "2 minutes" },
       async () => {
         await saveArticleFeatures(this.env.DB, article.id, extracted, new Date().toISOString());
-        return { articleId: article.id, keywordCount: extracted.keywords.length };
+        return { articleId: article.id, nodeCount: extracted.nodes.length, claimCount: extracted.claims.length };
       },
     );
 

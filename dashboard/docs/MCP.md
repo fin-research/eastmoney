@@ -23,7 +23,7 @@ Gateway 合并 Dashboard 的 25 个工具与 Data 的 22 个只读市场查询�
 
 Dashboard 的 25 个工具：
 
-- 市场研究（15）：`market_report`、`save_market_report`、`hotspots`、`policies`、`research_search`、`policy_articles`、`update_policy_articles`、`article`、`news`、`commentaries`、`commentary`、`commentary_revisions`、`create_commentary`、`update_commentary`、`economic_indicators`。
+- 市场研究（15）：`market_report`、`save_market_report`、`knowledge_graph`、`policies`、`research_search`、`policy_articles`、`update_policy_articles`、`article`、`news`、`commentaries`、`commentary`、`commentary_revisions`、`create_commentary`、`update_commentary`、`economic_indicators`。
 - 授信与二级池（4）：`credit_report`、`bond_ledger`、`file_upload_request`、`bond_ledger_import`。
 - 融资（6）：`bond_investor_reference`、`create_bond_investor`、`update_bond_investor`、`financing_clients`、`create_client`、`update_client`。
 

@@ -15,7 +15,7 @@
 
 | 链路 | 业务与步骤 | 数据规则 |
 |---|---|---|
-| 研报采集、ArticleWorkflow | [研报模块](modules/articles.md) | [article / keyword](DATABASE.md#article) |
+| 研报采集、ArticleWorkflow | [研报模块](modules/articles.md) | [article / node / claim](DATABASE.md#node-与-claim) |
 | 中央政策、PolicyWorkflow | [政策模块](modules/policies.md) | [政策队列与关系](DATABASE.md#政策跟踪) |
 | 央行资讯、TelegramWorkflow | [通知模块](modules/telegram.md) | [投递记录](DATABASE.md#telegram_delivery) |
 | 公开市场播报、OmoWorkflow | [公开市场播报](modules/open-market.md) | 不写 D1 |

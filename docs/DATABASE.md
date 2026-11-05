@@ -8,12 +8,12 @@ Dashboard 与 Ingest 的 `DB` 指向同一个生产 D1 `eastmoney`，以两边 w
 
 | 数据事实 | 写入职责 | 读取与约束所有方 |
 |---|---|---|
-| `article`、`keyword` | Ingest 增量发现与 ArticleWorkflow 特征覆盖 | [Ingest 数据规则](../ingest/docs/DATABASE.md)、[Dashboard 热点](../dashboard/docs/modules/market-hotspots.md) |
+| `article`、`node`、`claim` | Ingest 增量发现、ArticleWorkflow 特征覆盖，以及本地回填脚本 | [Ingest 数据规则](../ingest/docs/DATABASE.md)、[Dashboard 热点](../dashboard/docs/modules/market-hotspots.md) |
 | `policy_event`、`policy_news` | Ingest 队列认领、政策归并与正文归档 | [Ingest 政策模块](../ingest/docs/modules/policies.md)、[Dashboard 政策跟踪](../dashboard/docs/modules/policy-tracking.md) |
 | `policy_article` | Ingest 自动匹配。Dashboard 人工关联或排除 | 人工决定优先，自动 upsert 不覆盖。规则见政策模块 |
 | `policy_article_decision` | Ingest 独占的政策与研报组合正负判定缓存 | Ingest 双向关联复用，Dashboard 不读。规则见 [Ingest 数据规则](../ingest/docs/DATABASE.md#政策跟踪) |
 | `commentary`、`commentary_workspace`、`commentary_revision`、`commentary_pdf` | Dashboard 标准点评、工作区、历史版本与 PDF 索引 | Ingest 只读 `commentary` 是否存在，以保护已有点评的政策不被自动合并 |
-| `hotspot_snapshot` | Dashboard 手动生成后追加 | [热点快照](../dashboard/docs/modules/market-hotspots.md) |
+| `hotspot_snapshot` | 无。热点生成已下线，历史数据保留待清理 | 无读取方 |
 | `trading_workflow_config` / `trading_workflow_progress` | Dashboard 共享节点配置。按用户和日期保存调度进度，用 revision 条件写 | [交易流程](../dashboard/docs/TRADING_RESEARCH_WORKBENCH.md#交易流程)。询价行、名单和备注留在浏览器本地 |
 | `telegram_delivery` | Ingest TelegramWorkflow | [通知模块](../ingest/docs/modules/telegram.md) |
 

@@ -17,7 +17,7 @@ const policy: ExistingPolicy = {
 const article: PolicyArticleEvidence = {
   id: "article-1", title: "房地产信贷政策解读", summary: "分析政策对融资的影响。",
   author: "测试机构", publishedAt: "2026-08-29T09:00:00+08:00",
-  keywords: [{ topic: "信贷调整", fact: "调整信贷政策", interpretation: "融资条件改善", impact: "利多地产债" }],
+  nodes: [{ label: "信贷调整", kind: "policy", fact: "调整信贷政策", impact: "利多地产债" }],
 };
 
 function output(value: unknown): Response {
@@ -77,7 +77,7 @@ describe("persistent association decisions", () => {
     expect(fetcher).toHaveBeenCalledTimes(1);
     const changed = { ...policy, newsTitles: [...policy.newsTitles, "新增配套政策文件"] };
     await generatePolicyArticleMatches(credentials, changed, [article], fetcher, repository);
-    const updatedArticle = { ...article, keywords: [{ ...article.keywords[0]!, fact: "政策事实已更新" }] };
+    const updatedArticle = { ...article, nodes: [{ ...article.nodes[0]!, fact: "政策事实已更新" }] };
     await generateArticlePolicyMatches(credentials, updatedArticle, [changed], fetcher, repository);
     expect(fetcher).toHaveBeenCalledTimes(3);
     await env.DB.prepare("UPDATE policy_article_decision SET input_hash = 'previous-prompt-version'").run();

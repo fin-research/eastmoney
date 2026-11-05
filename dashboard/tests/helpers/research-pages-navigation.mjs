@@ -18,7 +18,7 @@ const Host = await loadComponent("tests/helpers/ResearchHost.svelte", `<script>
 </script>
 <svelte:head><title>交易研究工作台</title></svelte:head>
 <div class="tr-workbench"><header><h1>交易研究工作台</h1></header><main>
-  {#if view === "hotspots"}<MarketHotspotsPage embedded />
+  {#if view === "hotspots"}<MarketHotspotsPage />
   {:else if view === "policies"}<PolicyTrackingPage embedded />
   {:else}<section data-view="trading">交易管理</section>{/if}
 </main></div>`);

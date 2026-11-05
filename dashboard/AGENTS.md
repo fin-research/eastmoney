@@ -17,7 +17,7 @@
 - Data 消费端用 `src/data-contracts.ts` 的 Zod Schema 校验最小 DTO，字段投影与分页遵循 [Data API](../data/docs/API.md)，不透传上游 envelope。新闻详情扇出保持有界并发，复用 `src/lib/server/data-news.ts`。
 - 身份只用 Gateway 私有入口注入的 `locals.user`，权限只用 `user.authorization`。应用不验证 JWT。记录归属和业务规则仍在应用内校验。详见 [SECURITY](docs/SECURITY.md)。
 - 一级发行的视觉与文字输出共用 `src/primary-issues.ts`。
-- 热点首次访问只读最近成功快照。只有用户手动生成才调用模型并追加 `hotspot_snapshot`。
+- 市场热点页直接展示近期研报因果传导图，只读 D1 `node` / `claim`，不调用模型，不写快照。
 - 二级池 Excel 在浏览器 Web Worker 解析，线上校验后归档原件，经 Hyperdrive 单事务写入 Neon，无导入 Workflow。
 - D1 / Neon / R2 所有权和跨仓库 migration 见 [共享数据库](../docs/DATABASE.md)。本地连接、日期和导入一致性见 [DATABASE](docs/DATABASE.md)。
 - 生成式 AI 只经 `src/lib/server/ai-gateway.ts`。传输、重试与检索见 [共享 AI](../docs/AI.md)，业务 Prompt 和 Schema 留在目标模块。

@@ -53,7 +53,7 @@ SvelteKit 应用由自定义 Worker 入口 `worker/entry.ts` 承载，入口导�
 - `src/lib/server/ai-gateway.ts` 是生成式模型唯一适配器，传输契约见 [共享 AI](../../docs/AI.md)，业务 Prompt 与 Schema 留在调用模块。
 - `src/lib/server/ai-sse.ts` 是交互式 AI 的 Worker 流边界，`ai-stream.ts` 在公开 summary 离开 Worker 前去除 Markdown 加粗标记。协议见 [共享 AI](../../docs/AI.md#前端-sse)。
 - 全站 AI 侧栏在浏览器运行工具循环，经 `/api/ai/responses` 和 `/api/mcp` 查询公开授信 PDF。`CreditAgent` 的 HTTP/DO 只保留历史会话，见 [授信助手](CREDIT_ASSISTANT.md)。
-- 热点：`hotspots.ts` 读结构化证据并调用模型，`hotspot-snapshots.ts` 负责最新快照读取、范围校验与追加写入。
+- 传导图：`knowledge-graph.ts` 读 `node` / `claim`，按时间衰减聚合边与传导链，不调用模型。
 - 融资择时：`issuance-model-repository.ts` 从结构化表重建票面快照并追加卖方观点修订，`financing-model-research.ts` 经 AI Search MCP 检索，再由 AI Gateway 生成结构化汇总。
 - 存储 adapter：`bond-ledger*.ts`（二级池）、`credit-repository.ts`（`credit` schema）、`fund-report.ts`（R2 资金日报）、`postgres.ts`（短生命周期连接）。
 - 个人资料、角色与账号目录由 Gateway 提供，Dashboard 经 `IDENTITY` 访问。`/api/profile` 由 Gateway 直接处理。

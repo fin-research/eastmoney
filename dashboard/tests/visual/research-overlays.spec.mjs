@@ -1,37 +1,12 @@
 import {test,expect} from '@playwright/test';
 import {mockResources} from './fixtures.mjs';
-import {hotspotAudit,policyAudit,auditArticles} from './audit-fixtures.mjs';
+import {policyAudit,auditArticles} from './audit-fixtures.mjs';
 
 test.beforeEach(async({page},testInfo)=>{
   test.skip(testInfo.project.name!=='desktop','Desktop UI audit');
   await page.clock.setFixedTime(new Date('2026-09-15T11:00:00+08:00'));
   await mockResources(page);
   await page.setViewportSize({width:1280,height:900});
-});
-
-test('desktop hotspot scope selection is visible and details use readable width',async({page})=>{
-  await page.route('**/api/rag/hotspots',route=>route.fulfill({json:hotspotAudit}));
-  await page.goto('/trading-research/market-hotspots');
-  const trigger=page.getByRole('button',{name:/证据范围.*最近 20 篇/});
-  await trigger.click();
-  const scope=page.getByRole('dialog',{name:'配置热点证据范围',exact:true});
-  await scope.getByRole('tab',{name:'日期范围',exact:true}).click();
-  await expect(scope.getByLabel('开始日期')).toBeVisible();
-  const colors=await scope.getByRole('tab').evaluateAll(tabs=>tabs.map(tab=>getComputedStyle(tab).backgroundColor));
-  expect(colors[0]).not.toBe(colors[1]);
-  await expect(scope).toHaveScreenshot('hotspot-scope-desktop.png');
-  await page.keyboard.press('Escape');
-  await expect(trigger).toBeFocused();
-  const keyword=page.getByRole('button',{name:'资金面，热度 85',exact:true});
-  await keyword.click();
-  const detail=page.getByRole('dialog',{name:'资金面热点详情',exact:true});
-  await expect(detail).toBeVisible();
-  // Visibility precedes the 100ms zoom-in: 672px initially renders at 95% (638.4px).
-  await expect.poll(async () => (await detail.boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(640);
-  await expect(detail.getByText(hotspotAudit.hotspots[0].evidence[0].evidence,{exact:true})).toBeInViewport();
-  await expect(detail).toHaveScreenshot('hotspot-detail-desktop.png');
-  await page.keyboard.press('Escape');
-  await expect(keyword).toBeFocused();
 });
 
 test('desktop policy association choices remain square and cancel preserves the list',async({page})=>{
