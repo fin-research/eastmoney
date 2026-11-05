@@ -33,15 +33,18 @@ test('shared dependency policy changes require every project', () => {
   }
 });
 
-test('declared scope replaces dependency expansion but never narrows CI or dependency files', () => {
+test('declared scope replaces dependency expansion, including for CI and dependency files', () => {
   const only = labels => declared(labels);
   const plan = affected(['data/src/contracts.ts'], false, only(['ci:data']));
   assert.deepEqual(projects.filter(p => plan[p]), ['data']);
   const multi = affected(['data/src/contracts.ts'], false, only(['ci:data', 'ci:gateway', 'bug']));
   assert.deepEqual(projects.filter(p => multi[p]), ['gateway', 'data']);
   for (const path of ['.github/workflows/ci.yml', 'scripts/ci/gate.mjs', 'package.json', 'pnpm-lock.yaml']) {
-    assert.ok(projects.every(p => affected([path], false, only(['ci:data']))[p]), path);
+    assert.deepEqual(projects.filter(p => affected([path], false, only(['ci:data']))[p]), ['data'], path);
+    assert.ok(projects.every(p => affected([path], false, only(['ci:all']))[p]), path);
+    assert.ok(projects.every(p => !affected([path], false, only(['ci:none']))[p]), path);
   }
+  assert.deepEqual(projects.filter(p => affected(['data/src/a.ts'], false, only(['ci:none', 'ci:quant']))[p]), ['quant']);
   const skills = affected(['gateway/src/a.ts', 'skills/x/SKILL.md'], false, only(['ci:gateway']));
   assert.deepEqual(projects.filter(p => skills[p]), ['gateway']);
   assert.ok(projects.every(p => affected(['skills/x/SKILL.md'])[p]));
@@ -75,5 +78,6 @@ test('reuse requires the PR run to have tested every project the queue run needs
   assert.equal(covered(affected(['data/x.ts'], false, declared(['ci:data', 'ci:quant'])), plan), false);
   assert.equal(covered(affected(['data/src/x.ts']), plan), false);
   assert.equal(covered(affected(['README.md']), {}), true);
+  assert.equal(covered(affected(['.github/a.yml'], false, declared(['ci:none'])), plan), true);
   assert.equal(covered(affected(['data/src/x.ts']), undefined), false);
 });
