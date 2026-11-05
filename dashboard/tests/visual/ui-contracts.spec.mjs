@@ -177,7 +177,7 @@ test('hotspot graph sizes nodes by mentions, traces paths on click, searches nod
   const track=await page.locator('.range-track').boundingBox();
   await page.mouse.move(handle.x+handle.width/2,handle.y+handle.height/2);
   await page.mouse.down();
-  await page.mouse.move(track.x+2,handle.y+handle.height/2,{steps:6});
+  await page.mouse.move(track.x-30,handle.y+handle.height/2,{steps:6});
   await page.mouse.up();
   await expect.poll(()=>requested.length).toBe(3);
   expect(new URLSearchParams(requested[2]).get('start')).toBe('2026-06-18');
