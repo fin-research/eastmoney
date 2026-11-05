@@ -410,7 +410,7 @@ export function fillTimeline(
 export async function loadKnowledgeGraph(database: Env["DB"], query: GraphQuery): Promise<KnowledgeGraphResponse> {
   const start = addDays(query.end, -(query.days - 1));
   const window = [start, query.end];
-  const [claims, nodes, counts, daily] = await Promise.all([
+  const [claims, counts, daily] = await Promise.all([
     database
       .prepare(
         `SELECT c.article_id, c.cause, c.cause_move, c.effect, c.effect_move, c.basis, c.mechanism,
@@ -422,16 +422,6 @@ export async function loadKnowledgeGraph(database: Env["DB"], query: GraphQuery)
       )
       .bind(...window)
       .all<ClaimRow>(),
-    database
-      .prepare(
-        `SELECT n.article_id, n.label, n.kind
-         FROM node n JOIN article a ON a.id = n.article_id
-         WHERE date(a.published_at, '+8 hours') BETWEEN ? AND ?
-         ORDER BY a.published_at DESC
-         LIMIT ${NODE_ROW_LIMIT}`,
-      )
-      .bind(...window)
-      .all<NodeRow>(),
     database
       .prepare(
         `SELECT COUNT(*) AS article_count,
@@ -452,13 +442,26 @@ export async function loadKnowledgeGraph(database: Env["DB"], query: GraphQuery)
       .bind(addDays(query.end, -(GRAPH_MAX_DAYS - 1)), query.end)
       .all<{ day: string; articles: number; claims: number }>(),
   ]);
-  const graph = buildKnowledgeGraph(claims.results ?? [], nodes.results ?? [], {
+  const claimRows = claims.results ?? [];
+  const truncated = claimRows.length >= ROW_LIMIT;
+  // A cut window keeps the newest claims; read node kinds only back to the oldest kept claim.
+  const nodes = await database
+    .prepare(
+      `SELECT n.article_id, n.label, n.kind
+       FROM node n JOIN article a ON a.id = n.article_id
+       WHERE date(a.published_at, '+8 hours') BETWEEN ? AND ? AND a.published_at >= ?
+       ORDER BY a.published_at DESC
+       LIMIT ${NODE_ROW_LIMIT}`,
+    )
+    .bind(...window, truncated ? (claimRows.at(-1)?.published_at ?? "") : "")
+    .all<NodeRow>();
+  const graph = buildKnowledgeGraph(claimRows, nodes.results ?? [], {
     start,
     end: query.end,
     days: query.days,
     articleCount: counts?.article_count ?? 0,
     claimArticleCount: counts?.claim_article_count ?? 0,
-    truncated: (claims.results ?? []).length >= ROW_LIMIT,
+    truncated,
     focus: query.focus,
   });
   graph.timeline = fillTimeline(query.end, daily.results ?? []);

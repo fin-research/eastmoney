@@ -28,18 +28,21 @@
   const shownTo = $derived(draftTo ?? to);
   const left = $derived((shownFrom / count) * 100);
   const width = $derived(((shownTo - shownFrom + 1) / count) * 100);
+  const spansYears = $derived(days.length > 1 && days[0]!.date.slice(0, 4) !== days[count - 1]!.date.slice(0, 4));
   const ticks = $derived(
     [0, 0.25, 0.5, 0.75, 1].map((ratio) => {
       const index = Math.min(count - 1, Math.round(ratio * (count - 1)));
-      return { index, label: days[index]?.date.slice(5) ?? "" };
+      const date = days[index]?.date ?? "";
+      return { index, label: spansYears ? date.slice(2) : date.slice(5) };
     }),
   );
 
-  function indexAt(clientX: number): number {
+  /** Day under the pointer; a drag keeps counting past the track ends, so the handles can reach them. */
+  function indexAt(clientX: number, clamp = true): number {
     if (!track) return 0;
     const box = track.getBoundingClientRect();
-    const ratio = (clientX - box.left) / Math.max(1, box.width);
-    return Math.max(0, Math.min(count - 1, Math.floor(ratio * count)));
+    const index = Math.floor(((clientX - box.left) / Math.max(1, box.width)) * count);
+    return clamp ? Math.max(0, Math.min(count - 1, index)) : index;
   }
 
   function settle(): void {
@@ -59,14 +62,16 @@
   function press(event: PointerEvent, grip: Grip): void {
     event.preventDefault();
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-    drag = { grip, origin: indexAt(event.clientX), from: shownFrom, to: shownTo };
+    drag = { grip, origin: indexAt(event.clientX, false), from: shownFrom, to: shownTo };
   }
 
   function move(event: PointerEvent): void {
     if (!drag) return;
-    const index = indexAt(event.clientX);
-    if (drag.grip === "start") propose(Math.min(index, drag.to), drag.to);
-    else if (drag.grip === "end") propose(drag.from, Math.max(index, drag.from));
+    const index = indexAt(event.clientX, false);
+    // Handles sit outside the box, so move them by the pointer's travel, not to its position.
+    const delta = index - drag.origin;
+    if (drag.grip === "start") propose(Math.max(0, Math.min(drag.from + delta, drag.to)), drag.to);
+    else if (drag.grip === "end") propose(drag.from, Math.min(count - 1, Math.max(drag.to + delta, drag.from)));
     else {
       const span = drag.to - drag.from;
       const shift = Math.max(-drag.from, Math.min(count - 1 - drag.to, index - drag.origin));
@@ -189,6 +194,7 @@
   .range-window {
     position: absolute;
     inset-block: 0;
+    min-width: 6px;
     border: 1px solid #5b9dff;
     border-radius: 6px;
     background: rgba(91, 157, 255, 0.14);
@@ -214,19 +220,27 @@
     content: "";
     position: absolute;
     inset-block: 8px;
-    left: 8px;
     width: 6px;
     border-radius: 3px;
     background: #5b9dff;
     box-shadow: 0 0 10px rgba(91, 157, 255, 0.7);
   }
 
+  /* Handles sit outside the box, so a one-day box stays grabbable in the middle. */
   .range-grip--start {
-    left: -12px;
+    left: -22px;
+  }
+
+  .range-grip--start::after {
+    right: 2px;
   }
 
   .range-grip--end {
-    right: -12px;
+    right: -22px;
+  }
+
+  .range-grip--end::after {
+    left: 2px;
   }
 
   .range-grip:focus-visible::after {
