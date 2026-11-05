@@ -16,8 +16,10 @@
 
   type Grip = "start" | "end" | "body";
   const COMMIT_DELAY = 220;
+  const JOIN_BELOW = 150;
 
   let track: HTMLElement | undefined = $state();
+  let trackWidth = $state(0);
   let drag = $state<{ grip: Grip; origin: number; from: number; to: number } | null>(null);
   let draftFrom = $state<number | null>(null);
   let draftTo = $state<number | null>(null);
@@ -28,14 +30,8 @@
   const shownTo = $derived(draftTo ?? to);
   const left = $derived((shownFrom / count) * 100);
   const width = $derived(((shownTo - shownFrom + 1) / count) * 100);
-  const spansYears = $derived(days.length > 1 && days[0]!.date.slice(0, 4) !== days[count - 1]!.date.slice(0, 4));
-  const ticks = $derived(
-    [0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-      const index = Math.min(count - 1, Math.round(ratio * (count - 1)));
-      const date = days[index]?.date ?? "";
-      return { index, label: spansYears ? date.slice(2) : date.slice(5) };
-    }),
-  );
+  // Dates sit under the window's two edges; a window too narrow for both shows one label under its middle.
+  const joined = $derived((trackWidth * width) / 100 < JOIN_BELOW);
 
   /** Day under the pointer; a drag keeps counting past the track ends, so the handles can reach them. */
   function indexAt(clientX: number, clamp = true): number {
@@ -118,7 +114,7 @@
 </script>
 
 <div class="range">
-  <div class="range-track" bind:this={track} role="presentation" onpointerdown={jump}>
+  <div class="range-track" bind:this={track} bind:clientWidth={trackWidth} role="presentation" onpointerdown={jump}>
     <ChartHost renderer={renderTimeline} args={[days, { from: shownFrom, to: shownTo }]} ariaLabel="每日研报主张数" className="range-chart" />
     <div
       class="range-window"
@@ -165,10 +161,15 @@
       ></span>
     </div>
   </div>
-  <div class="range-ticks" aria-hidden="true">
-    {#each ticks as tick (tick.index)}
-      <span style:left={`${((tick.index + 0.5) / count) * 100}%`}>{tick.label}</span>
-    {/each}
+  <div class="range-dates" aria-hidden="true">
+    {#if joined}
+      <span class="range-date range-date--wide" style:--at={`${left + width / 2}%`}>
+        {shownFrom === shownTo ? dateOf(shownFrom) : `${dateOf(shownFrom)} – ${dateOf(shownTo)}`}
+      </span>
+    {:else}
+      <span class="range-date" style:--at={`${left}%`}>{dateOf(shownFrom)}</span>
+      <span class="range-date" style:--at={`${left + width}%`}>{dateOf(shownTo)}</span>
+    {/if}
   </div>
 </div>
 
@@ -252,25 +253,23 @@
     outline: none !important;
   }
 
-  .range-ticks {
+  .range-dates {
     position: relative;
     height: 1.25rem;
-    color: #8b9ab3;
-    font-size: 0.75rem;
+    color: #e6edf7;
+    font-size: 0.875rem;
     font-variant-numeric: tabular-nums;
   }
 
-  .range-ticks span {
+  /* Centred on the point, kept inside the track near either end. */
+  .range-date {
     position: absolute;
+    left: clamp(2.75rem, var(--at, 0%), calc(100% - 2.75rem));
     transform: translateX(-50%);
     white-space: nowrap;
   }
 
-  .range-ticks span:first-child {
-    transform: none;
-  }
-
-  .range-ticks span:last-child {
-    transform: translateX(-100%);
+  .range-date--wide {
+    left: clamp(6rem, var(--at, 0%), calc(100% - 6rem));
   }
 </style>

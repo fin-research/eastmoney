@@ -122,16 +122,15 @@ test('hotspot graph sizes nodes by mentions, traces paths on click, searches nod
     return route.fulfill({json:hotspotGraph(start,end)});
   });
   await page.goto('/trading-research/market-hotspots');
-  await expect(page.getByText('14 条主张 · 4 个节点')).toBeVisible();
-  expect(requested).toEqual(['?days=14']);
   await expect(page.getByRole('img',{name:/节点大小表示研报出现次数/})).toBeVisible();
+  expect(requested).toEqual(['?days=14']);
 
   await page.getByRole('searchbox',{name:'搜索节点'}).fill('DR007');
   await page.getByRole('list',{name:'搜索结果'}).getByRole('button',{name:/DR007/}).click();
   const detail=page.getByRole('region',{name:'节点详情'});
   await expect(detail).toContainText('DR007');
-  await expect(detail).toContainText('7 篇');
-  await expect(detail.getByRole('button',{name:/降准● → DR007↓/})).toBeVisible();
+  await expect(detail).toContainText('市场');
+  await expect(detail.getByRole('button',{name:/降准 → DR007↓/})).toBeVisible();
   await expect(detail.getByRole('button',{name:/DR007↓ → 存单利率↓/})).toBeVisible();
   // Nodes outside the traced paths fade to a tenth of their opacity.
   await expect(page.locator('.graph-chart svg [fill-opacity="0.1"]')).toHaveCount(1);
@@ -141,7 +140,7 @@ test('hotspot graph sizes nodes by mentions, traces paths on click, searches nod
   await expect(page.getByRole('region',{name:'热点节点'})).toHaveCount(0);
   await expect(page.getByRole('button',{name:'回放'})).toHaveCount(0);
 
-  await detail.getByRole('button',{name:/降准● → DR007↓/}).click();
+  await detail.getByRole('button',{name:/降准 → DR007↓/}).click();
   await expect(page.getByLabel('边的研报主张').getByText('研报A001')).toBeVisible();
   await expect(detail).toHaveCount(0);
 
@@ -150,12 +149,6 @@ test('hotspot graph sizes nodes by mentions, traces paths on click, searches nod
   await page.getByRole('button',{name:'缩小'}).click();
   expect(await nodeShapes()).toBe(true);
   await page.getByRole('button',{name:'复位'}).click();
-
-  const chain=page.getByRole('button',{name:'降准● → DR007↓ → 存单利率↓'});
-  await chain.click();
-  await expect(chain).toHaveAttribute('aria-pressed','true');
-  await chain.click();
-  await expect(chain).toHaveAttribute('aria-pressed','false');
 
   await page.getByRole('searchbox',{name:'搜索节点'}).fill('存单');
   await page.getByRole('list',{name:'搜索结果'}).getByRole('button',{name:/存单利率/}).click();
@@ -170,7 +163,7 @@ test('hotspot graph sizes nodes by mentions, traces paths on click, searches nod
   const query=new URLSearchParams(requested[1]);
   expect(query.get('end')).toBe('2026-09-15');
   expect(Math.round((Date.parse('2026-09-15')-Date.parse(query.get('start')))/86400000)+1).toBe(15);
-  await expect(page.getByText('15 条主张 · 4 个节点')).toBeVisible();
+  await expect(page.locator('.range-dates')).toContainText('2026-09-15');
 
   // Dragging the start handle to the far left selects every day back to the first claim.
   const handle=await page.getByRole('slider',{name:'起始日'}).boundingBox();

@@ -32,12 +32,14 @@ export const KIND_STYLE: Record<NodeKind, { name: string; color: string }> = {
 export interface GraphView {
   node: string;
   edge: number | null;
-  chain: number | null;
 }
 
-// Layout units are pixels of a typical stage, so symbol sizes and spacing agree after the view fits.
-const LAYOUT_WIDTH = 760;
-const LAYOUT_HEIGHT = 560;
+// Layout units are pixels of the stage, so the graph fills it and symbol sizes agree with spacing.
+const DEFAULT_SIZE = { width: 1500, height: 680 };
+export interface LayoutSize {
+  width: number;
+  height: number;
+}
 const LABELLED_NODES = 14;
 
 /** Mixes a #rrggbb colour toward white so the site's up/down colours stay readable on the dark stage. */
@@ -61,31 +63,18 @@ function edgeWidth(edge: KgEdge, max: number): number {
   return 1.6 + 3.4 * Math.sqrt(edge.weight / Math.max(max, 0.0001));
 }
 
-/** Parallel edges between one pair of nodes fan out instead of overlapping. */
-function curveness(edges: readonly KgEdge[]): number[] {
-  const seen = new Map<string, number>();
-  return edges.map((edge) => {
-    const key = [edge.source, edge.target].sort().join("|");
-    const order = seen.get(key) ?? 0;
-    seen.set(key, order + 1);
-    const flip = edge.source < edge.target ? 1 : -1;
-    return flip * (0.12 + order * 0.16);
-  });
-}
-
-export function knowledgeGraphOption(graph: KnowledgeGraphResponse, view: GraphView): ChartOption {
+export function knowledgeGraphOption(graph: KnowledgeGraphResponse, view: GraphView, size: LayoutSize = DEFAULT_SIZE): ChartOption {
   const maxCount = Math.max(1, ...graph.nodes.map((node) => node.articleCount));
   const maxWeight = Math.max(0.0001, ...graph.edges.map((edge) => edge.weight));
-  const lit = litSets(graph, { node: view.node, edge: view.edge, chain: view.chain });
+  const lit = litSets(graph, { node: view.node, edge: view.edge });
   const ranked = [...graph.nodes].sort((left, right) => right.articleCount - left.articleCount);
   const labelled = new Set(ranked.slice(0, LABELLED_NODES).map((node) => node.key));
-  const curves = curveness(graph.edges);
   const textSize = Math.max(chartTextSize, 13);
   const levels = new Map([...layoutGraph(graph.nodes, graph.edges).nodes].map(([key, place]) => [key, place.level]));
   const positions = forceLayout(
-    graph.nodes.map((node) => ({ key: node.key, radius: nodeSize(node.articleCount, maxCount) / 2 + 8 })),
+    graph.nodes.map((node) => ({ key: node.key, radius: nodeSize(node.articleCount, maxCount) / 2 + 18 })),
     graph.edges,
-    { width: LAYOUT_WIDTH, height: LAYOUT_HEIGHT, levels },
+    { ...size, levels },
   );
 
   const data = graph.nodes.map((node) => {
@@ -132,7 +121,6 @@ export function knowledgeGraphOption(graph: KnowledgeGraphResponse, view: GraphV
         width: edgeWidth(edge, maxWeight) + (lit && on ? 1.2 : 0),
         type: edge.contested ? ("dotted" as const) : edge.observed === 0 ? ("dashed" as const) : ("solid" as const),
         opacity: on ? (lit ? 1 : edge.authorCount < 2 ? 0.5 : 0.85) : 0.06,
-        curveness: curves[index],
       },
     };
   });
@@ -183,6 +171,8 @@ export function knowledgeGraphOption(graph: KnowledgeGraphResponse, view: GraphV
         })),
         data,
         links,
+        // Only edges that would sit on top of each other (same pair of nodes) bend; every other edge stays straight.
+        autoCurveness: [0, 0.2, -0.2, 0.4, -0.4],
         edgeSymbol: ["none", "arrow"],
         edgeSymbolSize: [0, 9],
         labelLayout: { hideOverlap: true },
@@ -205,20 +195,24 @@ export function knowledgeGraphOption(graph: KnowledgeGraphResponse, view: GraphV
   };
 }
 
-const drawn = new WeakMap<HTMLElement, KnowledgeGraphResponse>();
+const drawn = new WeakMap<HTMLElement, { graph: KnowledgeGraphResponse; size: LayoutSize }>();
 
 /**
  * First draw, or a new graph, builds the chart and its layout from scratch. A selection change
  * on the same graph merges in the new styles, so nodes keep their positions and zoom.
  */
 export function renderKnowledgeGraph(host: HTMLElement, graph: KnowledgeGraphResponse, view: GraphView): void {
-  const option = knowledgeGraphOption(graph, view);
   const chart = getChart(host);
-  if (chart && drawn.get(host) === graph) {
+  const previous = drawn.get(host);
+  const same = chart && previous?.graph === graph;
+  // The layout keeps the stage size it was built for, so resizing never reshuffles the nodes.
+  const size = same ? previous.size : { width: host.clientWidth || DEFAULT_SIZE.width, height: host.clientHeight || DEFAULT_SIZE.height };
+  const option = knowledgeGraphOption(graph, view, size);
+  if (same) {
     chart.setOption(option);
     return;
   }
-  drawn.set(host, graph);
+  drawn.set(host, { graph, size });
   setChart(host, option);
 }
 
@@ -256,18 +250,6 @@ export function timelineOption(days: readonly KgDay[], range: TimelineRange): Ch
     grid: { left: 0, right: 0, top: 4, bottom: 0 },
     xAxis: { type: "category", data: days.map((day) => day.date), show: false, boundaryGap: true },
     yAxis: { type: "value", show: false },
-    tooltip: {
-      trigger: "axis",
-      confine: true,
-      backgroundColor: "rgba(15, 23, 42, 0.96)",
-      borderColor: "#26334d",
-      borderWidth: 1,
-      textStyle: { color: GRAPH_STAGE.text, fontFamily, fontSize: Math.max(chartTextSize, 12) },
-      formatter: (params: Array<{ dataIndex: number }>) => {
-        const day = days[params[0]?.dataIndex ?? 0];
-        return day ? `${day.date}<br/>${day.claims} 条主张 · ${day.articles} 篇研报` : "";
-      },
-    },
     series: [
       {
         type: "bar",
