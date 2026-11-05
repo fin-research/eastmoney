@@ -59,11 +59,6 @@
       "binding": "ECONOMIC_INDICATOR_SYNC",
       "name": "economic-indicator-sync",
       "class_name": "EconomicIndicatorSyncWorkflow"
-    },
-    {
-      "binding": "DM_FUNDING_SYNC",
-      "name": "dm-funding-sync",
-      "class_name": "DmFundingSyncWorkflow"
     }
   ],
   "triggers": {

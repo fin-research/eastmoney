@@ -9,16 +9,9 @@ import { withPostgres } from './postgres.ts';
 import { runEconomicIndicatorSync } from './economic-indicator-run.ts';
 import { runQuantInputSync } from './quant-input-run.ts';
 import { replayIssuanceObservations } from './issuance-observation-replay.ts';
-import { notifyDmFundingParent, runDmFundingChild, type DmFundingSyncParams } from './dm-funding-child.ts';
-import { runBondHistoryWorkflowRecovery } from './bond-history-workflow-recovery.ts';
 
 export class EconomicIndicatorSyncWorkflow extends WorkflowEntrypoint<Cloudflare.Env, EconomicIndicatorSyncParams> {
   override async run(event: Readonly<WorkflowEvent<EconomicIndicatorSyncParams>>, step: WorkflowStep) {
-    if (event.payload?.bondHistoryRecoveryOf !== undefined) {
-      if (event.payload.issuanceReplayOf !== undefined) throw new Error('Conflicting Workflow recovery modes');
-      return runBondHistoryWorkflowRecovery(step, this.env, event.instanceId, event.payload.bondHistoryRecoveryOf,
-        (path, parameters, capture) => requestEconomicIndicatorData({ fetch: input => handleRequest(input, this.env) }, path, parameters, capture));
-    }
     if (event.payload?.issuanceReplayOf !== undefined) {
       return step.do('恢复已归档发行观察', { retries: { limit: 0, delay: '1 second' }, timeout: '10 minutes' },
         () => replayIssuanceObservations(this.env.EASTMONEY,
@@ -37,8 +30,7 @@ export class EconomicIndicatorSyncWorkflow extends WorkflowEntrypoint<Cloudflare
         (rows) => withPostgres(this.env.HYPERDRIVE.connectionString, 'eastmoney-edb-workflow',
           (client) => persistEconomicIndicators(client, rows)),
         { archive: (spec, attempt, evidence) => saveEdbResponse(this.env.EASTMONEY, event.instanceId, scheduledTime, spec, attempt, evidence),
-          choiceSettled: () => releaseChoice(),
-          dmGroup: () => runDmFundingChild(step, this.env.DM_FUNDING_SYNC, event.instanceId, scheduledTime) })
+          choiceSettled: () => releaseChoice() })
         .finally(() => releaseChoice()),
       runQuantInputSync(step, this.env, scheduledTime, request, event.instanceId, choiceReady),
     ]);
@@ -55,19 +47,5 @@ export class EconomicIndicatorSyncWorkflow extends WorkflowEntrypoint<Cloudflare
     });
     if (result.status === 'failed') throw new Error(JSON.stringify(result));
     return result;
-  }
-}
-
-export class DmFundingSyncWorkflow extends WorkflowEntrypoint<Cloudflare.Env, DmFundingSyncParams> {
-  override async run(event: Readonly<WorkflowEvent<DmFundingSyncParams>>, step: WorkflowStep) {
-    const { scheduledTime, parentInstanceId } = event.payload;
-    const result = await runEconomicIndicatorSync(step, event.instanceId, scheduledTime,
-      (path, parameters, capture) => requestEconomicIndicatorData({ fetch: input => handleRequest(input, this.env) }, path, parameters, capture),
-      rows => withPostgres(this.env.HYPERDRIVE.connectionString, 'eastmoney-dm-funding-workflow',
-        client => persistEconomicIndicators(client, rows)), { dmOnly: true });
-    // A business failure is a valid result; the parent retains per-request details.
-    const group = result.groups[0]!;
-    await notifyDmFundingParent(step, this.env.ECONOMIC_INDICATOR_SYNC, event.instanceId, event.payload, group);
-    return { parentInstanceId, scheduledTime, group };
   }
 }

@@ -13,7 +13,6 @@ export type EconomicIndicatorSyncMode = "full" | "incremental";
 export type EconomicIndicatorSyncParams = {
   scheduledTime: number;
   issuanceReplayOf?: string;
-  bondHistoryRecoveryOf?: string;
 };
 
 export type DataApiRequest = (

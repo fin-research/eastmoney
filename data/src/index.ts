@@ -1,7 +1,7 @@
 export { ChoiceSession } from './choice/native/session';
 import { scheduledTasks } from './scheduled-tasks.ts';
 import { runEconomicIndicatorScheduledSync } from './sync/economic-indicator-scheduled.ts';
-export { EconomicIndicatorSyncWorkflow, DmFundingSyncWorkflow } from './sync/economic-indicator-workflow.ts';
+export { EconomicIndicatorSyncWorkflow } from './sync/economic-indicator-workflow.ts';
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { handleRequest } from "./app";
 import { handleCamelRequest } from "./camel/routes";

@@ -8,7 +8,7 @@ Data 按单资源提供 REST 与薄 GraphQL。Workers Free 的 CPU 和 subreques
 - GraphQL 多字段查询在一次 invocation 内累计各资源的解码、校验、投影和序列化 CPU。字段数、别名、上游调用和冷启动共同决定风险。单字段的本地基准不能证明多字段安全。
 - Free 每次 invocation 最多 50 个外部 subrequest 和 1,000 个内部 subrequest。GraphQL 用 `GRAPHQL_SUBREQUEST_BUDGET`（40）限制别名重复调用。新闻日期过滤的跨页扫描需单独检查。
 - Workflow 的 CPU 按 step 计，Free 为每 step 10ms（[Workflows 限制](https://developers.cloudflare.com/workflows/reference/limits/)）。subrequest 文档只写“每次 invocation / 每个实例”，未承诺按 step、重试或 sleep 重置，按整个实例保守预算。Durable Object、Hyperdrive 和 Rate Limiting 调用是否计入未见明文，以 Trace 为准（2026-11-04 核对）。
-- 经济同步每个 Choice EDB 批次独占一个 step，DM 资金面放进独立子实例，见[经济指标同步](modules/economic-indicator-sync.md)。
+- 经济同步每个 Choice EDB 批次独占一个 step，DM 资金面为同实例的一个 step，见[经济指标同步](modules/economic-indicator-sync.md)。
 
 ## 验证方法
 

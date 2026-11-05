@@ -113,6 +113,20 @@ test('a failed Choice batch retries alone and each batch resolves publication da
   assert.equal(result.groups.find(g => g.name === '同步 Choice 经济指标').requests.length, 9);
 });
 
+test('a Choice batch that exhausts its retries leaves the other batches stored and the group partial', async t => {
+  const h = harness(t);
+  const first = economicIndicatorRequests(scheduledTime)[0];
+  const result = await runEconomicIndicatorSync(h.step, 'exhausted', scheduledTime, async (path, params) => {
+    if (params.get('edbIds') === first.parameters.edbIds) throw new Error('Choice RPC code=10000009 no data');
+    return h.request(path, params);
+  }, h.persist);
+  const choice = result.groups.find(g => g.name === '同步 Choice 经济指标');
+  assert.equal(choice.status, 'partial');
+  assert.equal(choice.failures.length, 1);
+  assert.equal(choice.failures[0].request.id, first.id);
+  assert.ok(h.saved.some(x => x.code === 'E1000180'));
+});
+
 test('a failed group write retries fetch and upload together while its sibling stays complete', async t => {
   const h = harness(t);
   let persistCalls = 0;
@@ -194,15 +208,15 @@ test('oversized and non-JSON Data failures are bounded, cancelled, and redacted'
   assert.equal(cancelled, true);
 });
 
-test.each(['live', 'failed', 'cached'])('Choice %s settles the dependency before the DM child completes', async mode => {
+test.each(['live', 'failed', 'cached'])('Choice %s settles the dependency before the DM group completes', async mode => {
   const h = harness(), dm = Promise.withResolvers(), released = Promise.withResolvers();
   const choiceResult = { name: '同步 Choice 经济指标', status: 'complete', missing: [], failures: [],
     requests: [], rowCount: 1, asOf: '2026-09-09', returnedCodes: ['E1000180'], pageCount: 0 };
-  const step = mode === 'cached' ? { do: async () => choiceResult } : h.step;
+  const step = { do: (name, ...rest) => name.startsWith('同步 DM') ? dm.promise : mode === 'cached' ? Promise.resolve(choiceResult) : h.step.do(name, ...rest) };
   const request = mode === 'failed' ? async () => { throw new Error('Choice unavailable'); } : h.request;
   let finished = false;
   const pending = runEconomicIndicatorSync(step, 'dependency', scheduledTime, request, h.persist,
-    { choiceSettled: () => released.resolve(), dmGroup: () => dm.promise }).then(result => { finished = true; return result; });
+    { choiceSettled: () => released.resolve() }).then(result => { finished = true; return result; });
   await released.promise;
   assert.equal(finished, false);
   if (mode === 'live') assert.ok(h.saved.some(row => row.code === 'E1000180'));

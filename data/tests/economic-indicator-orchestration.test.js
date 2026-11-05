@@ -6,8 +6,7 @@ vi.mock('../src/sync/economic-indicator-run.ts', () => ({ runEconomicIndicatorSy
 vi.mock('../src/sync/issuance-observation-replay.ts', () => ({ replayIssuanceObservations: replay }));
 vi.mock('../src/sync/quant-input-run.ts', () => ({ runQuantInputSync: quant }));
 vi.mock('../src/sync/postgres.ts', () => ({ withPostgres: async (_url, _name, operation) => operation({}) }));
-import { DmFundingSyncWorkflow, EconomicIndicatorSyncWorkflow } from '../src/sync/economic-indicator-workflow.ts';
-import { dmFundingChildId } from '../src/sync/dm-funding-child.ts';
+import { EconomicIndicatorSyncWorkflow } from '../src/sync/economic-indicator-workflow.ts';
 afterEach(() => { vi.resetAllMocks(); vi.restoreAllMocks(); });
 
 function fixture() {
@@ -83,40 +82,4 @@ test('workflow passes the Choice completion barrier to Quant without waiting for
   expect(h.summaries).toHaveLength(0);
   dm.resolve();
   expect((await pending).status).toBe('complete');
-});
-
-test('rejects an old daily bond recovery instance before every runner',async()=>{
- const workflow=new EconomicIndicatorSyncWorkflow({},{});
- await expect(workflow.run({instanceId:'bond-history-recovery-1',payload:{bondHistoryRecoveryOf:'original'}},{})).rejects.toThrow('Unapproved');
- expect(indicators).not.toHaveBeenCalled();expect(quant).not.toHaveBeenCalled();expect(replay).not.toHaveBeenCalled();
-});
-
-test('a normal run with failed bond history starts no recovery instance',async()=>{
- const create=vi.fn(),steps=[];
- indicators.mockResolvedValue({status:'complete',groups:[]});
- quant.mockResolvedValue({status:'partial',stored:0,failures:[],groups:[{name:'同步券商存续债估值',status:'partial',failures:[{source:'bond-history',error:'10000013'}],missing:[]}]});
- const env={HYPERDRIVE:{connectionString:'test'},EASTMONEY:{},ECONOMIC_INDICATOR_SYNC:{create}};
- await new EconomicIndicatorSyncWorkflow({},env).run({instanceId:'normal-1',payload:{scheduledTime:1},timestamp:new Date(1)},
-  {do:async(name,...rest)=>{steps.push(name);return rest.at(-1)();}});
- expect(create).not.toHaveBeenCalled();expect(steps).toEqual(['汇总同步结果']);
-});
-
-test('DM child notifies only after its committed group returns, keeping notification retries outside the data run', async () => {
-  const parentInstanceId = 'parent-event-test', scheduledTime = 1;
-  const group = { name: '同步 DM 资金面', status: 'complete', rowCount: 6 };
-  const sendEvent = vi.fn().mockRejectedValueOnce(new Error('notification unavailable')).mockResolvedValue(undefined);
-  const get = vi.fn(async () => ({ sendEvent }));
-  const child = new DmFundingSyncWorkflow({}, { ECONOMIC_INDICATOR_SYNC: { get }, HYPERDRIVE: { connectionString: 'test' } });
-  indicators.mockResolvedValue({ groups: [group] });
-  const step = { do: async (_name, config, operation) => {
-    for (let attempt = 0; ; attempt++) {
-      try { return await operation(); } catch (error) { if (attempt >= config.retries.limit) throw error; }
-    }
-  } };
-  const output = await child.run({ instanceId: dmFundingChildId(parentInstanceId),
-    payload: { parentInstanceId, scheduledTime, notifyParent: true } }, step);
-  expect(output).toEqual({ parentInstanceId, scheduledTime, group });
-  expect(indicators).toHaveBeenCalledOnce();
-  expect(sendEvent).toHaveBeenCalledTimes(2);
-  expect(get).toHaveBeenCalledWith(parentInstanceId);
 });

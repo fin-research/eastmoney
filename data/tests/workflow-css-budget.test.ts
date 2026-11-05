@@ -1,7 +1,6 @@
 import { expect, it, vi } from 'vitest';
 import type { CaptureDataResponse } from '../src/sync/css-response-evidence.ts';
 import { workflowCssBudget, WORKFLOW_CSS_BUDGET } from '../src/sync/workflow-css-budget.ts';
-import { bondRecoveryCodes, restrictBondRecovery } from '../src/sync/bond-history-workflow-recovery.ts';
 
 const params = (code='112840.SZ',fields='YIELDCNBD') => new URLSearchParams({codes:code,indicators:fields,options:'EndDate=2026-10-22,CredType=1'});
 function harness() {
@@ -42,21 +41,6 @@ it('reconstructs spent points after replay and never repeats failed/unknown paid
   await expect(create()('/choice/css',params())).rejects.toThrow('intent already exists');
   await expect(create()('/choice/css',params('151105.SH','YIELDCNBD,MATUCNBD,BONDBALANCE'))).rejects.toThrow('budget exhausted');
   expect(request).toHaveBeenCalledTimes(1);
-});
-it('recovers only the original absent October22 bond scope and blocks every other paid source/date/field', async () => {
-  const codes=bondRecoveryCodes({scheduledTime:1792684800000,status:'partial',quant:{groups:[{name:'同步券商存续债估值',missing:[
-    {reason:'observation_absent',dates:['2026-10-22'],codes:['112840.SZ','242690X2.SH','245230X.SH']},
-    {reason:'stored_fields_incomplete',dates:['2026-10-22'],codes:['151105.SH']},
-    {reason:'observation_absent',dates:['2026-10-21'],codes:['151106.SH']},
-  ]}]}});expect(codes).toEqual(['112840.SZ','242690X2.SH','245230X.SH']);
-  const request=vi.fn(async()=>({})),client=restrictBondRecovery(request,codes);
-  await client('/choice/css',params('112840.SZ','YIELDCNBD,BONDBALANCE,MATUCNBD'));
-  await expect(client('/choice/css',params('151105.SH','YIELDCNBD,BONDBALANCE,MATUCNBD'))).rejects.toThrow('scope');
-  await expect(client('/choice/css',params())).rejects.toThrow('scope');
-  await expect(client('/choice/ctr',new URLSearchParams())).rejects.toThrow('scope');
-  await expect(client('/choice/data-statistics',new URLSearchParams({funcName:'EM_CSS'}))).rejects.toThrow('scope');
-  const wrongDate=params('112840.SZ','YIELDCNBD,BONDBALANCE,MATUCNBD');wrongDate.set('options','EndDate=2026-10-21,CredType=1');
-  await expect(client('/choice/css',wrongDate)).rejects.toThrow('scope');expect(request).toHaveBeenCalledTimes(1);
 });
 it('never sends CSS if persisting its paid intent fails', async () => {
   const h=harness(),request=vi.fn(async()=>({}));

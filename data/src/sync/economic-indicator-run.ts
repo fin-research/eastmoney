@@ -83,11 +83,9 @@ export async function runEconomicIndicatorSync(
   options: {
     archive?: (spec: RequestSpec, attempt: number, evidence: DataResponseEvidence) => Promise<void>;
     choiceSettled?: () => void;
-    dmOnly?: boolean;
-    dmGroup?: () => Promise<EconomicIndicatorGroupResult>;
   } = {},
 ): Promise<EconomicIndicatorSyncResult> {
-  const specs = economicIndicatorRequests(scheduledTime).filter(spec => !options.dmOnly || spec.source === 'dm-funding-history');
+  const specs = economicIndicatorRequests(scheduledTime);
   const endDate = new Date(scheduledTime + 8 * 3600_000).toISOString().slice(0, 10);
 
   async function fetchSource(spec: RequestSpec, attempt: number, archiveFailures: ArchiveFailure[], archived: { count: number }): Promise<Fetched> {
@@ -118,7 +116,6 @@ export async function runEconomicIndicatorSync(
 
   async function syncGroup(name: string, group: RequestSpec[]): Promise<EconomicIndicatorGroupResult> {
     try {
-      if (group[0]?.source === 'dm-funding-history' && options.dmGroup) return await options.dmGroup();
       return await step.do(name, ECONOMIC_INDICATOR_STEP_CONFIG, async (context) => {
         // Await every request, including on failure. The group is the retry boundary.
         const archiveFailures: ArchiveFailure[] = [];
@@ -179,7 +176,7 @@ export async function runEconomicIndicatorSync(
   }
 
   const groups = await Promise.all([
-    ...(!options.dmOnly ? [syncChoice()] : []),
+    syncChoice(),
     syncGroup("同步 DM 资金面", specs.filter(spec => spec.source === "dm-funding-history")),
   ]);
   const failures = groups.flatMap(group => group.failures);
