@@ -8,7 +8,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from data.issuance_calendar import CALENDAR_2026
+from data.issuance_calendar import CALENDAR_2026, IssuanceCalendar
 from model import timing_nowcast as nowcast
 
 
@@ -153,6 +153,36 @@ class LiveTests(unittest.TestCase):
         self.assertEqual(
             snapshot["base_conclusion"]["verdict"], snapshot["decision"]["action"]
         )
+
+    def test_attribution_reconciles_and_history_ends_at_the_source_quote(self):
+        inputs = archived_inputs(self.sector, self.liquid, self.funding)
+        snapshot = nowcast.nowcast_snapshot(self.manifest, self.model, inputs)
+        forecast = snapshot["forecast"]
+        groups = snapshot["attribution"]
+        self.assertEqual([g["group"] for g in groups], list(nowcast.ATTRIBUTION_GROUPS))
+        self.assertAlmostEqual(
+            forecast["wait_base_bp"] + sum(g["wait_bp"] for g in groups),
+            forecast["wait_bp"],
+            places=9,
+        )
+        self.assertAlmostEqual(
+            forecast["catch_up_base_bp"] + sum(g["catch_up_bp"] for g in groups),
+            forecast["catch_up_bp"],
+            places=9,
+        )
+        history = snapshot["history"]
+        self.assertEqual(len(history), nowcast.HISTORY_POINTS)
+        self.assertEqual(history[-1]["date"], inputs["required_source_date"])
+        self.assertEqual(history[-1]["yield_pct"], forecast["source_yield_pct"])
+        self.assertEqual(forecast["decision_quote_date"], "2026-10-28")
+        self.assertEqual(forecast["wait_quote_date"], "2026-11-02")
+
+    def test_next_quote_day_stops_at_the_verified_year_end(self):
+        calendar = IssuanceCalendar(CALENDAR_2026)
+        self.assertEqual(str(calendar.next_quote_day("2026-12-30").date()), "2026-12-31")
+        self.assertEqual(str(calendar.next_quote_day("2026-10-28", 3).date()), "2026-11-02")
+        with self.assertRaises(ValueError):
+            calendar.next_quote_day("2026-12-31")
 
     def test_probabilities_move_with_the_forecast(self):
         low = nowcast.outcome_probabilities(self.model, -3.0)

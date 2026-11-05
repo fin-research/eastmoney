@@ -9,6 +9,10 @@ const names = [
   ...Object.keys(codes).flatMap(n => liquidLags.map(l => `${n}_l${l}`)),
   ...fundingLags.map(l => `funding_l${l}`),
 ];
+const groupOf = name => name.startsWith('sector') ? 'sector' : name.startsWith('CDB3') ? 'cdb3'
+  : name.startsWith('AAA3') ? 'aaa3' : name.startsWith('funding') ? 'funding' : 'gov';
+export const attributionGroups = ['sector', 'cdb3', 'gov', 'aaa3', 'funding'];
+const historyPoints = 20;
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const dateValid = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
   && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
@@ -22,6 +26,21 @@ export function validateNowcastModel(manifest, model) {
     || !Array.isArray(model.residual_quantiles) || model.residual_quantiles.length !== 200
     || !model.residual_quantiles.every(finite) || !(model.threshold_bp > 0) || model.wait_quotes !== 3)
     throw new Error('Invalid timing nowcast model');
+}
+
+/** The n-th quote day after `date`; null when it leaves the verified calendar year. */
+export function nextNowcastQuoteDay(date, calendar, n = 1) {
+  if (!dateValid(date) || Number(date.slice(0, 4)) !== calendar.year) throw new Error('Unverified timing calendar year');
+  const day = new Date(date);
+  let found = 0;
+  for (let count = 0; count < 60 * n; count++) {
+    day.setUTCDate(day.getUTCDate() + 1);
+    const value = day.toISOString().slice(0, 10), part = value.slice(5);
+    if (Number(value.slice(0, 4)) !== calendar.year) return null;
+    const closed = calendar.closures.some(([start, end]) => part >= start && part <= end);
+    if (((day.getUTCDay() > 0 && day.getUTCDay() < 6 && !closed) || calendar.makeup_workdays.includes(part)) && ++found === n) return value;
+  }
+  return null;
 }
 
 function observations(rows, code, source) {
@@ -78,7 +97,20 @@ export function nowcastFeatures(inputs, columns = names) {
   return vector;
 }
 
-const predict = (part, vector) => vector.reduce((sum, x, i) => sum + (x - part.mean[i]) / part.std[i] * part.beta[i], part.intercept);
+export function sectorHistory(inputs) {
+  const rows = new Map();
+  for (const row of inputs.datasets.sector3) if (finite(row.yield_pct) && row.yield_pct !== 0) rows.set(row.observation_date, row.yield_pct);
+  return [...rows.keys()].sort().slice(-historyPoints).map(date => ({ date, yield_pct: rows.get(date) }));
+}
+
+const terms = (part, vector) => vector.map((x, i) => (x - part.mean[i]) / part.std[i] * part.beta[i]);
+const predict = (part, vector) => terms(part, vector).reduce((sum, term) => sum + term, part.intercept);
+function attribute(model, vector) {
+  const sums = Object.fromEntries(attributionGroups.map(group => [group, { catch_up_bp: 0, wait_bp: 0 }]));
+  const catchUp = terms(model.catch_up, vector), wait = terms(model.wait_3, vector);
+  model.columns.forEach((name, i) => { const group = sums[groupOf(name)]; group.catch_up_bp += catchUp[i]; group.wait_bp += wait[i]; });
+  return attributionGroups.map(group => ({ group, ...sums[group] }));
+}
 const action = (wait, threshold) => wait > threshold ? '尽快' : wait < -threshold ? '暂缓' : '等待';
 const narratives = {
   暂缓: '预测此后3个报价日利率下行，建议暂缓发行。',
@@ -100,11 +132,18 @@ export function inferNowcast(manifest, model, inputs) {
   const vector = nowcastFeatures(inputs, model.columns);
   const catchUp = predict(model.catch_up, vector), wait = predict(model.wait_3, vector);
   const decision = action(wait, model.threshold_bp);
+  const history = sectorHistory(inputs);
+  const decisionDate = nextNowcastQuoteDay(inputs.required_source_date, manifest.calendar, 1);
+  if (!decisionDate) throw new Error('Unverified timing calendar year');
   return {
     schema_version: nowcastFeatureVersion, run_id: crypto.randomUUID(), generated_at: new Date().toISOString(),
     as_of_date: inputs.as_of_date, market_source_date: inputs.required_source_date,
     model_version: manifest.model_version, scope: 'AAA证券公司债3Y', training_label_cutoff: manifest.training_label_cutoff,
-    forecast: { catch_up_bp: catchUp, wait_bp: wait, wait_quotes: model.wait_quotes, threshold_bp: model.threshold_bp },
+    forecast: { catch_up_bp: catchUp, wait_bp: wait, wait_quotes: model.wait_quotes, threshold_bp: model.threshold_bp,
+      source_yield_pct: history.at(-1).yield_pct, decision_quote_date: decisionDate,
+      wait_quote_date: nextNowcastQuoteDay(decisionDate, manifest.calendar, model.wait_quotes),
+      catch_up_base_bp: model.catch_up.intercept, wait_base_bp: model.wait_3.intercept },
+    history, attribution: attribute(model, vector),
     probabilities: outcomeProbabilities(model, wait), decision: { action: decision }, validation: manifest.validation,
     base_conclusion: { verdict: decision, preferred_window: '', narrative: narratives[decision] },
     online_run: { model_version: manifest.model_version, feature_version: nowcastFeatureVersion,

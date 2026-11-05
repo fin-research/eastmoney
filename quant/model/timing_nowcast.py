@@ -35,6 +35,8 @@ WAIT_QUOTES = (1, 2, 3, 5)
 ALPHA = 50.0
 MIN_TRAIN = 500
 SIGNAL_BP = 0.5
+HISTORY_POINTS = 20
+ATTRIBUTION_GROUPS = ("sector", "cdb3", "gov", "aaa3", "funding")
 
 
 def build_features(sector_bp, liquid_bp, funding_bp):
@@ -202,10 +204,51 @@ def export_model(features, target_frame, residuals, *, alpha=ALPHA):
     }
 
 
-def _predict(part, columns, row):
+def _terms(part, columns, row):
     x = row[columns].to_numpy(float)[0]
     z = (x - np.asarray(part["mean"])) / np.asarray(part["std"])
-    return float(part["intercept"] + z @ np.asarray(part["beta"]))
+    return z * np.asarray(part["beta"])
+
+
+def _predict(part, columns, row):
+    return float(part["intercept"] + _terms(part, columns, row).sum())
+
+
+def _group(name):
+    if name.startswith("sector"):
+        return "sector"
+    if name.startswith("CDB3"):
+        return "cdb3"
+    if name.startswith("AAA3"):
+        return "aaa3"
+    if name.startswith("funding"):
+        return "funding"
+    return "gov"
+
+
+def attribution(model, row):
+    """Exact linear split of both forecasts: intercept + sum over groups = forecast."""
+    columns = model["columns"]
+    wait = _terms(model[f"wait_{WAIT_TARGET}"], columns, row)
+    catch_up = _terms(model["catch_up"], columns, row)
+    sums = {g: [0.0, 0.0] for g in ATTRIBUTION_GROUPS}
+    for name, c, w in zip(columns, catch_up, wait, strict=True):
+        sums[_group(name)][0] += float(c)
+        sums[_group(name)][1] += float(w)
+    return [
+        {"group": g, "catch_up_bp": sums[g][0], "wait_bp": sums[g][1]}
+        for g in ATTRIBUTION_GROUPS
+    ]
+
+
+def sector_history(inputs):
+    """The last quotes of the sector curve, in percent as archived."""
+    rows = {
+        r["observation_date"]: r["yield_pct"]
+        for r in inputs["datasets"]["sector3"]
+        if r["yield_pct"]
+    }
+    return [{"date": d, "yield_pct": rows[d]} for d in sorted(rows)[-HISTORY_POINTS:]]
 
 
 def outcome_probabilities(model, wait_bp):
@@ -227,9 +270,8 @@ NARRATIVES = {
 def nowcast_snapshot(manifest, model, inputs):
     from data.issuance_calendar import IssuanceCalendar  # noqa: PLC0415
 
-    previous = IssuanceCalendar(manifest["calendar"]).previous_quote_day(
-        inputs["as_of_date"]
-    )
+    calendar = IssuanceCalendar(manifest["calendar"])
+    previous = calendar.previous_quote_day(inputs["as_of_date"])
     if str(previous.date()) != inputs["required_source_date"]:
         raise ValueError("Wrong timing source date")
     row = live_features(inputs)
@@ -239,6 +281,14 @@ def nowcast_snapshot(manifest, model, inputs):
     catch_up = _predict(model["catch_up"], columns, row)
     wait = _predict(model[f"wait_{WAIT_TARGET}"], columns, row)
     action = signal(wait, model["threshold_bp"])
+    history = sector_history(inputs)
+    decision_day = calendar.next_quote_day(inputs["required_source_date"])
+    try:
+        wait_day = str(
+            calendar.next_quote_day(decision_day, model["wait_quotes"]).date()
+        )
+    except ValueError:
+        wait_day = None
     return {
         "schema_version": FEATURE_VERSION,
         "as_of_date": inputs["as_of_date"],
@@ -251,7 +301,14 @@ def nowcast_snapshot(manifest, model, inputs):
             "wait_bp": wait,
             "wait_quotes": model["wait_quotes"],
             "threshold_bp": model["threshold_bp"],
+            "source_yield_pct": history[-1]["yield_pct"],
+            "decision_quote_date": str(decision_day.date()),
+            "wait_quote_date": wait_day,
+            "catch_up_base_bp": model["catch_up"]["intercept"],
+            "wait_base_bp": model[f"wait_{WAIT_TARGET}"]["intercept"],
         },
+        "history": history,
+        "attribution": attribution(model, row),
         "probabilities": outcome_probabilities(model, wait),
         "decision": {"action": action},
         "validation": manifest["validation"],
