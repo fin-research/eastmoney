@@ -10,10 +10,9 @@ async function database(){
  const client={query:async(...args)=>{const r=await engine.query(...args);return {...r,rowCount:r.affectedRows};}};
  return {engine,client};
 }
-const quota={function:'DATASTATISTICS',rows:[{FUNCENAME:'EM_CSS',SECUTYPE:'全品种',PERIOD:'W',STARTDATE:'2026-09-28',ENDDATE:'2026-10-04',AVAILABEDATA:1000000}]};
 it('empty metadata is checked once per day and missing classification stays visible',async()=>{
  const {engine,client}=await database();let paid=0;
- const request=async route=>route.endsWith('data-statistics')?quota:(paid++,{function:'CSS',rows:[]});
+ const request=async()=>(paid++,{function:'CSS',rows:[]});
  try{
   await syncBondPlacement(request,operation=>operation(client),'2026-09-28');
   const result=await syncBondPlacement(request,operation=>operation(client),'2026-09-28');
@@ -23,7 +22,7 @@ it('empty metadata is checked once per day and missing classification stays visi
 });
 it('failed projection leaves the bond eligible for a paid incremental retry',async()=>{
  const {engine,client}=await database();let paid=0,fail=true;
- const request=async route=>route.endsWith('data-statistics')?quota:(paid++,{function:'CSS',rows:[{code:'123456.SH',RAISEWAY:'公募',MATURITYDATE:'2029-08-01'}]});
+ const request=async()=>(paid++,{function:'CSS',rows:[{code:'123456.SH',RAISEWAY:'公募',MATURITYDATE:'2029-08-01'}]});
  const faulty={query:async(sql,args)=>{if(fail&&sql.includes('UPDATE public.bond_issuance SET')){fail=false;throw new Error('database unavailable');}return client.query(sql,args);}};
  try{
   expect((await syncBondPlacement(request,operation=>operation(faulty),'2026-09-28')).failures)
@@ -39,7 +38,6 @@ it('isolates invalid codes, persists valid metadata and excludes only the confir
  await engine.query(`INSERT INTO public.bond_issuance(bond_code,issue_date,issuer_name)
  VALUES('123457.SH','2026-08-01','测试证券')`);
  const request=async(route,params)=>{
-  if(route.endsWith('data-statistics'))return quota;
   const codes=params.get('codes').split(',');calls.push(codes);
   if(codes.includes('123457.SH'))throw new Error('10003008 invalid stock code');
   return {function:'CSS',rows:codes.map(code=>({code,RAISEWAY:'公募',MATURITYDATE:'2029-08-01'}))};

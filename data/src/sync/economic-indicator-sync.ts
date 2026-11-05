@@ -13,8 +13,6 @@ export type EconomicIndicatorSyncMode = "full" | "incremental";
 export type EconomicIndicatorSyncParams = {
   scheduledTime: number;
   issuanceReplayOf?: string;
-  bondHistoryRecoveryOf?: string;
-  bondFieldObservationPlan?: string;
 };
 
 export type DataApiRequest = (
@@ -63,7 +61,7 @@ const dmHistorySchema = z.object({
   ),
 });
 
-const publishDateProxyByCode = new Map<string, string>([
+export const publishDateProxyByCode = new Map<string, string>([
   ["EMM00590832", "EMM00008445"],
   ["EMI01737210", "EMM00072301"],
   ["EMM01607812", "EMM00000012"],
@@ -369,13 +367,21 @@ function choiceEdbCodeFamily(code: string): string {
   return code.match(/^[A-Z]+/)?.[0] ?? code;
 }
 
+// A proxy and its dependents share one chunk, so every batch normalizes from its own response.
 function chunkChoiceDefinitions(
   definitions: EconomicIndicatorDefinition[],
   size: number,
 ): EconomicIndicatorDefinition[][] {
+  const units = new Map<string, EconomicIndicatorDefinition[]>();
+  for (const definition of definitions) {
+    const key = publishDateProxyByCode.get(definition.code) ?? definition.code;
+    units.set(key, [...(units.get(key) ?? []), definition]);
+  }
   const chunks: EconomicIndicatorDefinition[][] = [];
-  for (let offset = 0; offset < definitions.length; offset += size) {
-    chunks.push(definitions.slice(offset, offset + size));
+  for (const unit of units.values()) {
+    const last = chunks.at(-1);
+    if (last && last.length + unit.length <= size) last.push(...unit);
+    else chunks.push([...unit]);
   }
   return chunks;
 }

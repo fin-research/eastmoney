@@ -276,7 +276,6 @@ const routeEnv: Cloudflare.Env = {
   EASTMONEY: {} as R2Bucket,
   HYPERDRIVE: {} as Hyperdrive,
   ECONOMIC_INDICATOR_SYNC: {} as Workflow,
-  DM_FUNDING_SYNC: {} as Workflow,
   DM: choiceRpc("{}"),
   CHOICE_SESSION: choiceSession("{}"),
   CAMEL: choiceRpc("{}"),

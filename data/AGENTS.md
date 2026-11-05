@@ -20,7 +20,8 @@ Free 计划不使用 Cloudflare Containers 等付费计算。用户已批准 Cho
 - 保持既有状态码、薄 GraphQL 和 `Cache-Control`。GraphQL 镜像全部公共数据资源，委托同一 REST handler 与契约。
 - 只暴露单资源字段，不做市场报告聚合、业务计算和上游 envelope。报告加工在 Dashboard。
 - REST 上游值先通过 `src/contracts.ts` 的 Zod 契约，才能出公开边界。列表返回顶层 array，对象返回顶层 object。`fields` 白名单和生成的 OpenAPI 与契约同步，不透传上游任意键。
-- Worker 须兼容 Workers Free 的 10 ms CPU 上限。路由有本地 CPU profile 和生产 invocation CPU 后，才能称为安全。
+- Worker 须兼容 Workers Free 的 10 ms CPU 上限。路由有本地 CPU profile 和生产 invocation CPU 后，才能称为安全。Workflow 的 step 按同一上限设计：一个 step 只做一批上游请求加一次入库。
+- 自动 Workflow 不读取 Choice 额度。用量在开发时规划，运行时只受代码内静态点数上限和 EDB 分钟限流约束。
 - 交付运行 typegen、typecheck、Worker 测试、dry-run 和 diff 检查。
 
 ## Commands

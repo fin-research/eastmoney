@@ -1,22 +1,19 @@
 import { createHash } from 'node:crypto';
 import { expect, it, vi } from 'vitest';
-import type { WorkflowStep } from 'cloudflare:workers';
 import type { DataApiRequest } from '../src/sync/economic-indicator-sync.ts';
 import { requestEconomicIndicatorData } from '../src/sync/economic-indicator-request.ts';
 import { workflowCssBudget } from '../src/sync/workflow-css-budget.ts';
 import { syncChoiceCssBatch } from '../src/sync/choice-css-batch.ts';
 import { bondObservations } from '../src/sync/bond-history-sync.ts';
 import { CssResponseArchiveError } from '../src/sync/css-response-evidence.ts';
-const quota={function:'DATASTATISTICS',rows:[{FUNCENAME:'EM_CSS',SECUTYPE:'全品种',PERIOD:'W',STARTDATE:'2026-10-26',ENDDATE:'2026-11-01',AVAILABEDATA:1000000}]};
 const params=new URLSearchParams({codes:'245867.SH',indicators:'YIELDCNBD,BONDBALANCE,MATUCNBD',options:'EndDate=2026-10-23,CredType=1'});
 function setup(body:string,status=200,archiveFails=false) {
  const objects=new Map<string,{body:string;points?:string}>(),order:string[]=[];
  const bucket={list:vi.fn(async({prefix}:{prefix:string})=>({objects:[...objects].filter(([k])=>k.startsWith(prefix)).map(([key,v])=>({key,customMetadata:{points:v.points}})),truncated:false})),
  put:vi.fn(async(key:string,value:string,options:{customMetadata?:{points?:string}})=>{order.push(key.includes('css-responses')?'archive':'intent');if(archiveFails&&key.includes('css-responses'))throw Error('10003008 fake archive error');if(objects.has(key))return null;objects.set(key,{body:value,points:options.customMetadata?.points});return{key};})} as unknown as Pick<R2Bucket,'list'|'put'>;
  const fetch=vi.fn(async()=>{order.push('fetch');return new Response(body,{status,headers:{'X-Request-Id':'source-1','CF-Ray':'edge-ray'}});});
- const request:DataApiRequest=async(path,p,capture)=>path.endsWith('data-statistics')?quota:requestEconomicIndicatorData({fetch},path,p,capture);
- const step={do:vi.fn(async(_n:unknown,_o:unknown,f:()=>Promise<unknown>)=>f())} as unknown as Pick<WorkflowStep,'do'>;
- const client=()=>workflowCssBudget(step,bucket,'test-run',request,'2026-10-26',{history:100},()=>Date.parse('2026-10-26T10:00Z'))('history');
+ const request:DataApiRequest=async(path,p,capture)=>requestEconomicIndicatorData({fetch},path,p,capture);
+ const client=()=>workflowCssBudget(bucket,'test-run',request,{history:100},()=>Date.parse('2026-10-26T10:00Z'))('history');
  return{objects,order,bucket,fetch,client};
 }
 it('archives original null/omitted fields before returning rows and hashes original bytes separately from stored text',async()=>{
@@ -72,9 +69,8 @@ it('persists a failed fetch as unknown response and rejects a second paid execut
 });
 
 it('blocks unarchived source errors if an intermediate transport drops the evidence callback',async()=>{
- const h=setup('');const broken:DataApiRequest=async(path)=>{if(path.endsWith('data-statistics'))return quota;throw Error('10003008');};
- const step={do:async(_n:unknown,_o:unknown,f:()=>Promise<unknown>)=>f()} as unknown as Pick<WorkflowStep,'do'>;
- const client=workflowCssBudget(step,h.bucket,'broken-transport',broken,'2026-10-26',{history:100})('history');
+ const h=setup('');const broken:DataApiRequest=async()=>{throw Error('10003008');};
+ const client=workflowCssBudget(h.bucket,'broken-transport',broken,{history:100})('history');
  const apply=vi.fn(),exclude=vi.fn();
  await expect(syncChoiceCssBatch(client,['245867.SH'],params.get('indicators')!.split(','),params.get('options')!,apply,exclude)).rejects.toBeInstanceOf(CssResponseArchiveError);
  expect(exclude).not.toHaveBeenCalled();expect(apply).not.toHaveBeenCalled();

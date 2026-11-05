@@ -20,7 +20,7 @@ Worker Secret 为 `RESEND_API_KEY`、`VAPID_PRIVATE_KEY`。Secrets Store 保存 
 
 ## Workflow 订阅
 
-平台事件映射以 [workflow-events.ts](../src/workflow-events.ts) 和 [wrangler.jsonc](../wrangler.jsonc) 为准。订阅脚本只处理 `wrangler.jsonc` 中列出的 Workflow。Data 内部的 `dm-funding-sync` 子流程由主 `economic-indicator-sync` 汇总并通知，不在其中。
+平台事件映射以 [workflow-events.ts](../src/workflow-events.ts) 和 [wrangler.jsonc](../wrangler.jsonc) 为准。订阅脚本只处理 `wrangler.jsonc` 中列出的 Workflow。
 
 新增 Workflow 的顺序：
 

@@ -83,11 +83,9 @@ export async function runEconomicIndicatorSync(
   options: {
     archive?: (spec: RequestSpec, attempt: number, evidence: DataResponseEvidence) => Promise<void>;
     choiceSettled?: () => void;
-    dmOnly?: boolean;
-    dmGroup?: () => Promise<EconomicIndicatorGroupResult>;
   } = {},
 ): Promise<EconomicIndicatorSyncResult> {
-  const specs = economicIndicatorRequests(scheduledTime).filter(spec => !options.dmOnly || spec.source === 'dm-funding-history');
+  const specs = economicIndicatorRequests(scheduledTime);
   const endDate = new Date(scheduledTime + 8 * 3600_000).toISOString().slice(0, 10);
 
   async function fetchSource(spec: RequestSpec, attempt: number, archiveFailures: ArchiveFailure[], archived: { count: number }): Promise<Fetched> {
@@ -118,7 +116,6 @@ export async function runEconomicIndicatorSync(
 
   async function syncGroup(name: string, group: RequestSpec[]): Promise<EconomicIndicatorGroupResult> {
     try {
-      if (group[0]?.source === 'dm-funding-history' && options.dmGroup) return await options.dmGroup();
       return await step.do(name, ECONOMIC_INDICATOR_STEP_CONFIG, async (context) => {
         // Await every request, including on failure. The group is the retry boundary.
         const archiveFailures: ArchiveFailure[] = [];
@@ -168,11 +165,18 @@ export async function runEconomicIndicatorSync(
     }
   }
 
+  // One durable step per EDB batch, run in sequence: a failed batch retries alone and the Choice
+  // session sees one query at a time. Each step stays within the Free per-step CPU and subrequest limits.
+  async function syncChoice(): Promise<EconomicIndicatorGroupResult> {
+    const parts: EconomicIndicatorGroupResult[] = [];
+    for (const spec of specs.filter(spec => spec.source === "choice-edb"))
+      parts.push(await syncGroup(`同步 Choice 经济指标 ${spec.id}`, [spec]));
+    options.choiceSettled?.();
+    return mergeGroups("同步 Choice 经济指标", parts);
+  }
+
   const groups = await Promise.all([
-    ...(!options.dmOnly ? [syncGroup("同步 Choice 经济指标", specs.filter(spec => spec.source === "choice-edb")).then(result => {
-      options.choiceSettled?.();
-      return result;
-    })] : []),
+    syncChoice(),
     syncGroup("同步 DM 资金面", specs.filter(spec => spec.source === "dm-funding-history")),
   ]);
   const failures = groups.flatMap(group => group.failures);
@@ -188,5 +192,23 @@ export async function runEconomicIndicatorSync(
     asOf: groups.map(group => group.asOf).sort().at(-1) ?? "",
     requests: groups.flatMap(group => group.requests), failures, archiveFailures,
     archivedResponses: groups.reduce((sum, group) => sum + (group.archivedResponses ?? 0), 0), groups,
+  };
+}
+
+function mergeGroups(name: string, parts: EconomicIndicatorGroupResult[]): EconomicIndicatorGroupResult {
+  const failures = parts.flatMap(part => part.failures);
+  const archiveFailures = parts.flatMap(part => part.archiveFailures ?? []);
+  return {
+    name,
+    status: parts.every(part => part.status === "failed") ? "failed"
+      : failures.length || archiveFailures.length ? "partial" : "complete",
+    missing: parts.flatMap(part => part.missing),
+    requests: parts.flatMap(part => part.requests),
+    failures, archiveFailures,
+    archivedResponses: parts.reduce((sum, part) => sum + (part.archivedResponses ?? 0), 0),
+    rowCount: parts.reduce((sum, part) => sum + part.rowCount, 0),
+    asOf: parts.map(part => part.asOf).sort().at(-1) ?? "",
+    returnedCodes: [...new Set(parts.flatMap(part => part.returnedCodes))],
+    pageCount: parts.reduce((sum, part) => sum + part.pageCount, 0),
   };
 }

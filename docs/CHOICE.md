@@ -25,7 +25,9 @@ Choice 周流量额度由上游账户控制。Data 的分钟限流只约束请�
 
 ## Agent 取数计划
 
-任何 Choice 取数都先完成下列步骤。取数包括试探、补数、失败重试、子代理任务和后台批量任务。改文档、静态测试和离线回放不取数。
+任何 Choice 取数都先完成下列步骤。取数包括试探、补数、失败重试、子代理任务和手动批量任务。改文档、静态测试和离线回放不取数。
+
+自动 Workflow 不适用本节：用量在开发时按本节规划，运行时不调用 `data-statistics`，只受代码内的静态点数上限约束，见 [Quant 输入](../data/docs/modules/quant-inputs.md#日常流程-css-点数上限与付费意图)。
 
 1. **查实际额度。** 用已授权的用户 Bearer 或任务所有方的私有绑定调用 `GET /data/choice/data-statistics`。
    - 请求 `funcName` 与返回 `FUNCENAME` 须同本次函数一致。

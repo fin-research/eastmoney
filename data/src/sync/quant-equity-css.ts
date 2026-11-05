@@ -6,15 +6,12 @@ import { persistQuantInputs } from './quant-input-repository.ts';
 import { withPostgres } from './postgres.ts';
 import { economicIndicatorErrorDetails } from './economic-indicator-request.ts';
 import { fetchChoiceTable } from '../choice/client.ts';
-import { requestCssQuota } from './choice-css-quota.ts';
 
 type ChoiceEnv = Pick<Cloudflare.Env, 'CHOICE_SESSION' | 'CHOICE_FAST_LIMIT' | 'CHOICE_OTHER_LIMIT'>;
 type Env = ChoiceEnv & Pick<Cloudflare.Env, 'HYPERDRIVE'>;
 type CssSpec = { id: string; date: string; codes: string[]; indicators: string[]; options: string; targets: string[] };
 type FetchResult = { spec: CssSpec; rows: QuantInput[]; detail: string; status: 'complete' | 'partial' | 'failed' };
 const tableSchema = z.object({ function: z.string(), rows: z.array(z.record(z.string(), z.unknown())) });
-// Daily issuance/pricing also uses CSS. Keep a larger shared cushion than this group's 104-point maximum.
-const CSS_QUOTA_RESERVE = 100_000;
 
 function priorDate(date: string, days: number): string {
   return new Date(Date.parse(`${date}T00:00:00Z`) - days * 86400000).toISOString().slice(0, 10);
@@ -85,28 +82,6 @@ export async function syncQuantEquityCss(env: Env, request: DataApiRequest, star
     return { pe: new Map(pe.rows.filter(row => row.value != null).map(row => [row.date, Number(row.value)])),
       yield10y: new Map(yield10y.rows.map(row => [row.date, Number(row.value)])) };
   });
-
-  if (specs.length) {
-    const plannedPoints = specs.reduce((sum, spec) => sum + spec.codes.length * spec.indicators.length, 0);
-    let quotaError = '';
-    try {
-      const quota = tableSchema.parse(await requestCssQuota(request));
-      if (quota.function !== 'DATASTATISTICS') throw new Error('Unexpected CSS quota table');
-      const current = quota.rows.find(row => row.FUNCENAME === 'EM_CSS' && row.SECUTYPE === '全品种');
-      const available = current?.AVAILABEDATA;
-      const remaining = typeof available === 'string' || typeof available === 'number' ? Number(available) : NaN;
-      if (current?.PERIOD !== 'W' || String(current?.STARTDATE ?? '') > endDate || String(current?.ENDDATE ?? '') < endDate ||
-        !Number.isFinite(remaining) || remaining < plannedPoints + CSS_QUOTA_RESERVE) {
-        quotaError = 'CSS quota unavailable or below reserved budget';
-      }
-    } catch (error) {
-      quotaError = economicIndicatorErrorDetails(error).message;
-    }
-    if (quotaError) {
-      return { stored: 0, failures: [{ source: 'equity-css-quota', error: quotaError }],
-        missing: [...specs, ...spreadSpecs].map(spec => ({ source: spec.id, dates: [spec.date], fields: requiredFields(spec) })) };
-    }
-  }
 
   const fetched: FetchResult[] = [];
   for (const spec of specs) {

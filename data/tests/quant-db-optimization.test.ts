@@ -83,17 +83,10 @@ describe('compact quant input migration', () => {
         const result = await db.query(...args); return { ...result, rowCount: result.affectedRows };
       } };
       let paid = 0;
-      const request = async (path: string) => path.endsWith('/data-statistics')
-        ? { function: 'DATASTATISTICS', rows: [{ FUNCENAME: 'EM_CSS', SECUTYPE: '全品种',
-          PERIOD: 'W', STARTDATE: '2026-10-12', ENDDATE: '2026-10-18', AVAILABEDATA: 200000 }] }
-        : (paid++, { function: 'CSS', rows: [{ code: '123456.SH', YIELDCNBD: 2.2,
+      const request = async () => (paid++, { function: 'CSS', rows: [{ code: '123456.SH', YIELDCNBD: 2.2,
           BONDBALANCE: 100000000, MATUCNBD: 2.5 }] });
       const wrapper = <T>(operation: (database: DatabaseClient) => Promise<T>) => operation(client as unknown as DatabaseClient);
-      const blocked = await syncBondHistory(request, wrapper, '2026-09-29', ['2026-09-28']);
-      expect(blocked.failures[0]).toMatchObject({kind:'execution',error:'Bond CSS quota unavailable or below shared reserve'});
-      expect(blocked.missing).toContainEqual(expect.objectContaining({dates:['2026-09-28'],codes:['123456.SH'],reason:'observation_absent'}));
-      expect(paid).toBe(0);
-      const first = await syncBondHistory(request, wrapper, '2026-09-29', ['2026-09-28'], '2026-10-13');
+      const first = await syncBondHistory(request, wrapper, '2026-09-29', ['2026-09-28']);
       const second = await syncBondHistory(request, wrapper, '2026-09-29', ['2026-09-28']);
       expect(first.stored).toBe(1);
       expect(second.stored).toBe(0);

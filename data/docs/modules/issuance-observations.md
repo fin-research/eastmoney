@@ -1,6 +1,6 @@
 # 发行资料前瞻观察
 
-Data 在既有券商发行 step 中归档有限的 Choice 响应，供后续研究核验资料的实际可见时间。范围仅限当前 `BondIssueDetail` CTR、四字段定价 CSS，以及 `RAISEWAY/MATURITYDATE` CSS。代码池、字段、窗口、分批、额度查询、无效代码二分和重试都不扩展。
+Data 在既有券商发行 step 中归档有限的 Choice 响应，供后续研究核验资料的实际可见时间。范围仅限当前 `BondIssueDetail` CTR、四字段定价 CSS，以及 `RAISEWAY/MATURITYDATE` CSS。代码池、字段、窗口、分批、无效代码二分和重试都不扩展。
 
 常规 live 沿用原请求：每个子批收到响应后先尝试归档，再继续原解析和入库。付费 step 仍为 `retries.limit=0`。
 
@@ -39,7 +39,7 @@ pnpm exec wrangler workflows trigger economic-indicator-sync \
   '{"issuanceReplayOf":"原实例ID"}'
 ```
 
-`issuanceReplayOf` 在任何常规经济、Quant、额度或交易日查询前进入独立 replay 分支，不调用上游，重试为 0。不传该字段就是原全量日常流程。
+`issuanceReplayOf` 在任何常规经济、Quant 或交易日查询前进入独立 replay 分支，不调用上游，重试为 0。不传该字段就是原全量日常流程。
 
 - 恢复只读指定原实例的目录，校验规范请求、原发行日、响应哈希、时点和 manifest。按发行 CTR 先建券、CSS 后补资料，同来源按原接收时间和稳定键排序。
 - 只处理原成功的子批，失败批不转为空数据。父批的无效代码错误与其成功叶批分别保留。
