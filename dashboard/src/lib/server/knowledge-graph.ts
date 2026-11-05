@@ -4,6 +4,7 @@ import type {
   EffectMove,
   KgChain,
   KgClaim,
+  KgDay,
   KgEdge,
   KgNode,
   KnowledgeGraphResponse,
@@ -16,14 +17,14 @@ const RECENT_DAYS = 3;
 const CONTESTED_RATIO = 0.3;
 // The page draws at most this many edges, and chains are built only from them, so every
 // listed chain and hot node is on screen.
-const MAX_EDGES = 40;
+const MAX_EDGES = 80;
 const CHAIN_EDGE_POOL = MAX_EDGES;
 const MAX_HOPS = 3;
 const MAX_CHAINS = 10;
 const CLAIMS_PER_EDGE = 5;
 const ROW_LIMIT = 5000;
 const NODE_ROW_LIMIT = 8000;
-export const GRAPH_WINDOW_DAYS = [7, 14, 30] as const;
+export const GRAPH_MAX_DAYS = 90;
 
 // Common macro terms that models write in several ways. Keys are already node-normalized.
 const ALIASES: Record<string, string> = {
@@ -146,6 +147,7 @@ export function buildKnowledgeGraph(
     nodes: [],
     edges: [],
     chains: [],
+    timeline: [],
   } satisfies KnowledgeGraphResponse;
   if (claimRows.length === 0) return empty;
 
@@ -312,6 +314,7 @@ export function buildKnowledgeGraph(
     nodes,
     edges,
     chains: finalChains,
+    timeline: [],
   };
 }
 
@@ -371,10 +374,22 @@ export interface GraphQuery {
   focus?: string;
 }
 
+export function fillTimeline(
+  end: string,
+  rows: Array<{ day: string; articles: number; claims: number }>,
+): KgDay[] {
+  const byDay = new Map(rows.map((row) => [row.day, row]));
+  return Array.from({ length: GRAPH_MAX_DAYS }, (_, index) => {
+    const date = addDays(end, index - (GRAPH_MAX_DAYS - 1));
+    const row = byDay.get(date);
+    return { date, articles: row?.articles ?? 0, claims: row?.claims ?? 0 };
+  });
+}
+
 export async function loadKnowledgeGraph(database: Env["DB"], query: GraphQuery): Promise<KnowledgeGraphResponse> {
   const start = addDays(query.end, -(query.days - 1));
   const window = [start, query.end];
-  const [claims, nodes, counts] = await Promise.all([
+  const [claims, nodes, counts, daily] = await Promise.all([
     database
       .prepare(
         `SELECT c.article_id, c.cause, c.cause_move, c.effect, c.effect_move, c.basis, c.mechanism,
@@ -405,8 +420,18 @@ export async function loadKnowledgeGraph(database: Env["DB"], query: GraphQuery)
       )
       .bind(...window)
       .first<{ article_count: number; claim_article_count: number | null }>(),
+    database
+      .prepare(
+        `SELECT date(a.published_at, '+8 hours') AS day,
+                COUNT(DISTINCT c.article_id) AS articles, COUNT(*) AS claims
+         FROM claim c JOIN article a ON a.id = c.article_id
+         WHERE date(a.published_at, '+8 hours') BETWEEN ? AND ?
+         GROUP BY day`,
+      )
+      .bind(addDays(query.end, -(GRAPH_MAX_DAYS - 1)), query.end)
+      .all<{ day: string; articles: number; claims: number }>(),
   ]);
-  return buildKnowledgeGraph(claims.results ?? [], nodes.results ?? [], {
+  const graph = buildKnowledgeGraph(claims.results ?? [], nodes.results ?? [], {
     start,
     end: query.end,
     days: query.days,
@@ -415,4 +440,6 @@ export async function loadKnowledgeGraph(database: Env["DB"], query: GraphQuery)
     truncated: (claims.results ?? []).length >= ROW_LIMIT,
     focus: query.focus,
   });
+  graph.timeline = fillTimeline(query.end, daily.results ?? []);
+  return graph;
 }

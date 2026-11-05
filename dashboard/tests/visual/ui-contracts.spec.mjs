@@ -97,49 +97,95 @@ test('credit calendar supports independent multiselect and retains filters acros
   await expect(visible.filter({hasText:/^new$/})).toHaveCount(0);
 });
 
-test('hotspot graph switches window, focuses a node, highlights a chain and lists the claims of an edge',async({page})=>{
-  const edge=(source,sourceMove,target,effectMove,articleId,contested=false)=>({source,sourceMove,target,effectMove,weight:1.2,riseWeight:0,fallWeight:1.2,contested,trend:'new',observed:1,expected:0,articleIds:[articleId],authorCount:2,lastSeenAt:'2026-09-15T02:00:00.000Z',claims:[{articleId,title:`研报${articleId}`,author:'机构甲',publishedAt:'2026-09-15T02:00:00.000Z',mechanism:`${source}压低${target}。`,basis:'observed'}]});
-  const graph=days=>({
-    window:{start:'2026-09-02',end:'2026-09-15',anchor:'2026-09-15T02:00:00.000Z'},
+const hotspotEdge=(source,sourceMove,target,effectMove,articleId,contested=false)=>({source,sourceMove,target,effectMove,weight:1.2,riseWeight:0,fallWeight:1.2,contested,trend:'new',observed:1,expected:0,articleIds:[articleId],authorCount:2,lastSeenAt:'2026-09-15T02:00:00.000Z',claims:[{articleId,title:`研报${articleId}`,author:'机构甲',publishedAt:'2026-09-15T02:00:00.000Z',mechanism:`${source}压低${target}。`,basis:'observed'}]});
+const hotspotGraph=(start,end)=>{
+  const day=n=>new Date(Date.parse(`${end}T00:00:00Z`)+n*86400000).toISOString().slice(0,10);
+  const days=Math.round((Date.parse(`${end}T00:00:00Z`)-Date.parse(`${start}T00:00:00Z`))/86400000)+1;
+  return {
+    window:{start,end,anchor:`${end}T02:00:00.000Z`},
     coverage:{articleCount:12,claimArticleCount:5,claimCount:days,nodeCount:4,truncated:false},
-    nodes:[{key:'降准',label:'降准',kind:'policy',weight:1.2,articleCount:1,lastSeenAt:''},{key:'dr007',label:'DR007',kind:'market',weight:2.4,articleCount:2,lastSeenAt:''},{key:'存单利率',label:'存单利率',kind:'market',weight:1.2,articleCount:1,lastSeenAt:''},{key:'地产债',label:'地产债',kind:'sector',weight:0.5,articleCount:1,lastSeenAt:''}],
-    edges:[edge('降准','occur','dr007','fall','A001'),edge('dr007','fall','存单利率','fall','A002',true),edge('地产销售','fall','地产债','fall','A003')],
-    chains:[{nodes:['降准','dr007','存单利率'],edges:[0,1],weight:1.2}]
-  });
+    nodes:[{key:'降准',label:'降准',kind:'policy',weight:1.2,articleCount:1,lastSeenAt:''},{key:'dr007',label:'DR007',kind:'market',weight:2.4,articleCount:7,lastSeenAt:''},{key:'存单利率',label:'存单利率',kind:'market',weight:1.2,articleCount:3,lastSeenAt:''},{key:'地产债',label:'地产债',kind:'sector',weight:0.5,articleCount:1,lastSeenAt:''}],
+    edges:[hotspotEdge('降准','occur','dr007','fall','A001'),hotspotEdge('dr007','fall','存单利率','fall','A002',true),hotspotEdge('地产销售','fall','地产债','fall','A003')],
+    chains:[{nodes:['降准','dr007','存单利率'],edges:[0,1],weight:1.2}],
+    timeline:Array.from({length:90},(_,index)=>({date:day(index-89),articles:index%3,claims:index%5+1}))
+  };
+};
+
+test('hotspot graph sizes nodes by mentions, traces paths on click, searches nodes and filters by a time range',async({page})=>{
   const requested=[];
-  await page.route('**/api/rag/knowledge-graph**',route=>{const url=new URL(route.request().url());requested.push(url.searchParams.get('days'));return route.fulfill({json:graph(Number(url.searchParams.get('days')))});});
+  await page.route('**/api/rag/knowledge-graph**',route=>{
+    const url=new URL(route.request().url());
+    const end=url.searchParams.get('end')||'2026-09-15';
+    const days=Number(url.searchParams.get('days')||14);
+    const start=url.searchParams.get('start')||new Date(Date.parse(`${end}T00:00:00Z`)-(days-1)*86400000).toISOString().slice(0,10);
+    requested.push(url.search);
+    return route.fulfill({json:hotspotGraph(start,end)});
+  });
   await page.goto('/trading-research/market-hotspots');
-  await expect(page.getByText('14 条主张 · 5/12 篇')).toBeVisible();
-  const first=page.getByRole('button',{name:/降准● 传导至 DR007↓/});
-  const second=page.getByRole('button',{name:/DR007↓ 传导至 存单利率↓.*多空冲突/});
-  const third=page.getByRole('button',{name:/地产销售↓ 传导至 地产债↓/});
-  await expect(first).toBeVisible();
-  await expect(second).toBeVisible();
-  await first.focus();
-  await page.keyboard.press('Enter');
-  await expect(first).toHaveAttribute('aria-pressed','true');
+  await expect(page.getByText('14 条主张 · 4 个节点')).toBeVisible();
+  expect(requested).toEqual(['?days=14']);
+  await expect(page.getByRole('img',{name:/节点大小表示研报出现次数/})).toBeVisible();
+
+  const hot=page.getByRole('region',{name:'热点节点'});
+  await hot.getByRole('button',{name:/DR007/}).click();
+  const detail=page.getByRole('region',{name:'节点详情'});
+  await expect(detail).toContainText('DR007');
+  await expect(detail).toContainText('7 篇');
+  await expect(detail.getByRole('button',{name:/降准● → DR007↓/})).toBeVisible();
+  await expect(detail.getByRole('button',{name:/DR007↓ → 存单利率↓/})).toBeVisible();
+  // Nodes outside the traced paths fade to a tenth of their opacity.
+  await expect(page.locator('.graph-chart svg [fill-opacity="0.1"]')).toHaveCount(1);
+
+  await detail.getByRole('button',{name:/降准● → DR007↓/}).click();
   await expect(page.getByLabel('边的研报主张').getByText('研报A001')).toBeVisible();
-  await page.getByRole('group',{name:'热点节点'}).getByRole('button',{name:'DR007',exact:true}).click();
-  await expect(third).toHaveClass(/dim/);
-  await expect(first).not.toHaveClass(/dim/);
-  await page.getByRole('button',{name:'降准● → DR007↓ → 存单利率↓'}).click();
-  await expect(third).toHaveClass(/dim/);
-  await expect(second).not.toHaveClass(/dim/);
-  await page.getByRole('button',{name:'近 7 天'}).click();
-  await expect(page.getByText('7 条主张 · 5/12 篇')).toBeVisible();
-  expect(requested).toEqual(['14','7']);
+  await expect(detail).toHaveCount(0);
+
+  const nodeShapes=()=>page.locator('.graph-chart svg path[d^="M"]').evaluateAll(list=>list.every(path=>!/NaN/.test(path.getAttribute('d')||'')&&!/NaN/.test(path.getAttribute('transform')||'')));
+  await page.getByRole('button',{name:'放大'}).click();
+  await page.getByRole('button',{name:'缩小'}).click();
+  expect(await nodeShapes()).toBe(true);
+  await page.getByRole('button',{name:'复位'}).click();
+
+  const chain=page.getByRole('button',{name:'降准● → DR007↓ → 存单利率↓'});
+  await chain.click();
+  await expect(chain).toHaveAttribute('aria-pressed','true');
+  await chain.click();
+  await expect(chain).toHaveAttribute('aria-pressed','false');
+
+  await page.getByRole('searchbox',{name:'搜索节点'}).fill('存单');
+  await page.getByRole('list',{name:'搜索结果'}).getByRole('button',{name:/存单利率/}).click();
+  await expect(page.getByRole('region',{name:'节点详情'})).toContainText('存单利率');
+
+  const from=page.getByRole('slider',{name:'起始日'});
+  const before=Number(await from.getAttribute('aria-valuenow'));
+  await from.focus();
+  await page.keyboard.press('ArrowLeft');
+  await expect(from).toHaveAttribute('aria-valuenow',String(before-1));
+  await expect.poll(()=>requested.length).toBe(2);
+  const query=new URLSearchParams(requested[1]);
+  expect(query.get('end')).toBe('2026-09-15');
+  expect(Math.round((Date.parse('2026-09-15')-Date.parse(query.get('start')))/86400000)+1).toBe(15);
+  await expect(page.getByText('15 条主张 · 4 个节点')).toBeVisible();
+
+  const to=page.getByRole('slider',{name:'结束日'});
+  await to.focus();
+  await page.keyboard.press('ArrowLeft');
+  await expect.poll(()=>requested.length).toBe(3);
+  expect(new URLSearchParams(requested[2]).get('end')).toBe('2026-09-14');
 });
 
 test('hotspot graph shows an empty state and an error with retry',async({page})=>{
   let fail=true;
+  const empty={window:{start:'2026-09-02',end:'2026-09-15',anchor:''},coverage:{articleCount:3,claimArticleCount:0,claimCount:0,nodeCount:0,truncated:false},nodes:[],edges:[],chains:[],timeline:Array.from({length:90},(_,index)=>({date:new Date(Date.parse('2026-09-15T00:00:00Z')+(index-89)*86400000).toISOString().slice(0,10),articles:0,claims:0}))};
   await page.route('**/api/rag/knowledge-graph**',route=>fail
     ?route.fulfill({status:500,json:{error:'传导图读取失败，请稍后重试'}})
-    :route.fulfill({json:{window:{start:'',end:'',anchor:''},coverage:{articleCount:3,claimArticleCount:0,claimCount:0,nodeCount:0,truncated:false},nodes:[],edges:[],chains:[]}}));
+    :route.fulfill({json:empty}));
   await page.goto('/trading-research/market-hotspots');
   await expect(page.getByRole('alert')).toContainText('传导图读取失败');
   fail=false;
   await page.getByRole('button',{name:'重新读取'}).click();
-  await expect(page.getByText('所选时间窗内暂无因果传导数据')).toBeVisible();
+  await expect(page.getByText('所选时间范围内暂无因果传导数据')).toBeVisible();
+  await expect(page.getByRole('slider',{name:'起始日'})).toBeVisible();
 });
 
 test('available buttons expose hover feedback and disabled controls keep a neutral cursor',async({page})=>{

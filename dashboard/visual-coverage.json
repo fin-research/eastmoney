@@ -909,7 +909,7 @@
       "evidence": [
         {
           "spec": "tests/visual/ui-contracts.spec.mjs",
-          "test": "hotspot graph switches window, focuses a node, highlights a chain and lists the claims of an edge",
+          "test": "hotspot graph sizes nodes by mentions, traces paths on click, searches nodes and filters by a time range",
           "projects": [
             "desktop",
             "mobile"

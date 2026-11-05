@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildKnowledgeGraph, normalizeNodeKey } from "../src/lib/server/knowledge-graph.ts";
+import { buildKnowledgeGraph, fillTimeline, normalizeNodeKey } from "../src/lib/server/knowledge-graph.ts";
 
 const options = { start: "2026-10-21", end: "2026-11-03", days: 14, articleCount: 10, claimArticleCount: 6 };
 
@@ -186,13 +186,13 @@ test("每条边最多保留 5 条最新主张证据，且边数受上限约束",
   assert.equal(edge.articleIds.length, 8);
 
   const wide = Array.from({ length: 100 }, (_, index) => claim({ article_id: `w${index}`, cause: `因${index}`, effect: `果${index}` }));
-  assert.equal(buildKnowledgeGraph(wide, [], options).edges.length, 40);
+  assert.equal(buildKnowledgeGraph(wide, [], options).edges.length, 80);
 });
 
 test("聚焦的边数同样受上限约束，截断标志原样带出", () => {
   const rows = Array.from({ length: 100 }, (_, index) => claim({ article_id: `f${index}`, cause: `债因${index}`, effect: `债果${index}` }));
   const graph = buildKnowledgeGraph(rows, [], { ...options, focus: "债", truncated: true });
-  assert.equal(graph.edges.length, 40);
+  assert.equal(graph.edges.length, 80);
   assert.equal(graph.coverage.truncated, true);
   assert.equal(buildKnowledgeGraph([], [], options).coverage.truncated, false);
 });
@@ -210,4 +210,22 @@ test("同一篇文章经别名合并后出现相反方向，证据列表允许�
   assert.equal(edge.contested, true);
   assert.deepEqual(edge.claims.map((item) => item.articleId), ["x1", "x1"]);
   assert.deepEqual(edge.articleIds, ["x1"]);
+});
+
+test("时间轴补满 90 天，缺失的日子记为零，按日期升序", () => {
+  const timeline = fillTimeline("2026-11-04", [
+    { day: "2026-11-04", articles: 3, claims: 9 },
+    { day: "2026-11-02", articles: 1, claims: 2 },
+    { day: "2025-01-01", articles: 5, claims: 5 },
+  ]);
+  assert.equal(timeline.length, 90);
+  assert.equal(timeline.at(-1).date, "2026-11-04");
+  assert.equal(timeline[0].date, "2026-08-07");
+  assert.deepEqual(timeline.find((day) => day.date === "2026-11-03"), { date: "2026-11-03", articles: 0, claims: 0 });
+  assert.deepEqual(timeline.find((day) => day.date === "2026-11-04"), { date: "2026-11-04", articles: 3, claims: 9 });
+  assert.equal(timeline.reduce((sum, day) => sum + day.claims, 0), 11);
+});
+
+test("空窗口也带出时间轴字段", () => {
+  assert.deepEqual(buildKnowledgeGraph([], [], options).timeline, []);
 });
