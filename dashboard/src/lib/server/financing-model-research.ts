@@ -1,4 +1,4 @@
-import type { TimingAdviceSnapshot } from "../timing-advice";
+import type { TimingAdviceSnapshot, TimingNowcastSnapshot } from "../timing-advice";
 import type { IssuanceSnapshot } from "../issuance-model";
 import { z } from "zod";
 
@@ -71,7 +71,7 @@ export class FinancingModelResearchError extends Error {
 }
 
 export async function generateFinancingModelResearch(
-  snapshot: FinancingModelSnapshot | IssuanceSnapshot | TimingAdviceSnapshot,
+  snapshot: FinancingModelSnapshot | IssuanceSnapshot | TimingAdviceSnapshot | TimingNowcastSnapshot,
   credentials: AiGatewayCredentials,
   fetcher: typeof fetch = fetch,
   options: { signal?: AbortSignal; onProgress?: (summary: string) => void } = {},
@@ -326,7 +326,7 @@ function resolveResearchViews(
 }
 
 function researchMessages(
-  snapshot: FinancingModelSnapshot | IssuanceSnapshot | TimingAdviceSnapshot,
+  snapshot: FinancingModelSnapshot | IssuanceSnapshot | TimingAdviceSnapshot | TimingNowcastSnapshot,
   documents: ResearchDocument[],
 ) {
   return [
@@ -343,7 +343,7 @@ function researchMessages(
     {
       role: "user" as const,
       content: JSON.stringify({
-        model: "probabilities" in snapshot ? {asOfDate:snapshot.as_of_date,marketDataDate:snapshot.market_source_date,scope:snapshot.scope,probabilities:snapshot.probabilities,decision:snapshot.decision} : "forecast" in snapshot ? {
+        model: "probabilities" in snapshot ? {asOfDate:snapshot.as_of_date,marketDataDate:snapshot.market_source_date,scope:snapshot.scope,probabilities:snapshot.probabilities,decision:snapshot.decision,...(snapshot.schema_version === "timing-advice-v2" ? {forecast:snapshot.forecast} : {})} : "forecast" in snapshot ? {
           asOfDate:snapshot.as_of_date,marketDataDate:snapshot.market_source_date,
           couponPercent:snapshot.forecast[0]?.coupon_percent, decision:snapshot.decision,
           shap:snapshot.explanation, futureWindow:snapshot.forecast,
@@ -366,7 +366,7 @@ function researchMessages(
   ];
 }
 
-function buildResearchQuery(snapshot: FinancingModelSnapshot | IssuanceSnapshot | TimingAdviceSnapshot): string {
+function buildResearchQuery(snapshot: FinancingModelSnapshot | IssuanceSnapshot | TimingAdviceSnapshot | TimingNowcastSnapshot): string {
   const driverNames = ("forecast" in snapshot || "probabilities" in snapshot ? [] : snapshot.market_drivers)
     .slice(0, 5)
     .map((driver) => driver.display_name)

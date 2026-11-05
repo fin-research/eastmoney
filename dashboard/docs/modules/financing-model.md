@@ -2,7 +2,7 @@
 
 入口：`/trading-research/financing-model`，兼容 `/financing-model`。
 
-当前上线的是三档建议 `timing-advice-v1`（`schema_version=5`）。历史票面预测 `issuance-forecast-v1`（`schema_version=4`）仍可读取，但其身份已暂停。更早的相对利差运行不兼容，不转换也不重算，原始归档和人工记录保留。方法、选型、调度和重训见 [Quant 线上推理](../../../quant/docs/ONLINE_INFERENCE.md)，Quant / Dashboard 写入分工见 [共享数据库](../../../docs/DATABASE.md#融资模型跨仓库写入)。
+当前上线的三档建议为 `timing-advice-v1` 与 `timing-advice-v2`（均为 `schema_version=5`）。v2 给出下一报价日和此后 3 个报价日的利率变动预测，动作由预测值与固定 bp 阈值得出，不取概率最大项。历史票面预测 `issuance-forecast-v1`（`schema_version=4`）仍可读取，但其身份已暂停。更早的相对利差运行不兼容，不转换也不重算，原始归档和人工记录保留。方法、选型、调度和重训见 [Quant 线上推理](../../../quant/docs/ONLINE_INFERENCE.md)，Quant / Dashboard 写入分工见 [共享数据库](../../../docs/DATABASE.md#融资模型跨仓库写入)。
 
 ## 接口
 
@@ -52,7 +52,8 @@ DTO 在 `src/lib/timing-advice.ts` 和 `src/lib/issuance-model.ts`，读取在 `
 | 表 | 内容 |
 |---|---|
 | `model_run` | 日期、方案、来源版本、基础/人工结论 |
-| `timing_run` | 三档概率、建议和开发检验（`schema_version=5`） |
+| `timing_run` | v1 三档概率、建议和开发检验 |
+| `timing_nowcast_run` | v2 利率变动预测、阈值、三档概率和样本外检验 |
 | `issuance_run`、`issuance_forecast`、`issuance_market_path`、`issuance_shap`、`issuance_validation` | 历史票面运行（`schema_version=4`）的决策、票面、市场路径、贡献和验证 |
 | `model_eligibility` | 按不可变 `model_version` 记录 `active/suspended` 及原因 |
 | `timing_decision_record` | 人工操作与事后结果 |
