@@ -57,6 +57,16 @@ class IssuanceCalendar:
             date -= pd.Timedelta(days=1)
         return date
 
+    def next_quote_day(self, date, count=1):
+        """The count-th quote day after date; ValueError when it leaves the verified year."""
+        day = self._date(date)
+        found = 0
+        while found < count:
+            day += pd.Timedelta(days=1)
+            if self.is_quote_workday(day):
+                found += 1
+        return day
+
     def quote_dates(self, start, end):
         dates = pd.date_range(self._date(start), self._date(end))
         return pd.DatetimeIndex([date for date in dates if self.is_quote_workday(date)])

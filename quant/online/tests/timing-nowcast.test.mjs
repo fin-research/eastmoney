@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { inferNowcast, nowcastFeatures, outcomeProbabilities, validateNowcastModel } from '../timing-nowcast.mjs';
+import { inferNowcast, nextNowcastQuoteDay, nowcastFeatures, outcomeProbabilities, validateNowcastModel } from '../timing-nowcast.mjs';
 
 const fixture = JSON.parse(await readFile(new URL('./fixtures/timing-nowcast-parity.json', import.meta.url), 'utf8'));
 const clone = value => structuredClone(value);
@@ -56,4 +56,21 @@ test('the middle probability is exact when no residual falls inside the band', (
   const p = outcomeProbabilities(model, 0);
   assert.equal(p.wait, 0);
   assert.ok(Math.abs(p.defer + p.wait + p.issue - 1) < 1e-12);
+});
+test('attribution reconciles to both forecasts and history ends at the source quote', () => {
+  const result = inferNowcast(fixture.manifest, fixture.model, fixture.inputs);
+  const { forecast, attribution, history } = result;
+  assert.deepEqual(attribution.map(a => a.group), ['sector', 'cdb3', 'gov', 'aaa3', 'funding']);
+  assert.ok(Math.abs(forecast.wait_base_bp + attribution.reduce((s, a) => s + a.wait_bp, 0) - forecast.wait_bp) < 1e-9);
+  assert.ok(Math.abs(forecast.catch_up_base_bp + attribution.reduce((s, a) => s + a.catch_up_bp, 0) - forecast.catch_up_bp) < 1e-9);
+  assert.equal(history.at(-1).date, fixture.inputs.required_source_date);
+  assert.equal(history.at(-1).yield_pct, forecast.source_yield_pct);
+  assert.equal(forecast.decision_quote_date, '2026-10-28');
+  assert.equal(forecast.wait_quote_date, '2026-11-02');
+});
+test('the third quote day is empty past the verified year', () => {
+  const { calendar } = fixture.manifest;
+  assert.equal(nextNowcastQuoteDay('2026-12-30', calendar, 1), '2026-12-31');
+  assert.equal(nextNowcastQuoteDay('2026-12-30', calendar, 3), null);
+  assert.throws(() => nextNowcastQuoteDay('2027-01-04', calendar, 1), /calendar year/);
 });
