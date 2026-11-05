@@ -1,8 +1,8 @@
 name: Auto-merge
 on:
-  pull_request:
+  pull_request_target:
     branches: [main]
-    types: [opened, reopened, ready_for_review, synchronize]
+    types: [opened, reopened, ready_for_review]
 permissions:
   contents: read
 jobs:
@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # A GITHUB_TOKEN request never enqueues the PR; the user's token does.
+      # pull_request_target runs the workflow from main, so a PR cannot edit it to read the secret. Never check out PR code here.
       - run: |
           test -n "$GH_TOKEN" || { echo 'Set the AUTOMERGE_TOKEN repository secret.'; exit 1; }
           gh pr merge "$PR" --auto --squash --repo "$GITHUB_REPOSITORY"
