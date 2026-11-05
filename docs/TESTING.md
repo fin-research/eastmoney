@@ -27,7 +27,7 @@ PR 标签 `ci:gateway`、`ci:dashboard`、`ci:data`、`ci:messenger`、`ci:inges
 
 合并队列不重复PR已通过的检查：PR的 `Monorepo CI` 通过后记录被测树（artifact `ci-tree`，含树和已测项目），队列提交的树相同且PR已测过队列所需的全部项目时，队列不再运行检查。Dashboard完整检查（单测、构建、视觉回归）在PR里运行。`main` 已前进、树不同、PR无通过记录或查询失败时，队列跑全量。
 
-PR开启或转为Ready后，`automerge.yml` 启用自动合并（squash）；必需CI通过后PR自动进入合并队列。需要暂停时保持Draft或取消自动合并。
+PR开启、转为Ready或推送后，`automerge.yml` 用仓库Secret `AUTOMERGE_TOKEN`（有PR写权限的用户令牌）启用自动合并；必需CI通过后PR自动进入合并队列。`GITHUB_TOKEN` 启用的自动合并不会入队，不能替代。需要暂停时保持Draft或取消自动合并。
 
 ## 各项目
 
