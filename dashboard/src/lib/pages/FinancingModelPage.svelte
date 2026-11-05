@@ -31,7 +31,7 @@
   import { issuanceBusinessMetricsSchema, type IssuanceReport } from "$lib/issuance-model";
   import { parseCurrentFinancingReport as parseFinancingModelReport, type CurrentFinancingReport as FinancingModelReport } from "$lib/timing-advice";
   import { groupIssuanceShap, groupMlpContributions, selectIssuanceShapDrivers, issuanceDecisionLabel, issuanceDecisionNarrative } from "$lib/issuance-presentation";
-  import { issuanceFeatureName, renderIssuanceForecast, renderIssuanceProductComparison } from "../../charts/issuance-model";
+  import { issuanceFeatureName, renderIssuanceForecast, renderIssuanceProductComparison, renderNowcastPath } from "../../charts/issuance-model";
   interface Props {
     embedded?: boolean;
   }
@@ -402,6 +402,20 @@
   let timingV1 = $derived(snapshot?.schema_version === "timing-advice-v1" ? snapshot : null);
   let nowcastSnapshot = $derived(snapshot?.schema_version === "timing-advice-v2" ? snapshot : null);
   const signedBp = (value: number): string => `${value > 0 ? "+" : ""}${value.toFixed(2)}`;
+  const factorNames: Record<string, string> = { sector: "行业曲线", cdb3: "国开3年", gov: "国债", aaa3: "AAA企业债3年", funding: "DR007" };
+  let nowcastDetail = $derived.by(() => {
+    const n = nowcastSnapshot;
+    const f = n?.forecast;
+    if (!n || !f || !n.history || !n.attribution || f.source_yield_pct === undefined || f.catch_up_base_bp === undefined || f.wait_base_bp === undefined || f.decision_quote_date === undefined) return null;
+    const decision = f.source_yield_pct + f.catch_up_bp / 100;
+    const path = [
+      ...n.history.map(row => ({ date: row.date, yield_pct: row.yield_pct, forecast: false })),
+      { date: f.decision_quote_date, yield_pct: decision, forecast: true },
+      ...(f.wait_quote_date ? [{ date: f.wait_quote_date, yield_pct: decision + f.wait_bp / 100, forecast: true }] : []),
+    ];
+    const groups = n.attribution.map(row => ({ display_name: factorNames[row.group] ?? row.group, net_bp: row.wait_bp, absolute_bp: Math.abs(row.wait_bp) }));
+    return { decision, path, groups, base: f.wait_base_bp, total: n.attribution.reduce((sum, row) => sum + row.wait_bp, 0), rows: n.attribution };
+  });
   let couponSnapshot = $derived(snapshot?.schema_version === "issuance-forecast-v1" ? snapshot : null);
   let modelSuspended = $derived(report?.model_status.status !== 'active');
   let versions = $derived(report?.versions ?? []);
@@ -519,6 +533,7 @@
               <strong>{timingSnapshot ? timingSnapshot.scope : couponSnapshot ? `${couponSnapshot.terms.rating} ${couponSnapshot.terms.tenor}年期${couponSnapshot.terms.bond_type}` : ""}</strong>
             </div>
             {#if modelSuspended}<p role="status">数据不满足要求，暂停预测</p>
+            {:else if nowcastDetail}<MetricCard label="预测发行利率" value={nowcastDetail.decision.toFixed(2)} unit="%" tone="blue" compact />
             {:else if timingSnapshot}<MetricCard label="市场日期" value={timingSnapshot.market_source_date} tone="blue" compact />
             {:else}<MetricCard label="预测发行利率" value={formatNullable(current?.coupon_percent, 2)} unit="%" tone="blue" compact />{/if}
           </div>
@@ -582,6 +597,74 @@
           <MetricCard label="此后3个报价日下行概率" value={(nowcastSnapshot.probabilities.defer*100).toFixed(1)} unit="%" tone="purple" compact />
         </div>
       </ModuleCard>
+      {#if nowcastDetail}
+      <section aria-label="因子贡献">
+        <ModuleCard class="factor-panel" labelledBy="factor-contribution-title">
+          <PanelHeading id="factor-contribution-title" title="因子贡献" />
+          <dl class="contribution-reconciliation" aria-label="因子贡献对账">
+            <div><dt>模型基值</dt><dd>{nowcastDetail.base.toFixed(3)} bp</dd></div>
+            <div><dt>全部贡献</dt><dd>{nowcastDetail.total >= 0 ? '+' : ''}{nowcastDetail.total.toFixed(3)} bp</dd></div>
+            <div><dt>此后3个报价日变动</dt><dd>{nowcastSnapshot.forecast.wait_bp.toFixed(3)} bp</dd></div>
+          </dl>
+          <div class="driver-grid">
+            <ChartHost renderer={renderIssuanceShapRadar} args={[nowcastDetail.groups]} ariaLabel="利率走势预测因子贡献雷达图" className="driver-radar-chart" />
+            <ChartHost renderer={renderFinancingDriverContributions} args={[nowcastDetail.groups.map(row => ({display_name: row.display_name, shap: row.net_bp, value: null})), "rate"]}
+              ariaLabel={`因子贡献：${nowcastDetail.groups.map(row => `${row.display_name} ${row.net_bp.toFixed(3)} bp`).join("，")}`} className="driver-contribution-chart" />
+          </div>
+          <details class="contribution-details">
+            <summary>因子贡献明细（{nowcastDetail.rows.length}项）</summary>
+            <div class="table-scroll"><table>
+              <thead><tr><th>因子组</th><th>下一报价日 bp</th><th>此后3个报价日 bp</th></tr></thead>
+              <tbody>{#each nowcastDetail.rows as row}
+                <tr><td>{factorNames[row.group] ?? row.group}</td><td>{signedBp(row.catch_up_bp)}</td><td>{signedBp(row.wait_bp)}</td></tr>
+              {/each}</tbody>
+            </table></div>
+          </details>
+        </ModuleCard>
+      </section>
+      <section class="supporting-grid" aria-label="未来预测走势与模型验证">
+        <ModuleCard class="forecast-panel" labelledBy="window-title">
+          <PanelHeading id="window-title" title="未来预测走势" controlsBesideTitle>
+            <Button data-ui-owner="lib-pages-FinancingModelPage-svelte" variant="ghost"
+              class={"ui-button  window-details-toggle"}
+              type="button"
+              aria-label={futureWindowDetailsOpen ? "收起未来预测走势明细" : "展开未来预测走势明细"}
+              aria-expanded={futureWindowDetailsOpen}
+              aria-controls="forecast-window-details"
+              onclick={() => (futureWindowDetailsOpen = !futureWindowDetailsOpen)}
+            >
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5" /></svg>
+            </Button>
+          </PanelHeading>
+          <ChartHost renderer={renderNowcastPath} args={[nowcastDetail.path]} ariaLabel="AAA证券公司债3Y近期报价与预测走势" className="forecast-chart" />
+          <div id="forecast-window-details" class="forecast-table-wrap" hidden={!futureWindowDetailsOpen}>
+            <table class="forecast-table">
+              <caption>未来预测走势明细</caption>
+              <thead>
+                <tr><th scope="col">日期</th><th scope="col">收益率</th></tr>
+              </thead>
+              <tbody>
+                {#each nowcastDetail.path.filter(row => row.forecast) as point}
+                  <tr><th scope="row">{displayDate(point.date)}</th><td>{point.yield_pct.toFixed(2)}%</td></tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </ModuleCard>
+        <ModuleCard class="validation-panel" labelledBy="timing-validation-title">
+          <PanelHeading id="timing-validation-title" title="样本外检验" />
+          <dl class="validation-grid">
+            <div><dt>检验区间</dt><dd>{nowcastSnapshot.validation.prediction_start.slice(0,7)} — {nowcastSnapshot.validation.prediction_end.slice(0,7)}</dd></div>
+            <div><dt>检验样本</dt><dd>{nowcastSnapshot.validation.sample_count}</dd></div>
+            <div><dt>下一报价日变动相关</dt><dd>{nowcastSnapshot.validation.catch_up_corr.toFixed(3)}</dd></div>
+            <div><dt>下一报价日变动 R²</dt><dd>{nowcastSnapshot.validation.catch_up_r2.toFixed(3)}</dd></div>
+            <div><dt>此后3个报价日变动相关</dt><dd>{nowcastSnapshot.validation.wait_corr.toFixed(3)}</dd></div>
+            <div><dt>暂缓与尽快信号收益差</dt><dd>{nowcastSnapshot.validation.spread_bp.toFixed(2)}bp</dd></div>
+            <div><dt>收益差95%区间</dt><dd>[{nowcastSnapshot.validation.spread_ci_low_bp.toFixed(2)}, {nowcastSnapshot.validation.spread_ci_high_bp.toFixed(2)}]</dd></div>
+          </dl>
+        </ModuleCard>
+      </section>
+      {:else}
       <ModuleCard labelledBy="timing-validation-title">
         <PanelHeading id="timing-validation-title" title="样本外检验" />
         <dl class="validation-grid">
@@ -593,6 +676,7 @@
           <div><dt>暂缓与尽快信号收益差</dt><dd>{nowcastSnapshot.validation.spread_bp.toFixed(2)}bp [{nowcastSnapshot.validation.spread_ci_low_bp.toFixed(2)}, {nowcastSnapshot.validation.spread_ci_high_bp.toFixed(2)}]</dd></div>
         </dl>
       </ModuleCard>
+      {/if}
       {:else if !modelSuspended && couponSnapshot}
       <section aria-label="四品种对比">
         <ModuleCard class="chart-card" labelledBy="product-title">

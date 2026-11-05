@@ -25,6 +25,14 @@ DTO 在 `src/lib/timing-advice.ts` 和 `src/lib/issuance-model.ts`，读取在 `
 - 页面展示建议概率、市场日期和开发检验，保留人工编辑、独立业务指标和卖方观点。
 - 业务指标始终按本公司与行情日期独立查询，不作为三档模型的发行主体输入。
 
+## 方向预测页面（v2）
+
+- 版面与历史票面页一致：整体结论卡里的“预测发行利率”、业务指标、利率走势预测与概率、因子贡献、未来预测走势和样本外检验。没有四品种对比，因为没有模型覆盖四个品种。
+- “预测发行利率”是 AAA 证券公司债 3Y 行业曲线在决策日的预测收益率：行情日报价加下一报价日变动预测，不是某发行人的票面。
+- 未来预测走势：最近 20 个报价为实线，决策日和此后第 3 个报价日的预测为虚线。第 3 个报价日越出已核实日历年时只画决策日。
+- 因子贡献是 `wait_3` 预测的线性精确拆分：模型基值加五组贡献（行业曲线、国开3年、国债、AAA企业债3年、DR007）等于预测值。明细表同时列出下一报价日的拆分。
+- 近期报价和因子贡献存 `timing_nowcast_history`、`timing_nowcast_attribution`（migration `0019`）。0019 之前的运行没有这些字段，页面退回概率与检验卡片。
+
 ## 页面
 
 - 整体结论卡在最前，结论正文始终是可编辑文本框。有 `model.conclusion:update` 权限时 650ms 防抖并在失焦保存，无权限只读，不显示编辑按钮。未人工编辑的结论按模型生成，人工正文原样保留，恢复模型内容用基础结论。
@@ -53,7 +61,8 @@ DTO 在 `src/lib/timing-advice.ts` 和 `src/lib/issuance-model.ts`，读取在 `
 |---|---|
 | `model_run` | 日期、方案、来源版本、基础/人工结论 |
 | `timing_run` | v1 三档概率、建议和开发检验 |
-| `timing_nowcast_run` | v2 利率变动预测、阈值、三档概率和样本外检验 |
+| `timing_nowcast_run` | v2 利率变动预测、阈值、三档概率和样本外检验；0019 起另存行情日收益率、决策日与第3个报价日、两个基值 |
+| `timing_nowcast_history`、`timing_nowcast_attribution` | v2 近期报价和五组因子贡献，随运行行级联删除 |
 | `issuance_run`、`issuance_forecast`、`issuance_market_path`、`issuance_shap`、`issuance_validation` | 历史票面运行（`schema_version=4`）的决策、票面、市场路径、贡献和验证 |
 | `model_eligibility` | 按不可变 `model_version` 记录 `active/suspended` 及原因 |
 | `timing_decision_record` | 人工操作与事后结果 |

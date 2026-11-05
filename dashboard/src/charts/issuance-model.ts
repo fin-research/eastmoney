@@ -12,6 +12,21 @@ export function renderIssuanceForecast(host:HTMLElement,rows:IssuanceSnapshot['f
     series:[{name:'预计票面',type:'line',data:rows.map(r=>r.coupon_percent),itemStyle:{color:colors.brand}}]});
 }
 
+export type NowcastPathRow={date:string;yield_pct:number;forecast:boolean};
+/** Recent quotes as a solid line and the forecast days as a dashed line that starts at the last quote. */
+export function renderNowcastPath(host:HTMLElement,rows:NowcastPathRow[]):void {
+  const actual=rows.filter(r=>!r.forecast);
+  if(!actual.length){setEmpty(host,'近期报价暂缺');return;}
+  const last=actual[actual.length-1]!;
+  setChart(host,{animationDuration:180,aria:{enabled:true,description:'AAA证券公司债3Y近期报价与预测走势'},tooltip:{...tooltip,trigger:'axis'},legend:{top:0,textStyle:axisLabel},
+    grid:{left:12,right:16,top:45,bottom:10,containLabel:true},
+    xAxis:{type:'category',data:rows.map(r=>r.date),axisLabel:{...axisLabel,formatter:(v:string)=>v.slice(5)},axisTick:{show:false}},
+    yAxis:{type:'value',name:'收益率 %',scale:true,axisLabel,splitLine:gridLine},
+    series:[
+      {name:'实际',type:'line',data:rows.map(r=>r.forecast?null:r.yield_pct),itemStyle:{color:colors.brand},connectNulls:false},
+      {name:'预测',type:'line',data:rows.map(r=>r.forecast||r.date===last.date?r.yield_pct:null),itemStyle:{color:colors.brand},lineStyle:{type:'dashed'},connectNulls:true}]});
+}
+
 export function renderIssuanceProductComparison(host:HTMLElement,rows:IssuanceSnapshot['product_scenarios']):void {
   if(!rows.length){setEmpty(host,'品种预测暂缺');return;}
   const names=rows.map(row=>`${row.tenor}年${{

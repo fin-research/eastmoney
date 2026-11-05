@@ -192,3 +192,27 @@ test('financing-model displays published timing advice without coupon placeholde
  await expect(page.getByRole('region',{name:'开发检验',exact:true})).toHaveScreenshot('financing-model-timing-validation.png');
  expect(errors).toEqual([]);
 });
+
+test('financing-model keeps the forecast rate, factor contribution and trend for the directional forecast',async({page})=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await mockResources(page);
+ const {timingNowcastDetailSnapshot}=await import('../fixtures/timing-advice.mjs');
+ const snapshot=timingNowcastDetailSnapshot();
+ const current={business_metrics:financingModel.business_metrics,model_status:{model_version:snapshot.model_version,status:'active',reason:'post_hoc_selected'},snapshot,conclusion:{verdict:'暂缓',preferredWindow:'',narrative:snapshot.base_conclusion.narrative,edited:false,updatedAt:null},sellSide:financingModel.sellSide,versions:[{runId:snapshot.run_id,asOfDate:snapshot.as_of_date,generatedAt:snapshot.generated_at}]};
+ await page.route('**/api/financing-model',route=>route.fulfill({json:current}));
+ await page.goto('/trading-research/financing-model');
+ await expect(page.getByText('预测发行利率',{exact:true})).toBeVisible();
+ await expect(page.getByText('1.97',{exact:true})).toBeVisible();
+ await expect(page.getByText('暂缓',{exact:true}).first()).toBeVisible();
+ await expect(page.getByRole('heading',{name:'因子贡献',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'未来预测走势',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'样本外检验',exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'四品种对比'})).toHaveCount(0);
+ await expect(page.locator('.forecast-chart canvas, .forecast-chart svg').first()).toBeVisible();
+ await expect(page.locator('.driver-radar-chart canvas, .driver-radar-chart svg').first()).toBeVisible();
+ await page.getByRole('button',{name:'展开未来预测走势明细'}).click();
+ await expect(page.getByRole('row',{name:/2026年11月2日/})).toBeVisible();
+ await page.locator('.contribution-details summary').click();
+ await expect(page.getByRole('cell',{name:'国开3年',exact:true})).toBeVisible();
+ expect(errors).toEqual([]);
+});

@@ -11,3 +11,14 @@ export function timingNowcastSnapshot(){return {
  base_conclusion:{verdict:'暂缓',preferred_window:'',narrative:'预测此后3个报价日利率下行，建议暂缓发行。'},
  online_run:{runtime:'cloudflare-workflow',model_version:'fedcba9876543210fedc',feature_version:'timing-advice-v2',training_as_of:'2026-10-28',retrain_after:'2026-12-31',workflow_id:'nowcast-test',input_prefix:'quant-trial/runs/2026-10-28/nowcast-test'}
 };}
+export function timingNowcastDetailSnapshot(){
+ const base=timingNowcastSnapshot(),history=[];
+ for(let day=new Date('2026-10-27T00:00:00Z'),i=0;history.length<20;day.setUTCDate(day.getUTCDate()-1),i++){if(day.getUTCDay()%6===0)continue;history.unshift({date:day.toISOString().slice(0,10),yield_pct:Number((1.95-.004*history.length).toFixed(4))});}
+ history.forEach((row,i)=>{row.yield_pct=Number((1.9+.004*i).toFixed(4));});
+ return {...base,
+  forecast:{...base.forecast,source_yield_pct:history.at(-1).yield_pct,decision_quote_date:'2026-10-28',wait_quote_date:'2026-11-02',catch_up_base_bp:-.05,wait_base_bp:-.1},
+  history,
+  attribution:[
+   {group:'sector',catch_up_bp:-.4,wait_bp:-.9},{group:'cdb3',catch_up_bp:-.15,wait_bp:-.3},{group:'gov',catch_up_bp:-.1,wait_bp:-.2},
+   {group:'aaa3',catch_up_bp:-.05,wait_bp:-.1},{group:'funding',catch_up_bp:-.05,wait_bp:-.1}]};
+}

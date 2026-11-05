@@ -162,15 +162,15 @@ export function renderIssuanceShapRadar(host: HTMLElement, rows: ShapGroup[]): v
 export function renderFinancingDriverContributions(
   host: HTMLElement,
   rows: Array<{ display_name: string; shap: number; value: number | null }>,
-  mode: "support" | "coupon" = "support",
+  mode: "support" | "coupon" | "rate" = "support",
 ): void {
   if (!rows.length) {
     setEmpty(host, "因子贡献暂缺");
     return;
   }
-  const contributionOf = (row: { shap: number }) => mode === "coupon" ? row.shap : -row.shap;
+  const contributionOf = (row: { shap: number }) => mode === "support" ? -row.shap : row.shap;
   const compact = host.clientWidth < 400;
-  const label = mode === "coupon" ? "票面贡献" : "发行贡献";
+  const label = mode === "coupon" ? "票面贡献" : mode === "rate" ? "走势贡献" : "发行贡献";
   const values = rows.map(contributionOf);
   const maxAbs = Math.max(...values.map(Math.abs), 0.1);
   const bound = Math.ceil(maxAbs * 12) / 10;

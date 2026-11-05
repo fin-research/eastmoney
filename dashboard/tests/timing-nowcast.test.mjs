@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile,readdir} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
-import {timingAdviceSnapshot,timingNowcastSnapshot} from './fixtures/timing-advice.mjs';
+import {timingAdviceSnapshot,timingNowcastSnapshot,timingNowcastDetailSnapshot} from './fixtures/timing-advice.mjs';
 import {timingNowcastSnapshotSchema} from '../src/lib/timing-advice.ts';
 import {loadCurrentFinancingReport} from '../src/lib/server/timing-advice-repository.ts';
 import {saveFinancingModelConclusion} from '../src/lib/server/financing-model-repository.ts';
@@ -54,5 +54,29 @@ test('nowcast refuses an action that disagrees with the threshold, bad probabili
  assert.equal((await db.query('SELECT count(*)::int AS n FROM financing_model.model_run')).rows[0].n,0);
  const wrong=structuredClone(first);wrong.forecast.wait_bp=-.1;assert.throws(()=>timingNowcastSnapshotSchema.parse(wrong));
  assert.equal(timingNowcastSnapshotSchema.parse(first).decision.action,'暂缓');
+ }finally{await db.close();}
+});
+test('detail rows round-trip, a rerun replaces them, a v1 return removes them and legacy rows still load',async()=>{
+ const db=await database();try{
+ const legacy=timingNowcastSnapshot(),id=await publish(db,legacy);
+ const old=await loadCurrentFinancingReport(db);assert.equal(old.snapshot.history,undefined);assert.equal(old.snapshot.attribution,undefined);
+ const detail=timingNowcastDetailSnapshot();detail.generated_at='2026-10-28T02:00:00Z';assert.equal(await publish(db,detail),id);
+ const report=await loadCurrentFinancingReport(db);
+ assert.deepEqual(report.snapshot.forecast,detail.forecast);assert.deepEqual(report.snapshot.history,detail.history);assert.deepEqual(report.snapshot.attribution,detail.attribution);
+ const again=structuredClone(detail);again.generated_at='2026-10-28T03:00:00Z';again.history=again.history.slice(1);assert.equal(await publish(db,again),id);
+ assert.equal((await db.query('SELECT count(*)::int AS n FROM financing_model.timing_nowcast_history')).rows[0].n,19);
+ const edge=structuredClone(detail);edge.generated_at='2026-10-28T04:00:00Z';edge.forecast.wait_quote_date=null;assert.equal(await publish(db,edge),id);
+ assert.equal((await loadCurrentFinancingReport(db)).snapshot.forecast.wait_quote_date,null);
+ const back=timingAdviceSnapshot();back.generated_at='2026-10-28T05:00:00Z';assert.equal(await publish(db,back),id);
+ for(const table of ['timing_nowcast_history','timing_nowcast_attribution'])assert.equal((await db.query(`SELECT count(*)::int AS n FROM financing_model.${table}`)).rows[0].n,0);
+ }finally{await db.close();}
+});
+test('detail that does not reconcile, repeats a group or ends before the source quote is refused',async()=>{
+ const db=await database();try{
+ const first=timingNowcastDetailSnapshot();
+ for(const change of [v=>{v.attribution[0].wait_bp+=.01;},v=>{v.attribution[1].catch_up_bp+=.01;},v=>{v.attribution[1].group='sector';},v=>{v.attribution.pop();},v=>{v.history.pop();},v=>{v.history[0].yield_pct=0;},v=>{v.history.push({date:'2026-10-28',yield_pct:2});v.forecast.source_yield_pct=2;},v=>{v.forecast.source_yield_pct=1.5;},v=>{v.forecast.decision_quote_date='2026-10-27';},v=>{v.forecast.wait_quote_date='2026-10-28';},v=>{delete v.history;},v=>{delete v.forecast.wait_base_bp;},v=>{v.attribution[0].wait_bp='NaN';}]){
+  const invalid=structuredClone(first);change(invalid);await assert.rejects(publish(db,invalid));assert.throws(()=>timingNowcastSnapshotSchema.parse(invalid));}
+ assert.equal((await db.query('SELECT count(*)::int AS n FROM financing_model.model_run')).rows[0].n,0);
+ assert.equal(timingNowcastSnapshotSchema.parse(first).attribution.length,5);
  }finally{await db.close();}
 });
