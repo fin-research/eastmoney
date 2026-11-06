@@ -219,7 +219,7 @@ export function renderFinancingDriverContributions(
       data: rows.map((row) => row.display_name),
       axisLine: { show: false },
       axisTick: { show: false },
-      axisLabel: { ...forecastAxisLabel, color: colors.ink, width: compact ? 140 : 150, overflow: "truncate", ...(allLabels ? { interval: 0 } : {}) },
+      axisLabel: { ...forecastAxisLabel, color: colors.ink, width: allLabels ? (compact ? 165 : 215) : (compact ? 140 : 150), overflow: "truncate", ...(allLabels ? { interval: 0 } : {}) },
     },
     series: [
       {
