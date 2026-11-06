@@ -1,8 +1,0 @@
-{
-  "schemaVersion": 1,
-  "displayName": "market-commentary",
-  "summary": "生成或重写境内市场点评、收盘点评和股债复盘。模型自行通过本插件 eastmoney MCP 取数。文字版直接回复完整正文；HTML 为与原 Dashboard 市场点评一致的可视化图片版，复用原七模块、指标卡、图表和样式，可离线打开。",
-  "enabled": true,
-  "addedAt": 1793322131061,
-  "source": "upload"
-}

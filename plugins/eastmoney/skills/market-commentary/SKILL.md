@@ -10,7 +10,7 @@ description: 撰写 A 股与债市的「市场点评」和「今日聚焦」。�
 ## 开始前
 
 1. **环境**：`node --version` 须 ≥ 20（脚本只用内置模块，无需 npm 安装）。Bash 的工作目录不是 skill 目录：下文 `scripts/…` 路径均相对本 skill 目录（加载时给出的 Base directory），执行时拼成绝对路径。中间文件和成品写到用户指定的目录；未指定时在当前工作目录新建 `market-commentary-<report_date>/`，不写回 skill 目录。
-2. **MCP 工具**：取数用已配置的 `eastmoney` 服务器，工具名形如 `mcp__plugin_eastmoney_eastmoney__eastmoney_<短名>`（例如 `mcp__plugin_eastmoney_eastmoney__eastmoney_news_list`）。工具若没有直接列出，用 ToolSearch 加载（如 `select:mcp__plugin_eastmoney_eastmoney__eastmoney_news_list`，或关键词 `eastmoney`）。以实际工具列表和 schema 为准；参数或字段与 [取数手册](references/mcp-playbook.md) 不一致时，保留错误并报告，不要猜参数。工具不可用（服务器未连接、需要 OAuth）时，请用户先在 `/mcp` 完成授权，不自行登录，也不从别处复制 token。
+2. **MCP 工具**：取数用已配置的 `eastmoney` 服务器，下文只写工具短名（`omo`、`news_list` 等）。完整名随宿主而异：Claude Code 插件为 `mcp__plugin_eastmoney_eastmoney__<短名>`，OpenCode / AiWork 为 `eastmoney_<短名>`。工具若没有直接列出，Claude Code 用 ToolSearch 加载（如 `select:mcp__plugin_eastmoney_eastmoney__news_list`，或关键词 `eastmoney`）。以实际工具列表和 schema 为准；参数或字段与 [取数手册](references/mcp-playbook.md) 不一致时，保留错误并报告，不要猜参数。工具不可用（服务器未连接、需要 OAuth）时，请用户先在宿主里完成授权（Claude Code 用 `/mcp`；OpenCode / AiWork 见 [install-mcp](../install-mcp/SKILL.md)），不自行登录，也不从别处复制 token。
 3. **时区**：日期和时点一律 Asia/Shanghai，默认报告日为上海当日。
 
 ## 只写今日聚焦（轻量模式）
@@ -33,22 +33,22 @@ description: 撰写 A 股与债市的「市场点评」和「今日聚焦」。�
 | 什么时候 | 读什么 |
 |---|---|
 | 取数之前 | [references/mcp-playbook.md](references/mcp-playbook.md)：工具短名、参数、字段投影、新闻分页、archive 步骤 |
-| 写 raw.json / composition.json 之前 | [references/input-output.md](references/input-output.md)：文件结构与交付物 |
+| 写 composition.json（或手写 raw.json）之前 | [references/input-output.md](references/input-output.md)：文件结构与交付物 |
 | 解读 evidence、复核成稿之前 | [references/business-rules.md](references/business-rules.md)：七模块口径、单位、OMO、一级、二级、东财规则 |
 | 动笔写今日聚焦与股市收评之前 | [references/writing.md](references/writing.md)；归因方法见 [references/focus-method.md](references/focus-method.md) |
 | 要输出 HTML，或要改视觉资源时 | [references/visual-contract.md](references/visual-contract.md) |
 
 ## 流程
 
-1. **取数**。按手册采集资源并记录真实请求时间。把成功响应的数据按 input-output 写成 `raw.json`，保留完整原响应、参数和真实请求时间。`isError=true`、HTTP 错误、schema 错误都不是空数据；失败的资源最多重试一次，仍失败就停止完整报告并说明失败模块。不得以 `[]`、`0`、昨日数据或模型记忆补洞。`live` 路径取数结束后再核对一次上海日期，并禁止用已有的文字点评替代自行取数。
+1. **取数**。按手册采集资源并记录每个工具的真实调用参数和完成时间，把每个成功响应的业务 DTO（不含 transport envelope）存入本次输出目录的 `responses/`，文件名固定：`meta.json`、`calendar.json`、`omo.json`、`dr.json`、`dibo.json`、`governmentBonds.json`、`futures.json`、`industry.json`、`margin.json`、`primary.json`、`todayTrades.json`、`favoriteQuotes.json`、`bondInfos.json`（有成交/报价代码时）、`news_batch_0.json` 起的新闻各批（`archive` 另加 `snapshot.json`）。`meta.json` 记录 `report_date`、`mode`、`cutoff_at`、`started_at`、`completed_at`，字段契约见 `scripts/assemble.mjs` 头注释；`meta.timestamps` 填各资源的真实完成时间、`meta.args` 填与默认值不同的真实参数（如 `fields`），否则审计文件按文件 mtime 和默认参数记录。`isError=true`、HTTP 错误、schema 错误都不是空数据；失败的资源最多重试一次，仍失败就停止完整报告并说明失败模块。不得以 `[]`、`0`、昨日数据或模型记忆补洞。`live` 路径取数结束后再核对一次上海日期，并禁止用已有的文字点评替代自行取数。
 
-2. **prepare**（`live` 与 `archive` 均如此，`archive` 只把 `live` 换成 `archive`）：
+2. **组装与 prepare**（`live` 与 `archive` 均如此，由 `meta.json` 的 `mode` 决定）。一条命令完成 `raw.json` 组装（自动生成 provenance、提取 bondUniCode 列表、归一化 news 字段）和 prepare 校验：
 
    ```sh
-   node scripts/report.mjs prepare live <输出目录>/raw.json <输出目录>/prepared
+   node scripts/assemble.mjs <输出目录>/responses <输出目录>
    ```
 
-   `archive` 路径下脚本会移除原有的 `focus_text` 和 `stock_paragraphs`，由你重新撰写。
+   输出 `raw.json`、`bond_codes.txt`、`prepared/prepared.json`、`prepared/evidence.json`、`prepared/news.json`。缺债券代码时写出 `missing_codes.txt`，补查 `bond_infos` 后重跑；校验不通过会直接报错停止。`archive` 路径下脚本会移除原有的 `focus_text` 和 `stock_paragraphs`，由你重新撰写。手写 `raw.json` 后直接跑 `node scripts/report.mjs prepare <live|archive> <输出目录>/raw.json <输出目录>/prepared` 也可，字段契约见 input-output.md。
 
 3. **撰写**。读取 `prepared/evidence.json` 和 `prepared/news.json`，按 writing.md 写 `composition.json`：
    - `stock`、`bond`：今日聚焦股、债各 100—140 字、最多 160 字，完整收句，不带序号或标题。

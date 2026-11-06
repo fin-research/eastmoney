@@ -15,16 +15,6 @@
 !/vendor/xlsx-LICENSE.txt
 !/vendor/README.md
 !/docs/
-!/skills/
-/skills/*
-!/skills/bond-investor/
-!/skills/humanizer-zh/
-!/skills/install-mcp/
-!/skills/market-commentary/
-!/skills/prototype-lab-publish/
-!/skills/research-commentary/
-!/skills/secondary-pool-weekly/
-!/skills/vertical-visual-report/
 !/.github/
 !/scripts/
 !/gateway/

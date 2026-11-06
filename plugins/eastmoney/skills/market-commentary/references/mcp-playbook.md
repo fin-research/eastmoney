@@ -1,12 +1,12 @@
 # MCP 取数手册
 
-> 工具名前缀取决于安装方式：作为 eastmoney 插件安装时为 `mcp__plugin_eastmoney_eastmoney__`，单独配置 MCP 服务器时为 `mcp__eastmoney__`。以 ToolSearch 查到的实际名称为准，匹配短名即可。
+> 工具名前缀取决于安装方式：作为 eastmoney 插件安装时为 `mcp__plugin_eastmoney_eastmoney__`，单独配置 MCP 服务器时为 `mcp__eastmoney__`；OpenCode / AiWork 为 `eastmoney_`。以 ToolSearch 查到的实际名称为准，匹配短名即可。
 
 取数只用已配置的 `eastmoney` MCP 服务器，不另加服务器、账号或密钥，也不引用本机其他项目。
 
 ## 工具名与 schema
 
-下文的“工具”列写的是短名；完整名为 `mcp__plugin_eastmoney_eastmoney__eastmoney_<短名>`，例如 `omo` → `mcp__plugin_eastmoney_eastmoney__eastmoney_omo`，`news_list` → `mcp__plugin_eastmoney_eastmoney__eastmoney_news_list`。这个命名是预期，运行时以实际工具列表为准：
+下文的“工具”列写的是短名；完整名为 `mcp__plugin_eastmoney_eastmoney__<短名>`，例如 `omo` → `mcp__plugin_eastmoney_eastmoney__omo`，`news_list` → `mcp__plugin_eastmoney_eastmoney__news_list`。这个命名是预期，运行时以实际工具列表为准：
 
 1. 本手册用到的短名：`trading_days`、`omo`、`cfets`、`bond_top_case`、`futures_latest`、`industry`、`margin`、`primary_issues`、`today_trades`、`favorite_quotes`、`bond_infos`、`news_list`，archive 另需 `market_report`。若它们未直接出现，用 ToolSearch 一次性加载（`select:` 列出完整名，或用关键词 `eastmoney`），并读取各自 schema。
 2. 短名缺失、被改名，或参数、字段与下表不符时，停止并报告差异，保留原错误信息；不要猜不存在的参数。

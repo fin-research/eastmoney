@@ -1,8 +1,54 @@
 # MCP 记录与 CLI
 
+## 增量上传台账
+
+上传分三步，全部需要 `bond.ledger:import` 权限；xlsx 原件字节不经 MCP，直接写入 R2。
+
+1. 申请直传地址：MCP 工具 `file_upload_request`，输入：
+
+```json
+{
+  "body": {
+    "purpose": "bond-ledger",
+    "fileName": "二级资金池台账20261026.xlsx",
+    "size": 4096,
+    "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  }
+}
+```
+
+返回 `{version, purpose, uploadId, key, uploadUrl, requiredHeaders, expiresAt, sizeLimit, contentType}`。`uploadUrl` 为 R2 预签名 PUT 地址，约 15 分钟有效；`requiredHeaders`（含 `Content-Type` 与 `If-None-Match: *`）是 PUT 必须原样发送的头，`upload.mjs put` 已按此发送（Content-Type 默认取申请时值）。
+
+2. 直传原件：`node scripts/upload.mjs put <uploadUrl> <台账.xlsx> [contentType]`，把本地文件字节 PUT 到该地址（Content-Type 须与申请时一致）。
+
+3. 完成导入：MCP 工具 `bond_ledger_import`，输入：
+
+```json
+{
+  "body": {
+    "uploadId": "<file_upload_request 返回的 uploadId>",
+    "fileName": "二级资金池台账20261026.xlsx",
+    "expectedDate": "2026-10-26",
+    "parsed": {"date": "2026-10-26", "performance": [], "positions": []}
+  }
+}
+```
+
+服务端不解析 Excel，以直传原件归档并单事务入库。返回 `{reportDate, statisticsCount, positionCount, transactionCount}`。同一报表日重复上传会替换原成功记录（旧记录标记 superseded）。
+
+本地准备命令：
+
+```sh
+node scripts/upload.mjs prepare <输出目录>/raw.json <上传输出目录> [扫描目录...]
+```
+
+脚本扫描目录（默认 `~/Downloads` 与微信容器 `xwechat_files/*/msg/file`），匹配“二级…台账*.xlsx”，按文件内容解析报表日并与 `raw.json` 的 `databaseDates` 增量对比，只为未入库日期生成 `<date>.json` 载荷（含 fileName/expectedDate/parsed/size，不含文件字节）和 `upload-manifest.json`。
+
+清单字段：`pending`（待上传，含 date/fileName/path/size/payload）、`skipped`（already_imported/duplicate_date，含 reason）、`failed`（解析失败）、`databaseDates`。模型逐笔执行 file_upload_request → upload.mjs put → bond_ledger_import，成功后重新调用 `bond_ledger {}` 刷新 inventory，再进入 select/prepare/render。单文件原件须小于 12 MB。
+
 ## 输入
 
-先调用 bond_ledger 空参数，建立 raw.json；日期与数据必须来自本次真实调用。示例中的 `tool` 为短写，实际调用名通常是 `mcp__plugin_eastmoney_eastmoney__eastmoney_bond_ledger`，脚本只要求名称以 `bond_ledger` 结尾（`bond_ledger` 或 `…_bond_ledger`）。下面的示例仅示意结构，不能原样写进 JSON。
+先调用 bond_ledger 空参数，建立 raw.json；日期与数据必须来自本次真实调用。示例中的 `tool` 为短写，实际调用名通常是 `mcp__plugin_eastmoney_eastmoney__bond_ledger`，脚本只要求名称以 `bond_ledger` 结尾（`bond_ledger` 或 `…_bond_ledger`）。下面的示例仅示意结构，不能原样写进 JSON。
 
 ```json
 {
