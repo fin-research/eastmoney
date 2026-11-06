@@ -15,7 +15,7 @@ struct Cell: Decodable {
 struct Page: Decodable { let cols: [Double]; let rows: [Double]; let cells: [Cell] }
 struct Plan: Decodable { let pages: [Page] }
 
-let pageW = 595.2756, pageH = 841.8898, pad = 3.0, marginV = 24.0, minLine = 0.75 // 线宽下限（页面上的点数），避免缩小后网格线在阅读器里时隐时现
+let pageW = 595.2756, pageH = 841.8898, pad = 3.0, marginV = 24.0, minLine = 0.4 // 线宽下限（页面上的点数），避免缩小后网格线在阅读器里时隐时现
 
 func cgColor(_ hex: String) -> CGColor {
     let v = UInt32(hex.suffix(6), radix: 16) ?? 0
