@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 拆借台账：成交 ZIP → 本地归档 → 资金系统导入、传附件、保存还款草稿；提交流程后再截图归档。
+// 拆借台账：成交 ZIP → 本地归档 → 资金系统导入、传附件、保存还款草稿并截图归档（不等提交流程）。
 //   node run.mjs import <zip> [--root DIR] [--run-dir DIR] [--dry-run]
 //   node run.mjs shots  <YYYY-MM-DD> [--root DIR] [--run-dir DIR] [--headed]
 // 全程脚本化，只有验证码在 Apple OCR 无把握时由 AI 读图（见 SKILL.md）。不提交流程。
@@ -113,8 +113,10 @@ async function shots(date) {
   const session = await login({ runDir: runDir() });
   const rows = (await new Camel(session).rows(date)).filter(row => !archived || archived.has(row.serialNo));
   if (!rows.length) throw new Error('当日台账没有可截图的成交');
-  const result = await captureFlows({ token: session.token, date, trades: rows.map(row => ({ serialNo: row.serialNo, hid: row.hid })), outDir: path.join(dir, '流程截图'), headed: flags.has('--headed') });
-  return { date, dir: path.join(dir, '流程截图'), files: result.files.map(f => path.basename(f)), missing: result.missing, notSubmitted: rows.filter(r => String(r.allocateReviewStatus) === '0').map(r => r.serialNo) };
+  const drafted = rows.filter(row => row.hid && String(row.allocateReviewStatus) === '0');
+  const result = await captureFlows({ token: session.token, date, trades: drafted.map(row => ({ serialNo: row.serialNo })), outDir: path.join(dir, '流程截图'), headed: flags.has('--headed') });
+  const noDraft = rows.filter(row => !drafted.includes(row)).map(row => ({ serialNo: row.serialNo, step: '划拨申请', error: row.hid ? '流程已提交，不再是草稿' : '没有已保存的草稿' }));
+  return { date, dir: path.join(dir, '流程截图'), files: result.files.map(f => path.basename(f)), missing: [...noDraft, ...result.missing] };
 }
 
 try {

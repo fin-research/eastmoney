@@ -1,10 +1,10 @@
-// 复用登录 cookie，用 Playwright 打开资金系统页面逐笔截图并归档。
+// 复用登录 cookie，用 Playwright 打开同业拆入页，截台账和已保存草稿的划拨申请并归档（不依赖提交流程）。
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { ORIGIN, shanghaiToday } from './camel.mjs';
+import { ORIGIN } from './camel.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -48,8 +48,7 @@ async function closeDialog(page) {
 }
 
 /**
- * trades: [{serialNo, hid}]。输出到 outDir：
- *   同业拆入台账.png、<IBO> 划拨申请.png、我的提交.png、<IBO> 审批流程.png
+ * trades: [{serialNo}]。输出到 outDir：同业拆入台账.png、<IBO> 划拨申请.png
  * 返回 {files, missing}，missing 为未能截到图的条目。
  */
 export async function captureFlows({ token, date, trades, outDir, headed = false, log = console.error }) {
@@ -79,23 +78,6 @@ export async function captureFlows({ token, date, trades, outDir, headed = false
         await save(ledger, `${trade.serialNo} 划拨申请.png`);
         await closeDialog(ledger);
       } catch (error) { missing.push({ serialNo: trade.serialNo, step: '划拨申请', error: error.message }); await closeDialog(ledger).catch(() => {}); }
-    }
-
-    await ledger.close();
-    const flows = await openPage(context, '/processManagement/submitedEvents/index', page => page.getByRole('button', { name: '查看流程' }));
-    await flows.setViewportSize({ width: 1440, height: 1400 });
-    await filterDate(flows, shanghaiToday());
-    await save(flows, '我的提交.png');
-    for (const trade of trades) {
-      try {
-        if (!trade.hid) throw new Error('没有划拨单号');
-        await flows.getByText(String(trade.hid), { exact: true }).first().click({ timeout: 10000 });
-        await flows.getByRole('button', { name: '查看流程' }).click();
-        await flows.locator('.el-dialog:visible').getByText('处理人').first().waitFor({ timeout: 15000 });
-        await flows.waitForTimeout(1200);
-        await save(flows, `${trade.serialNo} 审批流程.png`);
-        await closeDialog(flows);
-      } catch (error) { missing.push({ serialNo: trade.serialNo, step: '审批流程', error: error.message }); await closeDialog(flows).catch(() => {}); }
     }
   } finally { await browser.close(); }
   return { files, missing };
