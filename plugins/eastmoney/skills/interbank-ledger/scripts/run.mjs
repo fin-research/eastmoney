@@ -113,9 +113,9 @@ async function shots(date) {
   const session = await login({ runDir: runDir() });
   const rows = (await new Camel(session).rows(date)).filter(row => !archived || archived.has(row.serialNo));
   if (!rows.length) throw new Error('当日台账没有可截图的成交');
-  const drafted = rows.filter(row => row.hid && String(row.allocateReviewStatus) === '0');
+  const drafted = rows.filter(row => row.hid);
   const result = await captureFlows({ token: session.token, date, trades: drafted.map(row => ({ serialNo: row.serialNo })), outDir: path.join(dir, '流程截图'), headed: flags.has('--headed') });
-  const noDraft = rows.filter(row => !drafted.includes(row)).map(row => ({ serialNo: row.serialNo, step: '划拨申请', error: row.hid ? '流程已提交，不再是草稿' : '没有已保存的草稿' }));
+  const noDraft = rows.filter(row => !drafted.includes(row)).map(row => ({ serialNo: row.serialNo, step: '划拨申请', error: '没有划拨申请' }));
   return { date, dir: path.join(dir, '流程截图'), files: result.files.map(f => path.basename(f)), missing: [...noDraft, ...result.missing] };
 }
 

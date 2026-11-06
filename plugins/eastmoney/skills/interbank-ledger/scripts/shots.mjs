@@ -1,4 +1,4 @@
-// 复用登录 cookie，用 Playwright 打开同业拆入页，截台账和已保存草稿的划拨申请并归档（不依赖提交流程）。
+// 复用登录 cookie，用 Playwright 打开同业拆入页，逐笔截划拨申请并归档（有什么状态截什么，不依赖提交流程）。
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -48,7 +48,7 @@ async function closeDialog(page) {
 }
 
 /**
- * trades: [{serialNo}]。输出到 outDir：同业拆入台账.png、<IBO> 划拨申请.png
+ * trades: [{serialNo}]。输出到 outDir：<IBO> 划拨申请.png
  * 返回 {files, missing}，missing 为未能截到图的条目。
  */
 export async function captureFlows({ token, date, trades, outDir, headed = false, log = console.error }) {
@@ -63,7 +63,6 @@ export async function captureFlows({ token, date, trades, outDir, headed = false
 
     const ledger = await openPage(context, '/flowManagement/debtManagement/creditBusiness/sameIn', page => page.locator('.el-table').first());
     await filterDate(ledger, date);
-    await save(ledger, '同业拆入台账.png');
     const order = (await ledger.locator('.el-table__body-wrapper .el-table__body tr').allInnerTexts()).map(text => text.match(/IBO\d{14}/)?.[0]);
     for (const trade of trades) {
       try {

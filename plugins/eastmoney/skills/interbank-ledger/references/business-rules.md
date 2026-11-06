@@ -23,7 +23,7 @@
 - 页面：负债管理 → 信用类债券 → 同业拆入（`/flowManagement/debtManagement/creditBusiness/sameIn`），日期筛选当天。
 - 导入：`excel/parse` 解析，用 Excel 原值修正（利率除以 100，天数、利息、金额、账号取源值），`checkPublishAmount` 额度检查后 `excel/data/save`。
 - 附件：`/camel/file` 上传 PDF；草稿：`repaymentAllocate/save`，草稿状态 `reviewStatus=0`、`status=0`。草稿保存后需人工在页面提交流程，提交后 `reviewStatus=1`，出现在流程管理 → 我的提交（资金划拨流程）。
-- 截图：只截已保存的草稿，不等提交流程。同业拆入页台账一张，逐行「查看申请」得每笔划拨申请。
+- 截图：不等提交流程，有什么状态截什么，只截每笔划拨申请（同业拆入页逐行「查看申请」），不截台账页。
 
 ## 验证码
 
