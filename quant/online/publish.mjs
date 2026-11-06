@@ -20,9 +20,10 @@ const hashFile = async (file) =>
     .update(await readFile(file))
     .digest("hex");
 const nowcast = manifest.feature_version === "timing-advice-v2";
+const coupon = manifest.feature_version === "coupon-forecast-v3";
 const timing = nowcast || manifest.feature_version === "timing-advice-v1";
 if (
-  (!timing && (manifest.feature_version !== "issuance-coupon" ||
+  (!timing && !coupon && (manifest.feature_version !== "issuance-coupon" ||
   manifest.market_model !== "unified_coupon")) ||
   !evidence.snapshotParity ||
   evidence.model_version !== manifest.model_version ||
@@ -32,7 +33,7 @@ if (
   evidence.result_sha256 !== (await hashFile(join(directory, "result.json")))
 )
   throw new Error("Passing parity evidence for this exact bundle is required");
-for (const name of timing ? ["timing-nowcast.mjs", "timing-advice.mjs", "timing-workflow.mjs", "sources.json", "publication.mjs", "model-eligibility.mjs", "worker.ts", "scheduled.ts", "cron-entry.ts"] : [
+for (const name of coupon ? ["coupon-forecast.mjs", "timing-nowcast.mjs", "coupon-queries.json", "coupon-workflow.mjs", "timing-workflow.mjs", "publication.mjs", "model-eligibility.mjs", "worker.ts"] : timing ? ["timing-nowcast.mjs", "timing-advice.mjs", "timing-workflow.mjs", "sources.json", "publication.mjs", "model-eligibility.mjs", "worker.ts", "scheduled.ts", "cron-entry.ts"] : [
   "features.mjs",
   "tree.mjs",
   "issuance.mjs",
@@ -131,7 +132,7 @@ try {
         manifest_sha256: evidence.manifest_sha256,
       }),
     );
-    upload("quant-trial/models/current.json", pointer);
+    upload(coupon ? "quant-trial/models/current-coupon.json" : "quant-trial/models/current.json", pointer);
   }
 } finally {
   await rm(temporary, { recursive: true });

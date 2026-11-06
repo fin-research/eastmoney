@@ -3,6 +3,7 @@ import sources from './sources.json' with { type: 'json' };
 import { inferTiming, previousTimingQuoteDay } from './timing-advice.mjs';
 import { inferNowcast } from './timing-nowcast.mjs';
 import { publishArchivedResult } from './publication.mjs';
+import { runCouponWorkflow } from './coupon-workflow.mjs';
 
 /** Small, immutable T-1 quote snapshot; no primary-issuance or imputed inputs. */
 export async function runTimingWorkflow(env, step, event, manifest, io) {
@@ -30,5 +31,12 @@ export async function runTimingWorkflow(env, step, event, manifest, io) {
     Object.assign(result.online_run,{runtime:'cloudflare-workflow',input_prefix:prefix,workflow_id:event.instanceId});
     return io.putJson(env.ARTIFACTS,`${prefix}/result.json`,result);
   });
-  return step.do('publish-result',()=>publishArchivedResult(env,key,pg.Client));
+  const published=await step.do('publish-result',()=>publishArchivedResult(env,key,pg.Client));
+  if(manifest.feature_version==='timing-advice-v2') {
+    try {
+      const timing=await io.readJson(env.ARTIFACTS,key,256*1024);
+      await runCouponWorkflow(env,step,event,timing,io);
+    } catch(error) {console.error('coupon forecast failed',error instanceof Error?error.message:error);}
+  }
+  return published;
 }

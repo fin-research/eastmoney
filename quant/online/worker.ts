@@ -11,6 +11,7 @@ import { segmentedCoupon, couponInputBatch } from "./segmented-coupon.mjs";
 import { requireActiveModel } from "./model-eligibility.mjs";
 import { validateTimingModel } from "./timing-advice.mjs";
 import { validateNowcastModel } from "./timing-nowcast.mjs";
+import { validateCouponModel } from "./coupon-forecast.mjs";
 import { runTimingWorkflow } from "./timing-workflow.mjs";
 type Parameters = { as_of_date?: string; input_batch?: any; input_snapshot_prefix?: string; publish_result_key?: string; window_days?: number; issue_size_yi?: number; terms?: { issuer?: string; rating?: string; bond_type?: string; placement_type?: string; tenor?: number } };
 const prefix = "quant-trial";
@@ -61,6 +62,7 @@ async function modelFile(bucket: R2Bucket, manifest, name: string) {
   const model = JSON.parse(new TextDecoder().decode(bytes));
   if(manifest.feature_version==='timing-advice-v1') validateTimingModel(manifest,model);
   else if(manifest.feature_version==='timing-advice-v2') validateNowcastModel(manifest,model);
+  else if(manifest.feature_version==='coupon-forecast-v3') validateCouponModel(model);
   else validateModel(manifest, model);
   return model;
 }

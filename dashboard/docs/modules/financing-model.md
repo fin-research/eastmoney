@@ -25,6 +25,12 @@ DTO 在 `src/lib/timing-advice.ts` 和 `src/lib/issuance-model.ts`，读取在 `
 - 页面展示建议概率、市场日期和开发检验，保留人工编辑、独立业务指标和卖方观点。
 - 业务指标始终按本公司与行情日期独立查询，不作为三档模型的发行主体输入。
 
+## 票面预测页面（coupon-forecast-v3）
+
+- 同日有票面预测时，页面恢复原版面：整体结论（顶部四品种选择条、预测发行利率）、业务指标、四品种对比、因子贡献（七大类雷达、前 10 项条形、完整明细）、未来发行窗口、模型验证（训练样本、训练截止、检验样本、胜率、命中率、平均误差，另列当年留出）。选择品种后各区块一起切换。
+- 数据来自 `coupon_forecast_run` 及其子表（migration `0020`），与 `model_run` 不共用，按 `as_of_date` 关联同日择时运行。模型资格未激活时不返回票面块，页面退回择时卡片。
+- 方法与证据见 [票面预测](../../../quant/docs/COUPON_FORECAST.md)。
+
 ## 页面
 
 - 整体结论卡在最前，结论正文始终是可编辑文本框。有 `model.conclusion:update` 权限时 650ms 防抖并在失焦保存，无权限只读，不显示编辑按钮。未人工编辑的结论按模型生成，人工正文原样保留，恢复模型内容用基础结论。
@@ -55,6 +61,7 @@ DTO 在 `src/lib/timing-advice.ts` 和 `src/lib/issuance-model.ts`，读取在 `
 | `timing_run` | v1 三档概率、建议和开发检验 |
 | `timing_nowcast_run` | v2 利率变动预测、阈值、三档概率和样本外检验 |
 | `issuance_run`、`issuance_forecast`、`issuance_market_path`、`issuance_shap`、`issuance_validation` | 历史票面运行（`schema_version=4`）的决策、票面、市场路径、贡献和验证 |
+| `coupon_forecast_run`、`coupon_forecast_product`、`coupon_forecast_group`、`coupon_forecast_contribution`、`coupon_forecast_path` | 四品种票面预测、大类和明细贡献、未来窗口、验证指标 |
 | `model_eligibility` | 按不可变 `model_version` 记录 `active/suspended` 及原因 |
 | `timing_decision_record` | 人工操作与事后结果 |
 | `sell_side_snapshot` | 研究库观点与人工修订的追加快照 |
