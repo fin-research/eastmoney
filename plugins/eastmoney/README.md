@@ -3,8 +3,8 @@
 本仓库的全部 skill 只在这里维护（`plugins/eastmoney/skills/`），Claude Code、OpenCode、AiWork 共用同一份。
 
 - MCP：`eastmoney`（https://eastmoney.hasbai.xyz/mcp，OAuth）
-- 技能：market-commentary（含今日聚焦）、secondary-pool-weekly（含增量上传台账）、research-commentary、interbank-ledger、bond-investor、vertical-visual-report、humanizer-zh、install-mcp、prototype-lab-publish
-- 依赖：Node.js 20+（报告脚本）；interbank-ledger 另需 macOS、Playwright 和办公网络，凭据见其 SKILL.md；bond-investor 的本机 OCR 需 macOS
+- 技能：market-commentary（含今日聚焦）、secondary-pool-weekly（含增量上传台账）、research-commentary、interbank-ledger（拆借台账：ZIP 归档、资金系统导入与草稿、流程截图）、credit-weekly（授信周报：归档、导出授信一览表、周报转数值并入累计簿、导出两页 PDF）、bond-investor、vertical-visual-report、humanizer-zh、install-mcp、prototype-lab-publish
+- 依赖：Node.js 20+（报告脚本）；interbank-ledger 另需 macOS、Playwright 和办公网络，凭据见其 SKILL.md；credit-weekly 另需 macOS 和 Xcode 命令行工具（swiftc，用于绘制 PDF）；bond-investor 的本机 OCR 需 macOS
 
 ## Claude Code
 
