@@ -37,4 +37,10 @@ uv run python scripts/adopt_coupon_forecast.py --training <events.pkl> --walk-fo
 cd online && node verify-coupon.mjs ../outputs/coupon-forecast-<日期>
 ```
 
+```sh
+node publish.mjs ../outputs/coupon-forecast-<日期> --stage-only   # 先暂存模型对象
+pnpm run deploy                                                   # 部署含票面步骤的 Worker
+node publish.mjs ../outputs/coupon-forecast-<日期>                # 最后写指针 current-coupon.json
+```
+
 `adopt_coupon_forecast.py` 拒绝 walk-forward 工件与所打包模型的 alpha、因子集合、目标不一致。Workflow 在 `timing-advice-v2` 发布之后读指针 `quant-trial/models/current-coupon.json`，没有指针、包过期或模型资格未激活时静默跳过，不影响择时结果。包有效至 2026-12-31，跨 2027 年前须核验新日历并重新训练。
