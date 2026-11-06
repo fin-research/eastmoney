@@ -30,7 +30,30 @@ export const timingNowcastSnapshotSchema=z.object({
  if(s.decision.action!==(f.wait_bp>f.threshold_bp?'尽快':f.wait_bp<-f.threshold_bp?'暂缓':'等待'))ctx.addIssue({code:'custom',message:'建议必须来自预测值与阈值'});
  if(s.market_source_date>=s.as_of_date)ctx.addIssue({code:'custom',message:'行情日期必须早于模型日期'});
 });
-export const timingAdviceReportSchema=z.object({model_status:modelStatusSchema,snapshot:z.union([timingAdviceSnapshotSchema,timingNowcastSnapshotSchema]),conclusion:conclusionSchema,sellSide:sellSidePayloadSchema.nullable(),versions:z.array(financingModelVersionSchema),business_metrics:issuanceBusinessMetricsSchema.nullable().optional()});
+const couponGroups=['利率','信用','资金面','基本面','一级发行','二级行情','发行条款'] as const;
+const couponKeys=['3y-public','3y-sub','5y-public','5y-sub'] as const;
+const couponWindow=z.object({start:z.string().date(),end:z.string().date(),sample_count:z.number().int().positive(),mae_bp:finite.nonnegative(),hit_rate_5bp:finite.min(0).max(1),win_rate_vs_issuer_median:finite.min(0).max(1)});
+export const couponForecastSchema=z.object({
+ run_id:z.string().uuid(),as_of_date:z.string().date(),market_source_date:z.string().date(),model_version:z.string().regex(/^[a-f0-9]{20}$/),issuer:z.string().min(1),training_label_cutoff:z.string().date(),
+ timing:z.object({action:z.enum(['尽快','等待','暂缓']),catch_up_bp:finite,wait_bp:finite}),
+ products:z.array(z.object({
+  key:z.enum(couponKeys),label:z.string().min(1),tenor:z.union([z.literal(3),z.literal(5)]),bond_type:z.enum(['证券公司债','证券公司次级债']),
+  anchor_pct:finite.positive(),issuer_median_bp:finite,intercept_bp:finite,base_coupon_bp:finite,deviation_bp:finite,coupon_pct:finite.positive(),n_prior:z.number().int().min(2),planned_amount_yi:finite.positive(),
+  groups:z.array(z.object({group:z.enum(couponGroups),net_bp:finite})).length(7),
+  contributions:z.array(z.object({feature:z.string().min(1),label:z.string().min(1),group:z.enum(couponGroups),value:finite,contribution_bp:finite})).min(1),
+  path:z.array(z.object({date:z.string().date(),coupon_percent:finite.positive()})).min(1).max(10),
+ })).length(4),
+ validation:z.object({training_events:z.number().int().positive(),first_training_event:z.string().date(),development:couponWindow,holdout:couponWindow}),
+}).superRefine((c,ctx)=>{
+ if(new Set(c.products.map(p=>p.key)).size!==4)ctx.addIssue({code:'custom',message:'四个品种不能重复'});
+ for(const p of c.products){
+  const total=p.groups.reduce((a,g)=>a+g.net_bp,0);
+  if(new Set(p.groups.map(g=>g.group)).size!==7)ctx.addIssue({code:'custom',message:'因子大类不能重复'});
+  if(Math.abs(p.base_coupon_bp+total-p.coupon_pct*100)>=1e-6)ctx.addIssue({code:'custom',message:'基值加全部贡献必须还原预测发行利率'});
+ }
+});
+export type CouponForecast=z.infer<typeof couponForecastSchema>;
+export const timingAdviceReportSchema=z.object({coupon:couponForecastSchema.nullable().optional(),model_status:modelStatusSchema,snapshot:z.union([timingAdviceSnapshotSchema,timingNowcastSnapshotSchema]),conclusion:conclusionSchema,sellSide:sellSidePayloadSchema.nullable(),versions:z.array(financingModelVersionSchema),business_metrics:issuanceBusinessMetricsSchema.nullable().optional()});
 export type TimingAdviceSnapshot=z.infer<typeof timingAdviceSnapshotSchema>;
 export type TimingNowcastSnapshot=z.infer<typeof timingNowcastSnapshotSchema>;
 export type TimingAdviceReport=z.infer<typeof timingAdviceReportSchema>;

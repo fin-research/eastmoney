@@ -163,6 +163,7 @@ export function renderFinancingDriverContributions(
   host: HTMLElement,
   rows: Array<{ display_name: string; shap: number; value: number | null }>,
   mode: "support" | "coupon" = "support",
+  allLabels = false,
 ): void {
   if (!rows.length) {
     setEmpty(host, "因子贡献暂缺");
@@ -218,7 +219,7 @@ export function renderFinancingDriverContributions(
       data: rows.map((row) => row.display_name),
       axisLine: { show: false },
       axisTick: { show: false },
-      axisLabel: { ...forecastAxisLabel, color: colors.ink, width: compact ? 140 : 150, overflow: "truncate" },
+      axisLabel: { ...forecastAxisLabel, color: colors.ink, width: compact ? 140 : 150, overflow: "truncate", ...(allLabels ? { interval: 0 } : {}) },
     },
     series: [
       {

@@ -6,7 +6,7 @@
 
 `online/` 是独立 Workflow：只读线上输入，在 R2 `quant-trial/` 归档成功结果，再发布到生产模型表。它没有公网 API。
 
-研究目标已暂停，不继续候选搜索、调参或新实验。票面冻结研究已停止，完整结果与失败按原样保留，不在原冻结目录追加候选、调参、重试或训练。运行状态与待办见 [ONLINE_INFERENCE](docs/ONLINE_INFERENCE.md)。
+研究目标已暂停，不继续候选搜索、调参或新实验；用户于 2026-11-06 明确恢复完整数据票面预测一轮（见 [COUPON_FORECAST](docs/COUPON_FORECAST.md)），范围以该文档为准。票面冻结研究已停止，完整结果与失败按原样保留，不在原冻结目录追加候选、调参、重试或训练。运行状态与待办见 [ONLINE_INFERENCE](docs/ONLINE_INFERENCE.md)。
 
 - 运行环境：macOS Apple Silicon、Python 3.12、`uv`
 - 主要技术：pandas、scikit-learn、LightGBM、SHAP、TimesFM（仅封存两融）
@@ -44,7 +44,7 @@ uv run python -m unittest discover -s tests -v
 
 - 债券 CLI、pipeline、特征与训练：[ARCHITECTURE](docs/ARCHITECTURE.md)、[DOMAIN](docs/DOMAIN.md)。票面回测与利率研究：[ISSUANCE_BACKTEST](docs/ISSUANCE_BACKTEST.md)、[RATE_RESEARCH](docs/RATE_RESEARCH.md)。
 - 训练导出与独立 JS 推理 Workflow：[ONLINE_INFERENCE](docs/ONLINE_INFERENCE.md)。结构化结果写入加读[共享模型写入契约](../docs/DATABASE.md#融资模型跨仓库写入)和 [Dashboard 融资模型](../dashboard/docs/modules/financing-model.md)。
-- 行业曲线短期延续预测与信号：[TIMING_NOWCAST](docs/TIMING_NOWCAST.md)。
+- 行业曲线短期延续预测与信号：[TIMING_NOWCAST](docs/TIMING_NOWCAST.md)。四品种票面预测：[COUPON_FORECAST](docs/COUPON_FORECAST.md)。
 - 研究报告：[README.md](README.md) 与 [RESEARCH_REPORT](docs/RESEARCH_REPORT.md)。完整融资择时报告用[报告 skill](skills/bond-financing-timing-report/SKILL.md)。
 - Data 发行观察的只读接入：[ISSUANCE_OBSERVATIONS](docs/ISSUANCE_OBSERVATIONS.md)。事前方案与预测登记：[PROSPECTIVE_REGISTRY](docs/PROSPECTIVE_REGISTRY.md)。两者均未接入生产。
 - 环境、凭据、Choice API、R2 研报与 Git：[DEVELOPMENT](docs/DEVELOPMENT.md)。

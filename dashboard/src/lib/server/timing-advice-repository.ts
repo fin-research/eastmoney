@@ -1,4 +1,4 @@
-import { timingAdviceReportSchema, type CurrentFinancingReport } from '../timing-advice.ts';
+import { couponForecastSchema, timingAdviceReportSchema, type CurrentFinancingReport } from '../timing-advice.ts';
 import type { BondDatabaseClient } from './postgres';
 import { FinancingModelDatabaseError } from './financing-model-repository.ts';
 import { loadIssuanceModelReport, applyIssuanceModelStatus } from './issuance-model-repository.ts';
@@ -13,6 +13,22 @@ const nowcastReportSql=`SELECT jsonb_build_object(
  'sellSide',(SELECT payload FROM financing_model.sell_side_snapshot WHERE run_id=r.id ORDER BY generated_at DESC,id DESC LIMIT 1),
  'versions',(SELECT jsonb_agg(jsonb_build_object('runId',v.id,'asOfDate',v.as_of_date,'generatedAt',v.generated_at) ORDER BY v.as_of_date DESC) FROM (SELECT id,as_of_date,generated_at FROM financing_model.model_run WHERE schema_version IN (4,5) AND online_feature_version IN ('issuance-coupon','timing-advice-v1','timing-advice-v2') ORDER BY as_of_date DESC LIMIT 100)v)) AS report
  FROM financing_model.model_run r JOIN financing_model.timing_nowcast_run t ON t.run_id=r.id AND r.online_feature_version='timing-advice-v2' LEFT JOIN financing_model.model_eligibility q ON q.model_version=r.online_model_version WHERE r.schema_version=5 AND r.id=$1::uuid`;
+const couponSql=`SELECT jsonb_build_object('run_id',r.run_id,'as_of_date',r.as_of_date,'market_source_date',r.market_data_date,'model_version',r.model_version,'issuer',r.issuer,'training_label_cutoff',r.training_label_cutoff,
+ 'timing',jsonb_build_object('action',r.timing_action,'catch_up_bp',r.timing_catch_up_bp,'wait_bp',r.timing_wait_bp),
+ 'validation',jsonb_build_object('training_events',r.training_events,'first_training_event',r.first_training_event,
+  'development',jsonb_build_object('start',r.dev_start,'end',r.dev_end,'sample_count',r.dev_samples,'mae_bp',r.dev_mae_bp,'hit_rate_5bp',r.dev_hit_rate_5bp,'win_rate_vs_issuer_median',r.dev_win_rate),
+  'holdout',jsonb_build_object('start',r.holdout_start,'end',r.holdout_end,'sample_count',r.holdout_samples,'mae_bp',r.holdout_mae_bp,'hit_rate_5bp',r.holdout_hit_rate_5bp,'win_rate_vs_issuer_median',r.holdout_win_rate)),
+ 'products',(SELECT jsonb_agg(jsonb_build_object('key',p.product_key,'label',p.label,'tenor',p.tenor,'bond_type',p.bond_type,'anchor_pct',p.anchor_pct,'issuer_median_bp',p.issuer_median_bp,'intercept_bp',p.intercept_bp,
+   'base_coupon_bp',p.base_coupon_bp,'deviation_bp',p.deviation_bp,'coupon_pct',p.coupon_pct,'n_prior',p.n_prior,'planned_amount_yi',p.planned_amount_yi,
+   'groups',(SELECT jsonb_agg(jsonb_build_object('group',g.group_name,'net_bp',g.net_bp) ORDER BY array_position(ARRAY['利率','信用','资金面','基本面','一级发行','二级行情','发行条款'],g.group_name)) FROM financing_model.coupon_forecast_group g WHERE g.run_id=p.run_id AND g.product_key=p.product_key),
+   'contributions',(SELECT jsonb_agg(jsonb_build_object('feature',c.feature,'label',c.label,'group',c.group_name,'value',c.value,'contribution_bp',c.contribution_bp) ORDER BY c.ordinal) FROM financing_model.coupon_forecast_contribution c WHERE c.run_id=p.run_id AND c.product_key=p.product_key),
+   'path',(SELECT jsonb_agg(jsonb_build_object('date',f.observation_date,'coupon_percent',f.coupon_percent) ORDER BY f.ordinal) FROM financing_model.coupon_forecast_path f WHERE f.run_id=p.run_id AND f.product_key=p.product_key))
+   ORDER BY array_position(ARRAY['3y-public','3y-sub','5y-public','5y-sub'],p.product_key)) FROM financing_model.coupon_forecast_product p WHERE p.run_id=r.run_id)) AS coupon
+ FROM financing_model.coupon_forecast_run r JOIN financing_model.model_eligibility q ON q.model_version=r.model_version AND q.status='active' WHERE r.as_of_date=$1::date`;
+async function withCoupon(client:BondDatabaseClient,report:ReturnType<typeof timingAdviceReportSchema.parse>){
+ const found=await client.query<{coupon:unknown}>(couponSql,[report.snapshot.as_of_date]);
+ return found.rows[0]?{...report,coupon:couponForecastSchema.parse(found.rows[0].coupon)}:report;
+}
 export async function loadCurrentFinancingReport(client:BondDatabaseClient,runId:string|null=null):Promise<CurrentFinancingReport>{
  const selected=await client.query<{id:string;schema_version:number}>(`SELECT id,schema_version FROM financing_model.model_run WHERE schema_version IN (4,5) AND online_feature_version IN ('issuance-coupon','timing-advice-v1','timing-advice-v2') AND ($1::uuid IS NULL OR id=$1::uuid) ORDER BY as_of_date DESC LIMIT 1`,[runId]);
  if(!selected.rows[0])throw new FinancingModelDatabaseError(404,'尚无融资择时模型数据');
@@ -32,5 +48,5 @@ export async function loadCurrentFinancingReport(client:BondDatabaseClient,runId
  if(!stored.rows[0])throw new FinancingModelDatabaseError(404,'尚无融资择时模型数据');
  const report=timingAdviceReportSchema.parse(stored.rows[0].report);
  if(runId===null && report.model_status.status!=='active')throw new FinancingModelDatabaseError(409,'数据不满足要求，暂停预测');
- return report;
+ return withCoupon(client,report);
 }

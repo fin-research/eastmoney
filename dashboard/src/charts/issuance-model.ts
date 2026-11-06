@@ -23,7 +23,7 @@ export function renderIssuanceProductComparison(host:HTMLElement,rows:IssuanceSn
     tooltip:{...tooltip,trigger:'axis',axisPointer:{type:'shadow'},formatter:(params:unknown)=>{
       const index=(params as Array<{dataIndex:number}>)[0]?.dataIndex??-1;
       const row=rows[index];if(!row)return '';
-      return `<strong>${escapeHtml(names[index]??'')}</strong><br>预计票面 ${row.coupon_percent===null?'—':`${row.coupon_percent.toFixed(2)}%`}<br>同类历史 ${row.own_observations}笔本机构 / ${row.peer_observations}笔合计`;
+      return `<strong>${escapeHtml(names[index]??'')}</strong><br>预计票面 ${row.coupon_percent===null?'—':`${row.coupon_percent.toFixed(2)}%`}<br>同类历史 ${row.own_observations}笔本机构${row.peer_observations==null?'':` / ${row.peer_observations}笔合计`}`;
     }},
     xAxis:{type:'value',name:'预计票面 %',scale:true,axisLabel,splitLine:{lineStyle:gridLine}},
     yAxis:{type:'category',inverse:true,data:names,axisLabel:{...axisLabel,color:colors.ink},axisTick:{show:false}},

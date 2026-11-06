@@ -51,6 +51,7 @@
   let editingSellSide = $state(false);
   let editingDecision = $state(false);
   let futureWindowDetailsOpen = $state(false);
+  let selectedProduct = $state("3y-public");
   let errorMessage = $state("");
   let editNarrative = $state("");
   let editSellSideSummary = $state("");
@@ -404,6 +405,26 @@
   const signedBp = (value: number): string => `${value > 0 ? "+" : ""}${value.toFixed(2)}`;
   let couponSnapshot = $derived(snapshot?.schema_version === "issuance-forecast-v1" ? snapshot : null);
   let modelSuspended = $derived(report?.model_status.status !== 'active');
+  let coupon = $derived(!modelSuspended && report && "coupon" in report ? report.coupon ?? null : null);
+  let product = $derived(coupon ? coupon.products.find(item => item.key === selectedProduct) ?? coupon.products[0] : null);
+  const percent = (value: number): string => `${(value * 100).toFixed(1)}%`;
+  let couponComparison = $derived((coupon?.products ?? []).map(item => ({ tenor: item.tenor, bond_type: item.bond_type, coupon_percent: item.coupon_pct, own_observations: item.n_prior, peer_observations: null })));
+  let couponGroups = $derived((product?.groups ?? []).map(row => ({ display_name: row.group, net_bp: row.net_bp, absolute_bp: Math.abs(row.net_bp) })));
+  let couponDrivers = $derived([...(product?.contributions ?? [])].sort((left, right) => Math.abs(right.contribution_bp) - Math.abs(left.contribution_bp)).slice(0, 10)
+    .map(row => ({ display_name: row.label, shap: row.contribution_bp, value: row.value })));
+  let couponTotal = $derived((product?.groups ?? []).reduce((sum, row) => sum + row.net_bp, 0));
+  let couponValidation = $derived(coupon ? [
+    { label: "训练样本", value: String(coupon.validation.training_events) },
+    { label: "训练截止", value: coupon.training_label_cutoff },
+    { label: "检验样本", value: String(coupon.validation.development.sample_count) },
+    { label: "胜率", value: percent(coupon.validation.development.win_rate_vs_issuer_median) },
+    { label: "预测命中率（±5bp）", value: percent(coupon.validation.development.hit_rate_5bp) },
+    { label: "平均误差", value: `${coupon.validation.development.mae_bp.toFixed(1)} bp` },
+    { label: `${coupon.validation.holdout.start.slice(0, 4)}检验样本`, value: String(coupon.validation.holdout.sample_count) },
+    { label: `${coupon.validation.holdout.start.slice(0, 4)}胜率`, value: percent(coupon.validation.holdout.win_rate_vs_issuer_median) },
+    { label: `${coupon.validation.holdout.start.slice(0, 4)}预测命中率（±5bp）`, value: percent(coupon.validation.holdout.hit_rate_5bp) },
+    { label: `${coupon.validation.holdout.start.slice(0, 4)}平均误差`, value: `${coupon.validation.holdout.mae_bp.toFixed(1)} bp` },
+  ] : []);
   let versions = $derived(report?.versions ?? []);
   let recommendation = $derived(!modelSuspended && snapshot ? timingSnapshot ? timingSnapshot.decision.action : issuanceDecisionLabel(snapshot.decision.action) : null);
   let recommendationTone = $derived((recommendation === "尽快发行" || recommendation === "尽快") ? "strong_buy" : recommendation === "等待" ? "neutral" : "wait");
@@ -513,12 +534,21 @@
               <span class={`recommendation-badge recommendation-badge--${recommendationTone}`}>{recommendation}</span>
             {/if}
           </div>
+          {#if coupon}
+            <div class="product-switch" role="group" aria-label="债券品种">
+              {#each coupon.products as item (item.key)}
+                <button type="button" class="product-switch__item" class:is-active={item.key === product?.key}
+                  aria-pressed={item.key === product?.key} onclick={() => (selectedProduct = item.key)}>{item.label}</button>
+              {/each}
+            </div>
+          {/if}
           <div class="issuance-summary">
             <div class="issuance-product">
               <span>债券品种</span>
-              <strong>{timingSnapshot ? timingSnapshot.scope : couponSnapshot ? `${couponSnapshot.terms.rating} ${couponSnapshot.terms.tenor}年期${couponSnapshot.terms.bond_type}` : ""}</strong>
+              <strong>{product ? product.label : timingSnapshot ? timingSnapshot.scope : couponSnapshot ? `${couponSnapshot.terms.rating} ${couponSnapshot.terms.tenor}年期${couponSnapshot.terms.bond_type}` : ""}</strong>
             </div>
             {#if modelSuspended}<p role="status">数据不满足要求，暂停预测</p>
+            {:else if product}<MetricCard label="预测发行利率" value={product.coupon_pct.toFixed(2)} unit="%" tone="blue" compact />
             {:else if timingSnapshot}<MetricCard label="市场日期" value={timingSnapshot.market_source_date} tone="blue" compact />
             {:else}<MetricCard label="预测发行利率" value={formatNullable(current?.coupon_percent, 2)} unit="%" tone="blue" compact />{/if}
           </div>
@@ -550,7 +580,78 @@
         </ModuleCard>
       </section>
 
-      {#if !modelSuspended && timingV1}
+      {#if !modelSuspended && coupon && product}
+      <section aria-label="四品种对比">
+        <ModuleCard class="chart-card" labelledBy="product-title">
+          <PanelHeading id="product-title" title="四品种对比" />
+          <ChartHost renderer={renderIssuanceProductComparison} args={[couponComparison]}
+            ariaLabel="3年与5年公募债和次级债预计票面对比" className="product-comparison-chart" />
+        </ModuleCard>
+      </section>
+
+      <section aria-label="因子贡献">
+        <ModuleCard class="factor-panel" labelledBy="factor-contribution-title">
+          <PanelHeading id="factor-contribution-title" title="因子贡献" />
+          <dl class="contribution-reconciliation" aria-label="因子贡献对账">
+            <div><dt>模型基值</dt><dd>{product.base_coupon_bp.toFixed(3)} bp</dd></div>
+            <div><dt>全部贡献</dt><dd>{couponTotal >= 0 ? '+' : ''}{couponTotal.toFixed(3)} bp</dd></div>
+            <div><dt>预测发行利率</dt><dd>{(product.coupon_pct * 100).toFixed(3)} bp</dd></div>
+          </dl>
+          <div class="driver-grid">
+            <ChartHost renderer={renderIssuanceShapRadar} args={[couponGroups]} ariaLabel="票面预测因子贡献雷达图" className="driver-radar-chart" />
+            <ChartHost renderer={renderFinancingDriverContributions} args={[couponDrivers, "coupon", true]}
+              ariaLabel={`因子贡献：${couponGroups.map(row => `${row.display_name} ${row.net_bp.toFixed(3)} bp`).join("，")}`} className="driver-contribution-chart" />
+          </div>
+          <details class="contribution-details">
+            <summary>因子贡献明细（{product.contributions.length}项）</summary>
+            <div class="table-scroll"><table>
+              <thead><tr><th>因子</th><th>输入值</th><th>贡献 bp</th></tr></thead>
+              <tbody>{#each product.contributions as row}
+                <tr><td>{row.label}</td><td>{row.value}</td><td>{row.contribution_bp >= 0 ? '+' : ''}{row.contribution_bp.toFixed(6)}</td></tr>
+              {/each}</tbody>
+            </table></div>
+          </details>
+        </ModuleCard>
+      </section>
+
+      <section class="supporting-grid" aria-label="未来发行窗口与模型验证">
+        <ModuleCard class="forecast-panel" labelledBy="window-title">
+          <PanelHeading id="window-title" title="未来发行窗口" controlsBesideTitle>
+            <Button data-ui-owner="lib-pages-FinancingModelPage-svelte" variant="ghost"
+              class={"ui-button  window-details-toggle"}
+              type="button"
+              aria-label={futureWindowDetailsOpen ? "收起未来发行窗口明细" : "展开未来发行窗口明细"}
+              aria-expanded={futureWindowDetailsOpen}
+              aria-controls="forecast-window-details"
+              onclick={() => (futureWindowDetailsOpen = !futureWindowDetailsOpen)}
+            >
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5" /></svg>
+            </Button>
+          </PanelHeading>
+          <ChartHost renderer={renderIssuanceForecast} args={[product.path.map(point => ({ date: point.date, coupon_percent: point.coupon_percent }))]}
+            ariaLabel="未来发行票面预测" className="forecast-chart" />
+          <div id="forecast-window-details" class="forecast-table-wrap" hidden={!futureWindowDetailsOpen}>
+            <table class="forecast-table">
+              <caption>未来发行窗口明细</caption>
+              <thead><tr><th scope="col">日期</th><th scope="col">预计票面</th></tr></thead>
+              <tbody>
+                {#each product.path as point}
+                  <tr><th scope="row">{displayDate(point.date)}</th><td>{point.coupon_percent.toFixed(2)}%</td></tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </ModuleCard>
+        <ModuleCard class="validation-panel coupon-validation" labelledBy="validation-title">
+          <PanelHeading id="validation-title" title="模型验证" />
+          <dl class="validation-grid">
+            {#each couponValidation as metric}
+              <div><dt>{metric.label}</dt><dd>{metric.value}</dd></div>
+            {/each}
+          </dl>
+        </ModuleCard>
+      </section>
+      {:else if !modelSuspended && timingV1}
       <ModuleCard labelledBy="timing-probabilities-title">
         <PanelHeading id="timing-probabilities-title" title="发行建议概率" />
         <div class="timing-probabilities">
@@ -1204,6 +1305,32 @@
     gap: 16px;
   }
 
+  .product-switch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .product-switch__item {
+    min-height: 44px;
+    padding: 0 1rem;
+    border: 1px solid #d9e1ee;
+    border-radius: 999px;
+    background: #fff;
+    color: #172033;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .product-switch__item.is-active {
+    border-color: #2f6fd6;
+    background: #2f6fd6;
+    color: #fff;
+  }
+  :global(.coupon-validation .validation-grid dt) {
+    white-space: normal;
+  }
+  :global(.coupon-validation .validation-grid dd) {
+    white-space: nowrap;
+  }
   .conclusion-heading-row {
     display: flex;
     align-items: flex-start;

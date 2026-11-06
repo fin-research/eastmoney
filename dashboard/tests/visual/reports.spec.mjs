@@ -192,3 +192,32 @@ test('financing-model displays published timing advice without coupon placeholde
  await expect(page.getByRole('region',{name:'开发检验',exact:true})).toHaveScreenshot('financing-model-timing-validation.png');
  expect(errors).toEqual([]);
 });
+
+test('financing-model switches the four coupon products and keeps the approved layout',async({page})=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await mockResources(page);
+ const {timingNowcastSnapshot,couponForecastSnapshot}=await import('../fixtures/timing-advice.mjs');
+ const snapshot=timingNowcastSnapshot(),{online_run,...coupon}=couponForecastSnapshot();
+ const current={coupon,business_metrics:financingModel.business_metrics,model_status:{model_version:snapshot.model_version,status:'active',reason:'post_hoc_selected'},snapshot,conclusion:{verdict:'暂缓',preferredWindow:'',narrative:snapshot.base_conclusion.narrative,edited:false,updatedAt:null},sellSide:financingModel.sellSide,versions:[{runId:snapshot.run_id,asOfDate:snapshot.as_of_date,generatedAt:snapshot.generated_at}]};
+ await page.route('**/api/financing-model',route=>route.fulfill({json:current}));
+ await page.goto('/trading-research/financing-model');
+ const group=page.getByRole('group',{name:'债券品种'});
+ await expect(group.getByRole('button')).toHaveCount(4);
+ await expect(group.getByRole('button',{name:'3年公募债'})).toHaveAttribute('aria-pressed','true');
+ await expect(page.getByText('预测发行利率',{exact:true}).first()).toBeVisible();
+ for(const title of ['四品种对比','因子贡献','未来发行窗口','模型验证'])await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'利率走势预测'})).toHaveCount(0);
+ await expect(page.getByRole('heading',{name:'样本外检验'})).toHaveCount(0);
+ for(const label of ['胜率','预测命中率（±5bp）','平均误差','训练样本'])await expect(page.getByText(label,{exact:true}).first()).toBeVisible();
+ const shown=async()=>(await page.locator('.issuance-summary .metric-card, .issuance-summary').first().innerText());
+ const before=await shown();
+ await group.getByRole('button',{name:'5年次级债'}).click();
+ await expect(group.getByRole('button',{name:'5年次级债'})).toHaveAttribute('aria-pressed','true');
+ await expect(page.locator('.issuance-product')).toContainText('5年次级债');
+ expect(await shown()).not.toBe(before);
+ await page.getByRole('button',{name:'展开未来发行窗口明细'}).click();
+ await expect(page.getByRole('row',{name:/2026年11月2日/})).toBeVisible();
+ await page.locator('.contribution-details summary').click();
+ await expect(page.getByRole('cell',{name:'CPI同比',exact:true})).toBeVisible();
+ expect(errors).toEqual([]);
+});
