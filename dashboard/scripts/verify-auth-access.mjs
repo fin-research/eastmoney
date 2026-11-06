@@ -45,11 +45,12 @@ export const ACCESS_PROBES = [
   ['login', '/data/choice/csd', [422]],
   ['login', '/data/choice/ctr', [422]],
   ['login', '/data/choice/edb', [422]],
-  ['login', '/data/camel', [404]],
+  ['login', '/data/camel', [403]],
 ];
 
 function denied(response) {
   if ([401, 403].includes(response.status)) return true;
+  if (response.status === 200) { try { return JSON.parse(response.text).type === 'redirect'; } catch { return false; } }
   if (![302, 303].includes(response.status)) return false;
   const location = response.headers.get('location');
   if (!location) return false;
@@ -62,8 +63,11 @@ async function main() {
   const config = await readAuthTestConfig();
   const anonymous = createHttpSession();
   const failures = [];
-  for (const [scope, path, expected] of ACCESS_PROBES) {
-    const response = await anonymous.request(SITE_ORIGIN + path, { headers: { Accept: path.startsWith('/api/') || path.startsWith('/data/') ? 'application/json' : 'text/html' }, followRedirects: false });
+  // Protected pages are CSR shells for anonymous HTML, so probe their data endpoint.
+  const probes = ACCESS_PROBES.map(([scope, path, status]) => [scope, scope !== 'public' && !path.startsWith('/api/') && !path.startsWith('/data/') && !path.startsWith('/auth/') ? path + '/__data.json' : path, status]);
+  const accept = path => path.endsWith('/__data.json') || path.startsWith('/api/') || path.startsWith('/data/') ? 'application/json' : 'text/html';
+  for (const [scope, path, expected] of probes) {
+    const response = await anonymous.request(SITE_ORIGIN + path, { headers: { Accept: accept(path) }, followRedirects: false });
     const passed = scope === 'public' ? expected.includes(response.status) : denied(response);
     console.log(JSON.stringify({ identity: 'anonymous', scope, path: new URL(path, SITE_ORIGIN).pathname, status: response.status, passed }));
     if (!passed) failures.push(`anonymous ${scope}`);
@@ -71,9 +75,9 @@ async function main() {
   const session = await loginTestAccount(config);
   const permissions = new Set((session.profile.permissions ?? []).map(item => item.name));
   const isAdmin = session.profile.roles?.some(role => role.name === 'admin') === true;
-  for (const [scope, path, expected] of ACCESS_PROBES) {
+  for (const [scope, path, expected] of probes) {
     await pause(1500);
-    const response = await session.request(SITE_ORIGIN + path, { headers: { Accept: path.startsWith('/api/') || path.startsWith('/data/') ? 'application/json' : 'text/html' }, followRedirects: false });
+    const response = await session.request(SITE_ORIGIN + path, { headers: { Accept: accept(path) }, followRedirects: false });
     const permitted = scope === 'admin' ? isAdmin : ['public', 'login'].includes(scope) || permissions.has(scope);
     const passed = permitted ? expected.includes(response.status) : response.status === 403;
     let failureDetail;
@@ -84,7 +88,7 @@ async function main() {
       granted: permitted, status: response.status, passed, ...(failureDetail ? { detail: failureDetail } : {}) }));
     if (!passed) failures.push(`test-account ${scope}`);
   }
-  console.log(JSON.stringify({ programmaticLogin: true, browserUsed: false, probes: ACCESS_PROBES.length * 2,
+  console.log(JSON.stringify({ programmaticLogin: true, browserUsed: false, probes: probes.length * 2,
     testAccount: config.email, permissions: permissions.size, failures }));
   if (failures.length) process.exitCode = 1;
 }

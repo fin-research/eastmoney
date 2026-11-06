@@ -597,7 +597,7 @@
             <div><dt>全部贡献</dt><dd>{couponTotal >= 0 ? '+' : ''}{couponTotal.toFixed(3)} bp</dd></div>
             <div><dt>预测发行利率</dt><dd>{(product.coupon_pct * 100).toFixed(3)} bp</dd></div>
           </dl>
-          <div class="driver-grid">
+          <div class="driver-grid driver-grid--detail">
             <ChartHost renderer={renderIssuanceShapRadar} args={[couponGroups]} ariaLabel="票面预测因子贡献雷达图" className="driver-radar-chart" />
             <ChartHost renderer={renderFinancingDriverContributions} args={[couponDrivers, "coupon", true]}
               ariaLabel={`因子贡献：${couponGroups.map(row => `${row.display_name} ${row.net_bp.toFixed(3)} bp`).join("，")}`} className="driver-contribution-chart" />
@@ -1214,6 +1214,10 @@
 
   .driver-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .driver-grid--detail {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
   }
 
   .product-layout {
@@ -1924,6 +1928,7 @@
     .driver-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+    .driver-grid--detail { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
 
     .product-layout {
       grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);

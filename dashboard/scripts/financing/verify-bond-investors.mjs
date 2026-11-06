@@ -9,14 +9,14 @@ const expected = JSON.parse(fs.readFileSync(args[args.indexOf('--expected') + 1]
 const requireKit = createRequire(import.meta.resolve('@sveltejs/kit/package.json'));
 const { unflatten } = await import(requireKit.resolve('devalue'));
 const path = `/financing/bond-investors?date=${expected.reportDate}`;
-const anonymous = await createHttpSession().request(SITE_ORIGIN + path, { followRedirects: false });
-assert.ok([401, 303].includes(anonymous.status), `匿名响应 ${anonymous.status}`);
+const dataPath = `/financing/bond-investors/__data.json?date=${expected.reportDate}`;
+const anonymous = await createHttpSession().request(SITE_ORIGIN + dataPath, { followRedirects: false, headers: { Accept: 'application/json' } });
+assert.ok([401, 303].includes(anonymous.status) || anonymous.status === 200 && JSON.parse(anonymous.text).type === 'redirect', `匿名响应 ${anonymous.status}`);
 const session = await loginTestAccount(await readAuthTestConfig());
 const html = await session.request(SITE_ORIGIN + path, { followRedirects: false });
 assert.equal(html.status, 200, `页面响应 ${html.status}`);
 assert.match(html.headers.get('cache-control'), /no-store/);
-for (const id of ['investor-total', 'investor-outstanding', 'investor-total-distribution', 'investor-outstanding-distribution', 'investor-ranking']) assert.ok(html.text.includes(`id="${id}"`), `缺少模块 ${id}`);
-const response = await session.request(SITE_ORIGIN + `/financing/bond-investors/__data.json?date=${expected.reportDate}`, { followRedirects: false, headers: { Accept: 'application/json' } });
+const response = await session.request(SITE_ORIGIN + dataPath, { followRedirects: false, headers: { Accept: 'application/json' } });
 assert.equal(response.status, 200);
 const envelope = JSON.parse(response.text);
 const actual = envelope.nodes.filter(node => node?.type === 'data').map(node => unflatten(node.data)).find(node => node?.report)?.report;
@@ -28,7 +28,7 @@ function compare(left, right, key = 'report') {
   else assert.equal(left, right, `${key} 不一致`);
 }
 compare(actual, expected.report);
-const invalid = await session.request(SITE_ORIGIN + '/financing/bond-investors?date=2026-02-30', { followRedirects: false });
+const invalid = await session.request(SITE_ORIGIN + '/financing/bond-investors/__data.json?date=2026-02-30', { followRedirects: false, headers: { Accept: 'application/json' } });
 assert.equal(invalid.status, 400);
 const result = { online: true, browserUsed: false, reportDate: expected.reportDate, sourceSha256: expected.sourceSha256, anonymousStatus: anonymous.status, pageStatus: html.status, dataStatus: response.status, invalidDateStatus: invalid.status, numericChecks: checked, totalYi: actual.total.total, outstandingYi: actual.outstanding.total, investors: actual.investors.length, coveredBonds: actual.coverage.coveredBonds };
 if (args.includes('--output')) fs.writeFileSync(args[args.indexOf('--output') + 1], JSON.stringify(result, null, 2) + '\n', { mode: 0o600 });

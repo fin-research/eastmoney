@@ -45,7 +45,7 @@ for (const item of cases.filter(c => !selected || selected === c.id)) {
 async function evaluateHttp(item, progress) {
   // Use only the programmatically verified test account. Fixed user DOs
   // archive the previous test conversation when starting each new case.
-  const headers = { origin: base, cookie: httpSession.cookies.header(base), "content-type": "application/json" };
+  const headers = { origin: base, ...httpSession.bearerHeaders(), "content-type": "application/json" };
   const fresh = await fetch(base + "/api/credit-assistant/session/new", { method: "POST", headers,
     body: "{}", signal: AbortSignal.timeout(45_000), redirect: "error" });
   if (!fresh.ok) throw new Error("归档验收会话失败 HTTP " + fresh.status);
@@ -55,7 +55,7 @@ async function evaluateHttp(item, progress) {
   if (submit.status !== 202) throw new Error("创建验收会话失败 HTTP " + submit.status);
   await submit.body?.cancel();
   const response = await fetch(`${base}/api/credit-assistant/session/events`,
-    { headers: { cookie: headers.cookie, accept: "text/event-stream" }, signal: AbortSignal.timeout(15 * 60_000), redirect: "error" });
+    { headers: { ...httpSession.bearerHeaders(), accept: "text/event-stream" }, signal: AbortSignal.timeout(15 * 60_000), redirect: "error" });
   if (!response.ok || !response.body || !response.headers.get("content-type")?.includes("text/event-stream")) throw new Error("SSE 连接失败 HTTP " + response.status);
   let state, progressEvents = 0, last = "";
   await readSse(response.body, event => {
