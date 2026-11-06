@@ -149,6 +149,40 @@ def issuer_valuation(inputs, days, p, piv_all):
     return filled
 
 
+def _primary_features(ds, q, days, p, out):
+    qi = pd.DataFrame(ds["quant_input"])
+    qi["observation_date"] = pd.to_datetime(qi["observation_date"])
+    wide = qi.pivot_table(index="observation_date", columns="field", values="value")
+    wide = wide.reindex(pd.date_range(wide.index.min(), wide.index.max()))
+    for f in PRIMARY:
+        out[f"{f}_5d"] = wide[f].rolling(5, min_periods=5).sum().get(q, np.nan)
+    wc = wide["WEIGHTED_COST"]
+    out["WEIGHTED_COST"] = wc.get(q, np.nan)
+    out["WEIGHTED_COST_chg5"] = (wc.get(q, np.nan) - wc.get(days[p - 5], np.nan)) * 100
+
+
+def _fundamental_features(ds, q, days, p, out):
+    for code, (name, freq) in FUND.items():
+        rows = [r for r in ds["edb"] if r["field"] == code and r["value"] is not None]
+        if freq == "M":
+            seen = {}
+            for r in rows:
+                seen.setdefault(r["observation_date"], r)
+            avail = sorted((_ts(r["published_date"]), float(r["value"])) for r in seen.values() if r["published_date"])
+            usable = [v for d, v in avail if d <= q]
+            out[name] = usable[-1] if usable else np.nan
+            out[f"{name}·较上期变化"] = usable[-1] - usable[-2] if len(usable) >= 2 else np.nan
+        else:
+            s = _series(ds["edb"], code)
+            def level(date, s=s):
+                prior = s[s.index <= date]
+                if prior.empty or (date - prior.index[-1]) > pd.Timedelta(days=10):
+                    return np.nan
+                return float(prior.iloc[-1])
+            out[name] = level(q)
+            out[f"{name}·5日变化"] = level(q) - level(days[p - 5])
+
+
 def features(inputs, product, catch_up_hat, issuer_stats, days=None):
     """The full feature row of one product at the last quote day."""
     days = quote_context(inputs) if days is None else days
@@ -172,41 +206,14 @@ def features(inputs, product, catch_up_hat, issuer_stats, days=None):
     out["credit_spread"] = (piv.at[q, 3.0] - out["GOV_3Y"]) * 100
     out["term_spread_10_1"] = (out["GOV_10Y"] - out["GOV_1Y"]) * 100
     out["cdb_gov_3y"] = (out["CDB_3Y"] - out["GOV_3Y"]) * 100
-    qi = pd.DataFrame(ds["quant_input"])
-    qi["observation_date"] = pd.to_datetime(qi["observation_date"])
-    wide = qi.pivot_table(index="observation_date", columns="field", values="value")
-    wide = wide.reindex(pd.date_range(wide.index.min(), wide.index.max()))
-    for f in PRIMARY:
-        out[f"{f}_5d"] = wide[f].rolling(5, min_periods=5).sum().get(q, np.nan)
-    wc = wide["WEIGHTED_COST"]
-    out["WEIGHTED_COST"] = wc.get(q, np.nan)
-    out["WEIGHTED_COST_chg5"] = (wc.get(q, np.nan) - wc.get(days[p - 5], np.nan)) * 100
+    _primary_features(ds, q, days, p, out)
     median, amount, rating, n_prior = issuer_stats
     out["tenor_node"] = node
     out["subordinated"] = 1.0 if product["bond_type"] == "证券公司次级债" else 0.0
     out["log_amount"] = math.log(max(amount, 1e-6))
     out["rating_rank"] = rating
     out["catch_up_hat"] = float(catch_up_hat)
-    # fundamentals
-    for code, (name, freq) in FUND.items():
-        rows = [r for r in ds["edb"] if r["field"] == code and r["value"] is not None]
-        if freq == "M":
-            seen = {}
-            for r in rows:
-                seen.setdefault(r["observation_date"], r)
-            avail = sorted((_ts(r["published_date"]), float(r["value"])) for r in seen.values() if r["published_date"])
-            usable = [v for d, v in avail if d <= q]
-            out[name] = usable[-1] if usable else np.nan
-            out[f"{name}·较上期变化"] = usable[-1] - usable[-2] if len(usable) >= 2 else np.nan
-        else:
-            s = _series(ds["edb"], code)
-            def level(date, s=s):
-                prior = s[s.index <= date]
-                if prior.empty or (date - prior.index[-1]) > pd.Timedelta(days=10):
-                    return np.nan
-                return float(prior.iloc[-1])
-            out[name] = level(q)
-            out[f"{name}·5日变化"] = level(q) - level(days[p - 5])
+    _fundamental_features(ds, q, days, p, out)
     # issuer valuation
     piv_all = _curve_frame(ds["curve"])
     val = issuer_valuation(inputs, days, p, piv_all)
