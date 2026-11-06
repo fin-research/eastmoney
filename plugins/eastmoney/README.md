@@ -17,7 +17,7 @@
 
 ## OpenCode / AiWork
 
-OpenCode 1.18.18（AiWork-sec 1.6.0 内置）支持 `skills.paths`，递归扫描其中的 `**/SKILL.md`。在 `opencode.json`（AiWork 为 `~/.aiwork-sec/.config/opencode/opencode.json`）加入本插件的 skills 目录即可：
+OpenCode 1.18.18（AiWork-sec 1.6.0 内置）支持 `skills.paths`，递归扫描其中的 `**/SKILL.md`。在用户配置里加入本插件的 skills 目录即可。AiWork 写在 `~/.aiwork-sec/.config/opencode/config.json`：同目录的 `opencode.json` 由 AiWork 生成，会被覆盖。`skills.paths` 只增加扫描目录，已有的 AiWork 内置 skill 不受影响。
 
 ```json
 {
