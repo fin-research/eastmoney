@@ -6,8 +6,8 @@
     {
       "name": "eastmoney",
       "source": "./plugins/eastmoney",
-      "description": "券商资金部市场工具集：eastmoney MCP 加市场点评/今日聚焦、二级池周报、时事快评、拆借台账归档与资金系统上传、授信周报归档与导出技能。",
-      "version": "1.2.0"
+      "description": "券商资金部市场工具集：eastmoney MCP 加市场点评/今日聚焦、二级池周报（含台账增量上传）、时事快评、拆借台账归档与资金系统上传、授信周报归档与导出、债券实际投资人入库、竖版可视化报告、中文润色及 MCP 安装技能。",
+      "version": "1.3.0"
     }
   ]
 }

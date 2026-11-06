@@ -2,6 +2,8 @@
 
 所有命令在任何工作目录都可运行（脚本只通过自身相对路径读取 `core.mjs`），无环境变量、网络请求、运行时安装或本机项目依赖。Node.js 版本至少 20。命令写法见 SKILL.md。
 
+> 自动化：`scripts/assemble.mjs` 从 `responses/` 目录组装下面的 raw.json 并直接跑 prepare，通常无需手写 raw.json；以下字段契约供理解产物结构与审计。
+
 ## live raw.json
 
 以下示意用占位符描述结构，不能将示意空数组用作真实取数结果。时间必须为实际带时区 ISO 时间。
@@ -25,7 +27,7 @@
 }
 ```
 
-`provenance` 对 calendar 与全部 resources 键各有记录；`tool` 是实际短名或带 `_短名` 后缀的完整工具名（如 `mcp__plugin_eastmoney_eastmoney__eastmoney_omo`），`args` 保存真实参数。分批基础信息记录多行。资源列表保存从成功响应中解包的 DTO；空值保留 null，不删除未知数值、不预先改单位。`news_batches.items` 每条需 sentimentId、title、time、tags、content，可有 important、link；允许单条 content为空，不能整批材料为空。
+`provenance` 对 calendar 与全部 resources 键各有记录；`tool` 是实际短名或带 `_短名` 后缀的完整工具名（如 `mcp__plugin_eastmoney_eastmoney__omo`），`args` 保存真实参数。分批基础信息记录多行。资源列表保存从成功响应中解包的 DTO；空值保留 null，不删除未知数值、不预先改单位。`news_batches.items` 每条需 sentimentId、title、time、tags、content，可有 important、link；允许单条 content为空，不能整批材料为空。
 
 ## archive raw.json
 

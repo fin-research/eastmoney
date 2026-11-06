@@ -11,13 +11,14 @@ description: 撰写券商资金部视角的时事快评、政策跟踪和海外�
 
 - 市场收盘点评、股债复盘及其原版 HTML 图片报告 → 用 [market-commentary](../market-commentary/SKILL.md)，不套本技能模板。
 - 二级池运营周报 → 用 [secondary-pool-weekly](../secondary-pool-weekly/SKILL.md)。
+- 用户给出完整报告或文字稿，要求生成图片、图片版报告、可视化报告、竖版长图或信息长图 → 用 [vertical-visual-report](../vertical-visual-report/SKILL.md)，以可视化成品为交付，快评格式及强制应对建议不套用到图中；已有完整稿件的纯可视化任务不强制先查研报，只在需要核实或补充数据时检索。
 - 其他文字快评 → 继续本技能。
 
 ## 流程
 
-1. **检索研报**：写文字快评前，先调用 eastmoney MCP 的 `mcp__plugin_eastmoney_eastmoney__research_search` 做研报 RAG 检索，再动笔。工具名、参数和日期过滤、去重、原文采用、不可用时如何说明，全部见 [references/research-search.md](references/research-search.md)，写作前读它。工具名以运行时实际暴露的为准（用 ToolSearch 确认），schema 变了就报告差异，不要猜。
+1. **检索研报**：写文字快评前，先调用 eastmoney MCP 的 `research_search` 做研报 RAG 检索（Claude Code 插件里完整名为 `mcp__plugin_eastmoney_eastmoney__research_search`，OpenCode / AiWork 为 `eastmoney_research_search`），再动笔。工具名、参数和日期过滤、去重、原文采用、不可用时如何说明，全部见 [references/research-search.md](references/research-search.md)，写作前读它。工具名以运行时实际暴露的为准（Claude Code 用 ToolSearch 确认），schema 变了就报告差异，不要猜。
 2. **写初稿**：按下面的写作要求和输出格式成文。数据只来自用户材料或检索到的原文，来源要一致。
-3. **中文润色**：初稿完成后，用 Skill 工具调用内置的 `humanizer-zh` 优化完整快评的语言。保持券商资金部快评专业、凝练的文体，清除套话、重复和机械句式；研报原文引用和所有数字保持原样，因为它们需要可追溯。润色后核对全文一页以内、事件摘要 120 字以内。直接交付润色后的快评，不附润色过程或自评。
+3. **中文润色**：初稿完成后，用 Skill 工具调用本插件内置的 [humanizer-zh](../humanizer-zh/SKILL.md)（Claude Code 中为 `eastmoney:humanizer-zh`） 优化完整快评的语言。保持券商资金部快评专业、凝练的文体，清除套话、重复和机械句式；研报原文引用和所有数字保持原样，因为它们需要可追溯。润色后核对全文一页以内、事件摘要 120 字以内。直接交付润色后的快评，不附润色过程或自评。
 
 ## 写作要求
 

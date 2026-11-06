@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
-import {mkdtemp,readFile,writeFile,cp,rm} from 'node:fs/promises';
+import {mkdtemp,mkdir,readFile,writeFile,cp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {execFileSync} from 'node:child_process';
+import {execFile,execFileSync} from 'node:child_process';
+import {promisify} from 'node:util';
 import {realpathSync} from 'node:fs';
+import http from 'node:http';
 import {prepare,render,selectRange,unwrap,main} from './report.mjs';
+const execFileAsync=promisify(execFile);
 
 export function fixture() {
   const performance=Array.from({length:5},(_,i)=>({date:`2026-10-${19+i}`,principal:1e8,timeWeightedPrincipal:1e8,marketValue:1.2e8,leverage:1.2,modifiedDuration:1.1,dailyRevenue:1e5,cumulativeProfit:2e6+i*1e5,ytdAnnualizedReturn:0.99,ytdExTaxAnnualizedReturn:0.98}));
@@ -55,7 +58,7 @@ if(process.argv[1]&&process.argv[1]!=='-'&&realpathSync(process.argv[1])===fileU
   const partial=structuredClone(raw);partial.requestedRange={start:'2026-10-21',end:'2026-10-23'};partial.report.arguments.query.start='2026-10-21';assert.equal(prepare(partial).evidence.metrics.weeklyRevenue,300000);assert.match(render({raw:partial},composition).html,/本周区间内营收/);
   const directory=await mkdtemp(join(tmpdir(),'secondary-pool-isolated-'));
   try {
-    const installed=join(directory,'skill','scripts');await cp(dirname(fileURLToPath(import.meta.url)),installed,{recursive:true});
+    const installed=join(directory,'plugin','scripts');await cp(dirname(fileURLToPath(import.meta.url)),installed,{recursive:true});
     const input=join(directory,'raw.json'),draft=join(directory,'composition.json');await writeFile(input,JSON.stringify(raw));await writeFile(draft,JSON.stringify(composition));
     const cli=join(installed,'report.mjs'),prepared=join(directory,'prepared'),output=join(directory,'result');
     execFileSync(process.execPath,[cli,'prepare',input,prepared],{cwd:directory,env:{PATH:process.env.PATH},stdio:'pipe'});
@@ -67,6 +70,51 @@ if(process.argv[1]&&process.argv[1]!=='-'&&realpathSync(process.argv[1])===fileU
     await writeFile(join(prepared,'prepared.json'),JSON.stringify({raw:failed}));
     assert.throws(()=>execFileSync(process.execPath,[cli,'render',join(prepared,'prepared.json'),draft,output],{stdio:'pipe'}));
     await assert.rejects(readFile(join(output,'secondary-pool-weekly.html')),/ENOENT/);
-    console.log('PASS: dates, MCP errors, full-pool fields, zero/null, audits, temporal isolation, escaped HTML, offline SVG and isolated CLI');
+    // Ledger parsing and incremental upload tooling run inside the same isolated copy.
+    const {parseBondLedgerBuffer,matchesLedgerFile}=await import(join(installed,'ledger-parser.mjs'));
+    const {main:uploadMain}=await import(join(installed,'upload.mjs'));
+    const fixtureFile=join(installed,'test-fixtures','mini-ledger.xlsx');
+    assert.equal(matchesLedgerFile('二级资金池台账20261026.xlsx'),true);
+    assert.equal(matchesLedgerFile('主承簿记表20261026.xlsx'),false);
+    assert.equal(matchesLedgerFile('二级资金池台账.xls'),false);
+    const parsedFixture=parseBondLedgerBuffer(await readFile(fixtureFile));
+    assert.equal(parsedFixture.date,'2026-10-26');assert.equal(parsedFixture.performance.length,1);assert.equal(parsedFixture.positions.length,1);
+    const scanDir=join(directory,'scan');await mkdir(scanDir,{recursive:true});
+    await cp(fixtureFile,join(scanDir,'二级资金池台账20261026.xlsx'));
+    const uploadRaw=join(directory,'upload-raw.json');
+    await writeFile(uploadRaw,JSON.stringify({asOf:'2026-10-27',inventory:{tool:'eastmoney_bond_ledger',arguments:{},fetchedAt:'2026-10-27T10:00:00+08:00',response:{structuredContent:{data:{databaseDates:['2026-10-22','2026-10-23']}}}}}));
+    const uploadOut=join(directory,'uploads');
+    execFileSync(process.execPath,[join(installed,'upload.mjs'),'prepare',uploadRaw,uploadOut,scanDir],{cwd:directory,env:{PATH:process.env.PATH},stdio:'pipe'});
+    const manifest=JSON.parse(await readFile(join(uploadOut,'upload-manifest.json'),'utf8'));
+    assert.equal(manifest.pending.length,1);assert.equal(manifest.pending[0].date,'2026-10-26');assert.equal(manifest.failed.length,0);
+    const payload=JSON.parse(await readFile(join(uploadOut,manifest.pending[0].payload),'utf8'));
+    assert.equal(payload.expectedDate,'2026-10-26');assert.equal(payload.fileName,'二级资金池台账20261026.xlsx');assert.ok(payload.size>0);assert.equal(payload.parsed.date,'2026-10-26');assert.equal(payload.fileBase64,undefined);
+    await writeFile(uploadRaw,JSON.stringify({asOf:'2026-10-27',inventory:{tool:'eastmoney_bond_ledger',arguments:{},fetchedAt:'2026-10-27T10:00:00+08:00',response:{structuredContent:{data:{databaseDates:['2026-10-22','2026-10-23','2026-10-26']}}}}}));
+    const uploadOut2=join(directory,'uploads2');
+    execFileSync(process.execPath,[join(installed,'upload.mjs'),'prepare',uploadRaw,uploadOut2,scanDir],{cwd:directory,env:{PATH:process.env.PATH},stdio:'pipe'});
+    const manifest2=JSON.parse(await readFile(join(uploadOut2,'upload-manifest.json'),'utf8'));
+    assert.equal(manifest2.pending.length,0);assert.equal(manifest2.skipped.length,1);assert.equal(manifest2.skipped[0].reason,'already_imported');
+    // upload.mjs put streams the raw xlsx bytes to a presigned URL and reports HTTP failures.
+    const received=[];
+    let putCount=0;
+    const server=http.createServer(async (req,res)=>{
+      const chunks=[];
+      for await (const chunk of req) chunks.push(chunk);
+      received.push({method:req.method,type:req.headers['content-type'],ifNoneMatch:req.headers['if-none-match'],bytes:Buffer.concat(chunks).length});
+      if(req.method!=='PUT'){res.writeHead(405);res.end();return;}
+      putCount+=1;
+      if(putCount===1){res.writeHead(200);res.end();}
+      else {res.writeHead(400,{'Content-Type':'text/plain'});res.end('signature expired');}
+    });
+    await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+    const port=server.address().port;
+    try {
+    const uploadCli=join(installed,'upload.mjs');
+    const fixtureBytes=(await readFile(fixtureFile)).byteLength;
+    await execFileAsync(process.execPath,[uploadCli,'put',`http://127.0.0.1:${port}/upload`,fixtureFile,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],{cwd:directory,env:{PATH:process.env.PATH}});
+    assert.equal(received.length,1);assert.equal(received[0].method,'PUT');assert.equal(received[0].bytes,fixtureBytes);assert.equal(received[0].type,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');assert.equal(received[0].ifNoneMatch,'*');
+    await assert.rejects(execFileAsync(process.execPath,[uploadCli,'put',`http://127.0.0.1:${port}/upload`,fixtureFile]),error=>/直传失败/.test(error.stderr));
+    } finally {await new Promise(resolve=>server.close(resolve));}
+    console.log('PASS: dates, MCP errors, full-pool fields, zero/null, audits, temporal isolation, escaped HTML, offline SVG, isolated CLI and ledger upload');
   } finally {await rm(directory,{recursive:true,force:true});}
 }
