@@ -1,4 +1,4 @@
-// 按版面描述（layout.mjs 生成的 JSON）绘制 PDF：每个页面缩放到一页 A4（只缩小不放大），水平垂直居中，0 边距。
+// 按版面描述（layout.mjs 生成的 JSON）绘制 PDF：每个页面缩放到一页 A4（只缩小不放大），水平垂直居中，左右 0 边距，上下各留 marginV。
 // 用法：render <plan.json> <out.pdf>。只依赖 macOS 自带的 CoreGraphics / CoreText。
 import Foundation
 import CoreGraphics
@@ -15,7 +15,7 @@ struct Cell: Decodable {
 struct Page: Decodable { let cols: [Double]; let rows: [Double]; let cells: [Cell] }
 struct Plan: Decodable { let pages: [Page] }
 
-let pageW = 595.2756, pageH = 841.8898, pad = 3.0
+let pageW = 595.2756, pageH = 841.8898, pad = 3.0, marginV = 24.0, minLine = 0.4 // 线宽下限（页面上的点数），避免缩小后网格线在阅读器里时隐时现
 
 func cgColor(_ hex: String) -> CGColor {
     let v = UInt32(hex.suffix(6), radix: 16) ?? 0
@@ -85,7 +85,7 @@ func run(_ planPath: String, _ outPath: String) throws {
     guard let ctx = CGContext(URL(fileURLWithPath: outPath) as CFURL, mediaBox: &box, nil) else { throw NSError(domain: "render", code: 1) }
     for page in plan.pages {
         let w = page.cols.reduce(0, +), h = page.rows.reduce(0, +)
-        let s = min(pageW / w, pageH / h, 1)
+        let s = min(pageW / w, (pageH - 2 * marginV) / h, 1)
         var xs = [0.0], ys = [0.0]
         for c in page.cols { xs.append(xs.last! + c) }
         for r in page.rows { ys.append(ys.last! + r) }
@@ -101,16 +101,26 @@ func run(_ planPath: String, _ outPath: String) throws {
         ctx.scaleBy(x: s, y: -s)
         for c in page.cells { if let f = c.fill, rect(c).width > 0, rect(c).height > 0 { ctx.setFillColor(cgColor(f)); ctx.fill(rect(c)) } }
         for c in page.cells where rect(c).width > 0 && rect(c).height > 0 { drawText(ctx, c, textRect(c)) }
+        // 相邻单元格对同一条边各有定义时（如合并格的右边框是黑色、右邻格的左边框是浅蓝），Excel 以深色粗线为准：
+        // 先收集所有线段，浅色/细线先画，深色/粗线后画盖在上面。
+        struct Seg { let e: Edge; let x1: CGFloat; let y1: CGFloat; let x2: CGFloat; let y2: CGFloat }
+        var segs: [Seg] = []
         for c in page.cells {
             let r = rect(c)
             if r.width <= 0 || r.height <= 0 { continue }
-            func line(_ e: Edge?, _ x1: CGFloat, _ y1: CGFloat, _ x2: CGFloat, _ y2: CGFloat) {
-                guard let e = e else { return }
-                ctx.setStrokeColor(cgColor(e.color)); ctx.setLineWidth(max(e.w, 0.4 / s))
-                ctx.move(to: CGPoint(x: x1, y: y1)); ctx.addLine(to: CGPoint(x: x2, y: y2)); ctx.strokePath()
-            }
-            line(c.bt, r.minX, r.minY, r.maxX, r.minY); line(c.bb, r.minX, r.maxY, r.maxX, r.maxY)
-            line(c.bl, r.minX, r.minY, r.minX, r.maxY); line(c.br, r.maxX, r.minY, r.maxX, r.maxY)
+            if let e = c.bt { segs.append(Seg(e: e, x1: r.minX, y1: r.minY, x2: r.maxX, y2: r.minY)) }
+            if let e = c.bb { segs.append(Seg(e: e, x1: r.minX, y1: r.maxY, x2: r.maxX, y2: r.maxY)) }
+            if let e = c.bl { segs.append(Seg(e: e, x1: r.minX, y1: r.minY, x2: r.minX, y2: r.maxY)) }
+            if let e = c.br { segs.append(Seg(e: e, x1: r.maxX, y1: r.minY, x2: r.maxX, y2: r.maxY)) }
+        }
+        func luminance(_ hex: String) -> Double {
+            let v = UInt32(hex.suffix(6), radix: 16) ?? 0
+            return 0.299 * Double((v >> 16) & 255) + 0.587 * Double((v >> 8) & 255) + 0.114 * Double(v & 255)
+        }
+        segs.sort { a, b in a.e.w != b.e.w ? a.e.w < b.e.w : luminance(a.e.color) > luminance(b.e.color) }
+        for g in segs {
+            ctx.setStrokeColor(cgColor(g.e.color)); ctx.setLineWidth(max(g.e.w, minLine / s))
+            ctx.move(to: CGPoint(x: g.x1, y: g.y1)); ctx.addLine(to: CGPoint(x: g.x2, y: g.y2)); ctx.strokePath()
         }
         ctx.endPDFPage()
     }

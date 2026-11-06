@@ -142,7 +142,9 @@ export function buildPlan(pkg, sheetName, areas) {
   const rowInfo = new Map(), cellMap = new Map();
   for (const row of xml.matchAll(/<row\b[^>]*?(?:\/>|>[\s\S]*?<\/row>)/g)) {
     const open = /<row\b[^>]*>/.exec(row[0])[0], r = Number(attr(open, 'r'));
-    rowInfo.set(r, attr(open, 'hidden') === '1' ? 0 : Number(attr(open, 'ht') ?? defaultRow));
+    const ht = attr(open, 'ht');
+    let fontMax = 0; // 无 ht 的行由 Excel 打开时按最大字号自动行高（宋体 36 号 → 46），其他软件另存的文件会丢掉 ht
+    rowInfo.set(r, attr(open, 'hidden') === '1' ? 0 : ht !== null ? Number(ht) : defaultRow);
     for (const c of row[0].matchAll(/<c\b[^>]*?(?:\/>|>[\s\S]*?<\/c>)/g)) {
       const cOpen = /<c\b[^>]*>/.exec(c[0])[0], p = splitRef(attr(cOpen, 'r'));
       const v = /<v>([\s\S]*?)<\/v>/.exec(c[0]), t = attr(cOpen, 't') ?? 'n';
@@ -155,7 +157,9 @@ export function buildPlan(pkg, sheetName, areas) {
       const xf = tables.xfs[Number(attr(cOpen, 's') ?? 0)];
       if (!xf) throw new Error(`单元格 ${attr(cOpen, 'r')} 引用了不存在的样式`);
       cellMap.set(`${p.colNo},${p.row}`, { xf, value });
+      if (value !== undefined) fontMax = Math.max(fontMax, xf.font.size ?? 0);
     }
+    if (ht === null && rowInfo.get(r) > 0) rowInfo.set(r, Math.max(defaultRow, Math.round(fontMax * 1.28)));
   }
   const merges = [...xml.matchAll(/<mergeCell\b[^>]*>/g)].map(m => parseRange(attr(m[0], 'ref')));
   const rules = conditionalRules(xml);

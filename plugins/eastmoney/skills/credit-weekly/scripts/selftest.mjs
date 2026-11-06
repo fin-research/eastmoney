@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { buildPlan } from './layout.mjs';
-import { formatValue } from './numfmt.mjs';
+import { formatCode, formatValue } from './numfmt.mjs';
 import { names, pageAreas, parseArgs, renderPdf, reportDate } from './run.mjs';
 
 const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
@@ -148,6 +148,9 @@ assert.equal(formatValue(12, 'General'), '12');
 assert.equal(formatValue('文本', '0.00'), '文本');
 assert.equal(formatValue(1.4210854715202e-14, '0.00_ '), '0.00 ');
 assert.equal(formatValue(-2e-7, '#,##0.00'), '-0.00');
+assert.equal(formatValue(46332, formatCode(72, new Map())), '2026/11/6'); // 另一区域设置保存的内置格式 60/67/72 = 0.00/0%/日期
+assert.equal(formatValue(0.5, formatCode(67, new Map())), '50%');
+assert.equal(formatValue(3359.85, formatCode(60, new Map())), '3359.85');
 assert.throws(() => formatValue(1, 'yyyy/m/d h:mm'), /时间/);
 assert.throws(() => formatValue(1, '[>=100]0'), /方括号/);
 
